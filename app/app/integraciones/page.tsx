@@ -1,0 +1,484 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { CheckCircle, Plus, Eye, EyeOff, Copy, Trash2 } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { createClient } from "@/lib/supabase/client"
+
+interface Exchange {
+  id: string
+  exchange_name: string
+  api_key: string
+  testnet: boolean
+  created_at: string
+}
+
+export default function IntegrationsPage() {
+  const [showSecret, setShowSecret] = useState<{ [key: string]: boolean }>({})
+  const [showApiKey, setShowApiKey] = useState(false)
+  const [showApiSecret, setShowApiSecret] = useState(false)
+  const [exchanges, setExchanges] = useState<Exchange[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showAddForm, setShowAddForm] = useState(false)
+
+  const [formData, setFormData] = useState({
+    apiKey: "",
+    apiSecret: "",
+    testnet: true,
+  })
+  const [saving, setSaving] = useState(false)
+
+  const supabase = createClient()
+
+  useEffect(() => {
+    loadExchanges()
+  }, [])
+
+  const loadExchanges = async () => {
+    try {
+      setLoading(true)
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) {
+        console.log("[v0] No user found")
+        return
+      }
+
+      const { data, error } = await supabase
+        .from("exchanges")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+
+      if (error) {
+        console.error("[v0] Error loading exchanges:", error)
+        return
+      }
+
+      console.log("[v0] Loaded exchanges:", data)
+      setExchanges(data || [])
+    } catch (error) {
+      console.error("[v0] Error in loadExchanges:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const saveExchange = async () => {
+    if (!formData.apiKey || !formData.apiSecret) {
+      alert("Por favor completa todos los campos")
+      return
+    }
+
+    try {
+      setSaving(true)
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) {
+        alert("Debes iniciar sesión")
+        return
+      }
+
+      console.log("[v0] Saving exchange for user:", user.id)
+
+      const { data, error } = await supabase
+        .from("exchanges")
+        .insert({
+          user_id: user.id,
+          exchange_name: "binance",
+          api_key: formData.apiKey,
+          api_secret: formData.apiSecret,
+          testnet: formData.testnet,
+        })
+        .select()
+        .single()
+
+      if (error) {
+        console.error("[v0] Error saving exchange:", error)
+        alert(`Error al guardar: ${error.message}`)
+        return
+      }
+
+      console.log("[v0] Exchange saved:", data)
+
+      // Reset form and reload exchanges
+      setFormData({ apiKey: "", apiSecret: "", testnet: true })
+      setShowAddForm(false)
+      await loadExchanges()
+      alert("Exchange guardado exitosamente")
+    } catch (error) {
+      console.error("[v0] Error in saveExchange:", error)
+      alert("Error al guardar el exchange")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const testConnection = (id: string) => {
+    // TODO: Implement test functionality later
+    alert("Función de prueba en desarrollo...")
+  }
+
+  const deleteExchange = async (id: string) => {
+    if (!confirm("¿Estás seguro de que deseas eliminar este exchange?")) {
+      return
+    }
+
+    try {
+      console.log("[v0] Deleting exchange:", id)
+
+      const { error } = await supabase.from("exchanges").delete().eq("id", id)
+
+      if (error) {
+        console.error("[v0] Error deleting exchange:", error)
+        alert(`Error al eliminar: ${error.message}`)
+        return
+      }
+
+      console.log("[v0] Exchange deleted successfully")
+      await loadExchanges()
+    } catch (error) {
+      console.error("[v0] Error in deleteExchange:", error)
+      alert("Error al eliminar el exchange")
+    }
+  }
+
+  const maskApiKey = (key: string) => {
+    if (key.length <= 8) return key
+    return key.substring(0, 4) + "***" + key.substring(key.length - 4)
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Integraciones</h1>
+            <p className="text-muted-foreground mt-1">Gestiona conexiones con TradingView y exchanges</p>
+          </div>
+          <Button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="bg-accent hover:bg-accent/90 text-accent-foreground"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Añadir exchange
+          </Button>
+        </div>
+
+        {/* TradingView Integration */}
+        <div className="bg-card border border-border rounded-xl p-6">
+          <div className="flex items-start gap-4 mb-6">
+            <div className="text-4xl">📊</div>
+            <div className="flex-1">
+              <h2 className="text-xl font-semibold text-foreground mb-2">TradingView</h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                Configura alertas en TradingView para enviar señales a Biconnect mediante webhooks.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1 bg-accent/10 text-accent rounded-full text-sm font-medium">
+              <CheckCircle className="h-4 w-4" />
+              Activo
+            </div>
+          </div>
+
+          <div className="bg-muted/30 rounded-lg p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-foreground">Guía rápida</h3>
+            <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
+              <li>Crea una alerta en TradingView (botón de campana en el gráfico)</li>
+              <li>En "Notifications", marca "Webhook URL"</li>
+              <li>Pega la URL del webhook de tu estrategia (disponible en la página de estrategias)</li>
+              <li>
+                En "Message", incluye el JSON con los datos de la señal:
+                <div className="bg-background rounded p-3 mt-2 font-mono text-xs overflow-x-auto">
+                  {`{
+  "action": "long",
+  "symbol": "{{ticker}}",
+  "price": "{{close}}",
+  "qty_pct": 5,
+  "leverage": 5,
+  "tp": 0.01,
+  "sl": 0.005,
+  "client_id": "{{strategy.order.id}}"
+}`}
+                </div>
+              </li>
+            </ol>
+          </div>
+        </div>
+
+        {/* Add Exchange Form */}
+        {showAddForm && (
+          <div className="bg-card border border-border rounded-xl p-6">
+            <h2 className="text-xl font-semibold text-foreground mb-4">Añadir exchange</h2>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="exchange-type">Exchange</Label>
+                <Select defaultValue="binance" disabled>
+                  <SelectTrigger id="exchange-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="binance">Binance</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="api-key">API Key</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="api-key"
+                    type={showApiKey ? "text" : "password"}
+                    placeholder="Tu API key del exchange"
+                    value={formData.apiKey}
+                    onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="bg-transparent"
+                    onClick={() => setShowApiKey(!showApiKey)}
+                  >
+                    {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="api-secret">API Secret</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="api-secret"
+                    type={showApiSecret ? "text" : "password"}
+                    placeholder="Tu API secret del exchange"
+                    value={formData.apiSecret}
+                    onChange={(e) => setFormData({ ...formData, apiSecret: e.target.value })}
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="bg-transparent"
+                    onClick={() => setShowApiSecret(!showApiSecret)}
+                  >
+                    {showApiSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="environment">Entorno</Label>
+                <Select
+                  value={formData.testnet ? "testnet" : "live"}
+                  onValueChange={(value) => setFormData({ ...formData, testnet: value === "testnet" })}
+                >
+                  <SelectTrigger id="environment">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="live">Live (Producción)</SelectItem>
+                    <SelectItem value="testnet">Testnet (Pruebas)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="permissions">Permisos requeridos</Label>
+                <Textarea
+                  id="permissions"
+                  rows={3}
+                  defaultValue="- Lectura de cuenta
+- Trading (spot o futuros)
+- NO requiere permisos de retiro"
+                  disabled
+                  className="text-sm"
+                />
+              </div>
+
+              <Accordion type="single" collapsible className="border border-border rounded-lg">
+                <AccordionItem value="help-videos" className="border-none">
+                  <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                    <div className="flex items-center gap-2 text-left">
+                      <span>📹</span>
+                      <div className="text-sm">
+                        <div className="font-semibold text-foreground">¿Necesitas ayuda?</div>
+                        <div className="text-xs text-muted-foreground">Videos tutoriales</div>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4 pb-4">
+                    <div className="space-y-4">
+                      {/* Video 1: Create Binance Account */}
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-semibold text-foreground">1. Crear cuenta en Binance</h4>
+                        <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
+                          <iframe
+                            className="absolute top-0 left-0 w-full h-full rounded-lg"
+                            src="https://www.youtube.com/embed/GR0UYsCN8ug"
+                            title="Cómo crear una cuenta en Binance"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+                      </div>
+
+                      {/* Video 2: Create API Keys */}
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-semibold text-foreground">2. Crear API Keys</h4>
+                        <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
+                          <iframe
+                            className="absolute top-0 left-0 w-full h-full rounded-lg"
+                            src="https://www.youtube.com/embed/uK_sgXGQmHc?start=219"
+                            title="Cómo crear API Keys en Binance"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">Comienza desde el minuto 3:39</p>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={saveExchange}
+                  disabled={saving}
+                  className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                >
+                  {saving ? "Guardando..." : "Guardar"}
+                </Button>
+                <Button variant="outline" className="bg-transparent" onClick={() => testConnection("")} disabled>
+                  Probar (próximamente)
+                </Button>
+                <Button variant="outline" className="bg-transparent" onClick={() => setShowAddForm(false)}>
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Connected Exchanges */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold text-foreground">Exchanges conectados</h2>
+
+          {loading ? (
+            <div className="bg-card border border-border rounded-xl p-8 text-center">
+              <p className="text-muted-foreground">Cargando exchanges...</p>
+            </div>
+          ) : exchanges.length === 0 ? (
+            <div className="bg-card border border-border rounded-xl p-8 text-center">
+              <p className="text-muted-foreground">No hay exchanges conectados aún.</p>
+              <Button
+                onClick={() => setShowAddForm(true)}
+                className="mt-4 bg-accent hover:bg-accent/90 text-accent-foreground"
+              >
+                Añadir tu primer exchange
+              </Button>
+            </div>
+          ) : (
+            exchanges.map((exchange) => (
+              <div key={exchange.id} className="bg-card border border-border rounded-xl p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-start gap-4 flex-1">
+                    <div className="text-4xl">🟡</div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-foreground mb-1">
+                        Binance {exchange.testnet ? "(Testnet)" : "(Live)"}
+                      </h3>
+                      <div className="text-sm text-muted-foreground space-y-1">
+                        <div>API Key: {maskApiKey(exchange.api_key)}</div>
+                        <div>Agregado: {new Date(exchange.created_at).toLocaleDateString()}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 px-3 py-1 bg-accent/10 text-accent rounded-full text-sm font-medium">
+                      <CheckCircle className="h-4 w-4" />
+                      Conectado
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="bg-transparent"
+                    onClick={() => testConnection(exchange.id)}
+                    disabled
+                  >
+                    Probar conexión (próximamente)
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="bg-transparent text-destructive hover:bg-destructive/10"
+                    onClick={() => deleteExchange(exchange.id)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Eliminar
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* HMAC Configuration */}
+        <div className="bg-card border border-border rounded-xl p-6">
+          <h2 className="text-xl font-semibold text-foreground mb-4">Validación HMAC (Plan Pro)</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Activa la validación HMAC para verificar que las señales provienen realmente de TradingView.
+          </p>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+              <div>
+                <div className="font-medium text-foreground">HMAC activado</div>
+                <div className="text-sm text-muted-foreground">Requiere Plan Pro</div>
+              </div>
+              <input type="checkbox" disabled className="h-4 w-4" />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="hmac-secret">HMAC Secret</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="hmac-secret"
+                  type={showSecret["hmac"] ? "text" : "password"}
+                  value="sk_live_abc123xyz789..."
+                  readOnly
+                  className="font-mono text-sm"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="bg-transparent"
+                  onClick={() => setShowSecret({ ...showSecret, hmac: !showSecret["hmac"] })}
+                >
+                  {showSecret["hmac"] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+                <Button variant="outline" size="icon" className="bg-transparent">
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Comparte este secret con TradingView para firmar los webhooks
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

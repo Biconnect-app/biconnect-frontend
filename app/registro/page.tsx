@@ -1,0 +1,390 @@
+"use client"
+
+import type React from "react"
+
+import { useState } from "react"
+import Link from "next/link"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Eye, EyeOff, AlertCircle, Check, X } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
+
+export default function RegisterPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const planFromUrl = searchParams.get("plan") || "free"
+
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [acceptTerms, setAcceptTerms] = useState(false)
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    plan: planFromUrl,
+  })
+
+  // Password validation
+  const passwordValidation = {
+    length: formData.password.length >= 8,
+    number: /\d/.test(formData.password),
+    uppercase: /[A-Z]/.test(formData.password),
+    symbol: /[!@#$%^&*(),.?":{}|<>]/.test(formData.password),
+  }
+
+  const isPasswordValid = Object.values(passwordValidation).every(Boolean)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+    setLoading(true)
+
+    console.log("[v0] Registration attempt for:", formData.email)
+
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(formData.email)) {
+      setError("Por favor ingresa un email válido")
+      setLoading(false)
+      return
+    }
+
+    // Validate password
+    if (!isPasswordValid) {
+      setError("La contraseña no cumple con todos los requisitos")
+      setLoading(false)
+      return
+    }
+
+    // Validate password match
+    if (formData.password !== formData.confirmPassword) {
+      setError("Las contraseñas no coinciden")
+      setLoading(false)
+      return
+    }
+
+    // Validate terms
+    if (!acceptTerms) {
+      setError("Debes aceptar los términos y condiciones")
+      setLoading(false)
+      return
+    }
+
+    try {
+      const supabase = createClient()
+
+      // Sign up with Supabase Auth
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/app`,
+          data: {
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            username: formData.username,
+            plan: formData.plan,
+          },
+        },
+      })
+
+      console.log("[v0] Registration response:", { data, error: signUpError })
+
+      if (signUpError) {
+        console.error("[v0] Registration error:", signUpError)
+        if (signUpError.message.includes("already registered")) {
+          setError("Este email ya está registrado")
+        } else {
+          setError(signUpError.message)
+        }
+        setLoading(false)
+        return
+      }
+
+      if (data.user) {
+        console.log("[v0] Registration successful, redirecting to success page")
+        // Redirect to success page to inform user to check email
+        router.push("/registro/exito")
+      }
+    } catch (err) {
+      console.error("[v0] Unexpected error during registration:", err)
+      setError("Error al crear la cuenta. Intenta nuevamente.")
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-primary/5 via-background to-accent/5">
+      <div className="w-full max-w-2xl">
+        {/* Logo */}
+        <Link href="/" className="flex items-center justify-center gap-2 mb-8">
+          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+            <span className="text-primary-foreground font-bold text-xl">B</span>
+          </div>
+          <span className="text-2xl font-bold text-foreground">Biconnect</span>
+        </Link>
+
+        {/* Register Card */}
+        <div className="bg-card border border-border rounded-2xl shadow-xl p-8">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-foreground mb-2">Crear cuenta</h1>
+            <p className="text-muted-foreground">Automatiza tus estrategias de TradingView en segundos</p>
+          </div>
+
+          {error && (
+            <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-destructive">{error}</p>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* First Name */}
+              <div className="space-y-2">
+                <Label htmlFor="firstName">Nombre</Label>
+                <Input
+                  id="firstName"
+                  type="text"
+                  placeholder="Juan"
+                  required
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  className="h-12"
+                />
+              </div>
+
+              {/* Last Name */}
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Apellido</Label>
+                <Input
+                  id="lastName"
+                  type="text"
+                  placeholder="Pérez"
+                  required
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  className="h-12"
+                />
+              </div>
+            </div>
+
+            {/* Username */}
+            <div className="space-y-2">
+              <Label htmlFor="username">Usuario</Label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="juanperez"
+                required
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                className="h-12"
+              />
+            </div>
+
+            {/* Email */}
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="tu@email.com"
+                required
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="h-12"
+              />
+            </div>
+
+            {/* Password */}
+            <div className="space-y-2">
+              <Label htmlFor="password">Contraseña</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  required
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="h-12 pr-12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
+
+              {/* Password Requirements */}
+              {formData.password && (
+                <div className="mt-3 space-y-2 text-sm">
+                  <div
+                    className={`flex items-center gap-2 ${passwordValidation.length ? "text-accent" : "text-muted-foreground"}`}
+                  >
+                    {passwordValidation.length ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                    <span>Mínimo 8 caracteres</span>
+                  </div>
+                  <div
+                    className={`flex items-center gap-2 ${passwordValidation.number ? "text-accent" : "text-muted-foreground"}`}
+                  >
+                    {passwordValidation.number ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                    <span>Al menos un número</span>
+                  </div>
+                  <div
+                    className={`flex items-center gap-2 ${passwordValidation.uppercase ? "text-accent" : "text-muted-foreground"}`}
+                  >
+                    {passwordValidation.uppercase ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                    <span>Al menos una mayúscula</span>
+                  </div>
+                  <div
+                    className={`flex items-center gap-2 ${passwordValidation.symbol ? "text-accent" : "text-muted-foreground"}`}
+                  >
+                    {passwordValidation.symbol ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                    <span>Al menos un símbolo (!@#$%...)</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Confirm Password */}
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirmar contraseña</Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  required
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  className="h-12 pr-12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
+              {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                <p className="text-sm text-destructive flex items-center gap-2">
+                  <X className="h-4 w-4" />
+                  Las contraseñas no coinciden
+                </p>
+              )}
+            </div>
+
+            {/* Plan Selection */}
+            <div className="space-y-3">
+              <Label>Selecciona tu plan</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, plan: "free" })}
+                  className={`relative p-5 border-2 rounded-xl text-left transition-all ${
+                    formData.plan === "free"
+                      ? "border-accent bg-accent/10 shadow-lg shadow-accent/20 ring-2 ring-accent/30"
+                      : "border-border hover:border-accent/50 hover:bg-accent/5"
+                  }`}
+                >
+                  {formData.plan === "free" && (
+                    <div className="absolute top-3 right-3 w-6 h-6 bg-accent rounded-full flex items-center justify-center">
+                      <Check className="h-4 w-4 text-accent-foreground" />
+                    </div>
+                  )}
+                  <div className="font-semibold text-foreground mb-1">Plan Gratuito</div>
+                  <div className="text-sm text-muted-foreground">100 ejecuciones/mes</div>
+                  {formData.plan === "free" && <div className="mt-2 text-xs font-medium text-accent">Seleccionado</div>}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, plan: "pro" })}
+                  className={`relative p-5 border-2 rounded-xl text-left transition-all ${
+                    formData.plan === "pro"
+                      ? "border-accent bg-accent/10 shadow-lg shadow-accent/20 ring-2 ring-accent/30"
+                      : "border-border hover:border-accent/50 hover:bg-accent/5"
+                  }`}
+                >
+                  {formData.plan === "pro" && (
+                    <div className="absolute top-3 right-3 w-6 h-6 bg-accent rounded-full flex items-center justify-center">
+                      <Check className="h-4 w-4 text-accent-foreground" />
+                    </div>
+                  )}
+                  <div className="font-semibold text-foreground mb-1">Plan Pro</div>
+                  <div className="text-sm text-muted-foreground">Ejecuciones ilimitadas</div>
+                  {formData.plan === "pro" && <div className="mt-2 text-xs font-medium text-accent">Seleccionado</div>}
+                </button>
+              </div>
+            </div>
+
+            {/* Pro Plan Payment Placeholder */}
+            {formData.plan === "pro" && (
+              <div className="p-4 bg-muted/50 border border-border rounded-xl">
+                <p className="text-sm text-muted-foreground mb-2">
+                  <strong className="text-foreground">Nota:</strong> Integrar pasarela de pago aquí
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  En producción, aquí se integraría Stripe u otra pasarela de pago para procesar el pago del plan Pro.
+                </p>
+              </div>
+            )}
+
+            {/* Terms */}
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id="terms"
+                checked={acceptTerms}
+                onCheckedChange={(checked) => setAcceptTerms(!!checked)}
+                required
+                className="mt-1"
+              />
+              <Label htmlFor="terms" className="text-sm font-normal cursor-pointer leading-relaxed">
+                Acepto los{" "}
+                <Link href="/terminos" className="text-primary hover:underline">
+                  Términos y Condiciones
+                </Link>{" "}
+                y la{" "}
+                <Link href="/privacidad" className="text-primary hover:underline">
+                  Política de Privacidad
+                </Link>
+              </Label>
+            </div>
+
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
+              disabled={loading || !acceptTerms || !isPasswordValid}
+            >
+              {loading ? "Registrando..." : "Crear cuenta"}
+            </Button>
+          </form>
+
+          {/* Login Link */}
+          <p className="mt-8 text-center text-sm text-muted-foreground">
+            ¿Ya tienes cuenta?{" "}
+            <Link href="/login" className="text-primary font-semibold hover:underline">
+              Ingresa
+            </Link>
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
