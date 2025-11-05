@@ -189,8 +189,8 @@ export default function PreviewStrategyPage() {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const getBaseCurrency = () => formData.pair.replace("USDT", "")
-  const getQuoteCurrency = () => "USDT"
+  const getBaseCurrency = () => formData.pair.split("/")[0] || "Cripto"
+  const getQuoteCurrency = () => formData.pair.split("/")[1] || "USDT"
 
   const generatePayload = () => {
     const payload: any = {
