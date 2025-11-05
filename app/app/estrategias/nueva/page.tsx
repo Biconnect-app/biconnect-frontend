@@ -103,9 +103,9 @@ export default function NewStrategyPage() {
     if (currentStep === 1) {
       if (!formData.name.trim()) newErrors.name = "El nombre es requerido"
     } else if (currentStep === 2) {
-      if (!formData.pair) newErrors.pair = "Debes seleccionar un par"
-    } else if (currentStep === 3) {
       if (!formData.marketType) newErrors.marketType = "Debes seleccionar el tipo de mercado"
+    } else if (currentStep === 3) {
+      if (!formData.pair) newErrors.pair = "Debes seleccionar un par"
     } else if (currentStep === 4) {
       if (!formData.riskType) newErrors.riskType = "Debes seleccionar un tipo de gestión"
       if (!formData.riskAmount) {
@@ -266,73 +266,8 @@ export default function NewStrategyPage() {
           </div>
         )}
 
-        {/* Step 2: Trading Pair */}
+        {/* Step 2: Market Type & Leverage */}
         {step === 2 && (
-          <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">Par de trading</h2>
-
-            <div className="space-y-2">
-              <Label>Selecciona el par a operar *</Label>
-              <Popover open={openPairSelect} onOpenChange={setOpenPairSelect}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={openPairSelect}
-                    className={`w-full justify-between bg-transparent ${errors.pair ? "border-destructive" : ""}`}
-                    disabled={loadingPairs}
-                  >
-                    {loadingPairs ? "Cargando pares..." : formData.pair || "Buscar par..."}
-                    <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0" align="start">
-                  <Command>
-                    <CommandInput placeholder="Buscar par..." />
-                    <CommandList>
-                      <CommandEmpty>No se encontró el par.</CommandEmpty>
-                      <CommandGroup>
-                        {tradingPairs.map((pair) => (
-                          <CommandItem
-                            key={pair}
-                            value={pair}
-                            onSelect={(value) => {
-                              setFormData({ ...formData, pair: value.toUpperCase() })
-                              setOpenPairSelect(false)
-                            }}
-                          >
-                            {pair}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              {errors.pair && <p className="text-xs text-destructive">{errors.pair}</p>}
-              {pairsError && <p className="text-xs text-yellow-600">{pairsError}</p>}
-              <p className="text-xs text-muted-foreground">
-                {loadingPairs
-                  ? "Cargando pares disponibles desde Binance..."
-                  : `${tradingPairs.length} pares disponibles`}
-              </p>
-            </div>
-
-            <div className="flex gap-2">
-              <Button onClick={prevStep} variant="outline" className="bg-transparent">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Atrás
-              </Button>
-              <Button onClick={nextStep} className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                Siguiente
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 3: Market Type & Leverage */}
-        {step === 3 && (
           <div className="bg-card border border-border rounded-xl p-6 space-y-4">
             <h2 className="text-xl font-semibold text-foreground">Tipo de mercado</h2>
 
@@ -401,6 +336,71 @@ export default function NewStrategyPage() {
                   </p>
                 </div>
               )}
+            </div>
+
+            <div className="flex gap-2">
+              <Button onClick={prevStep} variant="outline" className="bg-transparent">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Atrás
+              </Button>
+              <Button onClick={nextStep} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                Siguiente
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Trading Pair */}
+        {step === 3 && (
+          <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+            <h2 className="text-xl font-semibold text-foreground">Par de trading</h2>
+
+            <div className="space-y-2">
+              <Label>Selecciona el par a operar *</Label>
+              <Popover open={openPairSelect} onOpenChange={setOpenPairSelect}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={openPairSelect}
+                    className={`w-full justify-between bg-transparent ${errors.pair ? "border-destructive" : ""}`}
+                    disabled={loadingPairs}
+                  >
+                    {loadingPairs ? "Cargando pares..." : formData.pair || "Buscar par..."}
+                    <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Buscar par..." />
+                    <CommandList>
+                      <CommandEmpty>No se encontró el par.</CommandEmpty>
+                      <CommandGroup>
+                        {tradingPairs.map((pair) => (
+                          <CommandItem
+                            key={pair}
+                            value={pair}
+                            onSelect={(value) => {
+                              setFormData({ ...formData, pair: value.toUpperCase() })
+                              setOpenPairSelect(false)
+                            }}
+                          >
+                            {pair}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {errors.pair && <p className="text-xs text-destructive">{errors.pair}</p>}
+              {pairsError && <p className="text-xs text-yellow-600">{pairsError}</p>}
+              <p className="text-xs text-muted-foreground">
+                {loadingPairs
+                  ? "Cargando pares disponibles desde Binance..."
+                  : `${tradingPairs.length} pares disponibles`}
+              </p>
             </div>
 
             <div className="flex gap-2">
