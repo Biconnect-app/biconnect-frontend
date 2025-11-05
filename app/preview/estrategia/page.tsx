@@ -80,13 +80,21 @@ export default function PreviewStrategyPage() {
     setPairsError(null)
 
     try {
+      console.log("[v0] Fetching pairs for exchange:", formData.exchange, "marketType:", formData.marketType)
+
       const response = await fetch(`/api/exchanges/${formData.exchange}/pairs?marketType=${formData.marketType}`)
 
+      console.log("[v0] Fetch response status:", response.status)
+
       if (!response.ok) {
-        throw new Error("Failed to fetch pairs")
+        const errorData = await response.json()
+        console.error("[v0] API error response:", errorData)
+        throw new Error(errorData.details || "Failed to fetch pairs")
       }
 
       const data = await response.json()
+      console.log("[v0] Received pairs count:", data.count)
+
       setTradingPairs(data.pairs)
     } catch (error) {
       console.error("[v0] Error fetching trading pairs:", error)
