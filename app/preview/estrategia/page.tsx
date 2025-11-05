@@ -173,6 +173,10 @@ export default function PreviewStrategyPage() {
 
   const nextStep = () => {
     if (validateStep(step)) {
+      // Save the strategy data to sessionStorage before going to registration CTA
+      if (step === 4) {
+        sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
+      }
       setStep(step + 1)
     }
   }
@@ -627,7 +631,7 @@ export default function PreviewStrategyPage() {
                 </div>
 
                 <div className="space-y-3 pt-4">
-                  <Link href="/registro" className="block">
+                  <Link href="/registro?from=preview" className="block">
                     <Button
                       size="lg"
                       className="bg-accent hover:bg-accent/90 text-accent-foreground text-lg h-14 px-8 w-full max-w-md"
@@ -638,7 +642,7 @@ export default function PreviewStrategyPage() {
                   </Link>
                   <p className="text-sm text-muted-foreground">
                     ¿Ya tienes cuenta?{" "}
-                    <Link href="/login" className="text-accent hover:underline font-medium">
+                    <Link href="/login?from=preview" className="text-accent hover:underline font-medium">
                       Inicia sesión aquí
                     </Link>
                   </p>

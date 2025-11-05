@@ -47,6 +47,47 @@ export default function DashboardPage() {
         }
 
         setHasApiKeys(exchanges && exchanges.length > 0)
+
+        const previewData = sessionStorage.getItem("previewStrategy")
+        if (previewData) {
+          try {
+            const strategyData = JSON.parse(previewData)
+
+            // Create a new strategy from the preview data
+            const newStrategy = {
+              id: `strat-${Date.now()}`,
+              name: strategyData.name,
+              exchange: strategyData.exchange,
+              description: strategyData.description || "",
+              pair: strategyData.pair,
+              marketType: strategyData.marketType,
+              leverage: strategyData.leverage,
+              riskType: strategyData.riskType,
+              riskAmount: strategyData.riskAmount,
+              status: "inactive",
+              createdAt: new Date().toISOString(),
+            }
+
+            // Add to strategies list in localStorage
+            const existingStrategies = localStorage.getItem("strategies")
+            const strategies = existingStrategies ? JSON.parse(existingStrategies) : []
+            const updatedStrategies = [...strategies, newStrategy]
+
+            localStorage.setItem("strategies", JSON.stringify(updatedStrategies))
+
+            // Clear the preview data
+            sessionStorage.removeItem("previewStrategy")
+
+            console.log("[v0] Created strategy from preview on dashboard:", newStrategy)
+
+            // Redirect to strategies page to show the new strategy
+            router.push("/app/estrategias")
+          } catch (error) {
+            console.error("[v0] Error creating strategy from preview on dashboard:", error)
+            sessionStorage.removeItem("previewStrategy")
+          }
+        }
+
         setLoading(false)
       } catch (err) {
         console.error("[v0] Auth check error:", err)

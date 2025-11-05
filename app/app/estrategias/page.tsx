@@ -15,6 +15,45 @@ export default function StrategiesPage() {
     if (saved) {
       setStrategies(JSON.parse(saved))
     }
+
+    const previewData = sessionStorage.getItem("previewStrategy")
+    if (previewData) {
+      try {
+        const strategyData = JSON.parse(previewData)
+
+        // Create a new strategy from the preview data
+        const newStrategy = {
+          id: `strat-${Date.now()}`,
+          name: strategyData.name,
+          exchange: strategyData.exchange,
+          description: strategyData.description || "",
+          pair: strategyData.pair,
+          marketType: strategyData.marketType,
+          leverage: strategyData.leverage,
+          riskType: strategyData.riskType,
+          riskAmount: strategyData.riskAmount,
+          status: "inactive", // Start as inactive
+          createdAt: new Date().toISOString(),
+        }
+
+        // Add to strategies list
+        const existingStrategies = saved ? JSON.parse(saved) : []
+        const updatedStrategies = [...existingStrategies, newStrategy]
+
+        // Save to localStorage
+        localStorage.setItem("strategies", JSON.stringify(updatedStrategies))
+        setStrategies(updatedStrategies)
+
+        // Clear the preview data from sessionStorage
+        sessionStorage.removeItem("previewStrategy")
+
+        console.log("[v0] Created strategy from preview:", newStrategy)
+      } catch (error) {
+        console.error("[v0] Error creating strategy from preview:", error)
+        // Clear invalid data
+        sessionStorage.removeItem("previewStrategy")
+      }
+    }
   }, [])
 
   const toggleStatus = (id: string) => {
