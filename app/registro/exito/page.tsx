@@ -1,8 +1,77 @@
+"use client"
+
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Mail, CheckCircle } from "lucide-react"
+import { Mail, CheckCircle, Loader2 } from "lucide-react"
+import { useState, useEffect } from "react"
+import { createBrowserClient } from "@supabase/ssr"
+import { useSearchParams } from "next/navigation"
+import { useToast } from "@/hooks/use-toast"
 
 export default function SignUpSuccessPage() {
+  const [isResending, setIsResending] = useState(false)
+  const [email, setEmail] = useState<string | null>(null)
+  const searchParams = useSearchParams()
+  const { toast } = useToast()
+
+  useEffect(() => {
+    const emailParam = searchParams.get("email")
+    if (emailParam) {
+      setEmail(emailParam)
+    }
+  }, [searchParams])
+
+  const handleResendEmail = async () => {
+    if (!email) {
+      toast({
+        title: "Error",
+        description: "No se pudo obtener tu dirección de email. Por favor, intenta registrarte nuevamente.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsResending(true)
+
+    try {
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      )
+
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: email,
+        options: {
+          emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || window.location.origin,
+        },
+      })
+
+      if (error) {
+        console.error("[v0] Error resending verification email:", error)
+        toast({
+          title: "Error al reenviar",
+          description: error.message || "No se pudo reenviar el correo. Por favor, intenta nuevamente.",
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Correo reenviado",
+          description: "Hemos enviado un nuevo correo de verificación. Por favor, revisa tu bandeja de entrada.",
+        })
+      }
+    } catch (error) {
+      console.error("[v0] Unexpected error resending email:", error)
+      toast({
+        title: "Error",
+        description: "Ocurrió un error inesperado. Por favor, intenta nuevamente.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsResending(false)
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-primary/5 via-background to-accent/5">
       <div className="w-full max-w-md">
@@ -63,7 +132,14 @@ export default function SignUpSuccessPage() {
 
           <p className="mt-6 text-xs text-muted-foreground">
             ¿No recibiste el correo?{" "}
-            <button className="text-primary hover:underline">Reenviar correo de verificación</button>
+            <button
+              onClick={handleResendEmail}
+              disabled={isResending || !email}
+              className="text-primary hover:underline disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
+            >
+              {isResending && <Loader2 className="h-3 w-3 animate-spin" />}
+              Reenviar correo de verificación
+            </button>
           </p>
         </div>
       </div>
