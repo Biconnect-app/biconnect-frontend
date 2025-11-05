@@ -49,9 +49,12 @@ export default function DashboardPage() {
         setHasApiKeys(exchanges && exchanges.length > 0)
 
         const previewData = sessionStorage.getItem("previewStrategy")
+        console.log("[v0] Dashboard: Checking for preview data:", previewData)
+
         if (previewData) {
           try {
             const strategyData = JSON.parse(previewData)
+            console.log("[v0] Dashboard: Parsed preview strategy:", strategyData)
 
             // Create a new strategy from the preview data
             const newStrategy = {
@@ -68,22 +71,27 @@ export default function DashboardPage() {
               createdAt: new Date().toISOString(),
             }
 
+            console.log("[v0] Dashboard: Creating new strategy:", newStrategy)
+
             // Add to strategies list in localStorage
             const existingStrategies = localStorage.getItem("strategies")
+            console.log("[v0] Dashboard: Existing strategies in localStorage:", existingStrategies)
+
             const strategies = existingStrategies ? JSON.parse(existingStrategies) : []
             const updatedStrategies = [...strategies, newStrategy]
 
             localStorage.setItem("strategies", JSON.stringify(updatedStrategies))
+            console.log("[v0] Dashboard: Saved updated strategies:", updatedStrategies)
 
             // Clear the preview data
             sessionStorage.removeItem("previewStrategy")
-
-            console.log("[v0] Created strategy from preview on dashboard:", newStrategy)
+            console.log("[v0] Dashboard: Cleared preview data from sessionStorage")
 
             // Redirect to strategies page to show the new strategy
+            console.log("[v0] Dashboard: Redirecting to strategies page")
             router.push("/app/estrategias")
           } catch (error) {
-            console.error("[v0] Error creating strategy from preview on dashboard:", error)
+            console.error("[v0] Dashboard: Error creating strategy from preview:", error)
             sessionStorage.removeItem("previewStrategy")
           }
         }

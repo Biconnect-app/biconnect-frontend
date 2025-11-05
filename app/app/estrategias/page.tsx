@@ -3,23 +3,70 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Plus, Power, PowerOff, Edit, Copy, MoreVertical, TrendingUp } from "lucide-react"
+import { Plus, Power, PowerOff, Edit, Copy, MoreVertical, TrendingUp, AlertCircle, XCircle } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { createClient } from "@/lib/supabase/client"
 
 export default function StrategiesPage() {
   const [strategies, setStrategies] = useState<any[]>([])
+  const [hasApiKeys, setHasApiKeys] = useState(false)
+  const [checkingApiKeys, setCheckingApiKeys] = useState(true)
 
   useEffect(() => {
-    // Load strategies from localStorage
-    const saved = localStorage.getItem("strategies")
-    if (saved) {
-      setStrategies(JSON.parse(saved))
+    async function checkApiKeys() {
+      try {
+        const supabase = createClient()
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+
+        if (user) {
+          const { data: exchanges, error } = await supabase
+            .from("exchanges")
+            .select("id")
+            .eq("user_id", user.id)
+            .limit(1)
+
+          if (error) {
+            console.error("[v0] Error checking API keys:", error)
+          }
+
+          setHasApiKeys(exchanges && exchanges.length > 0)
+        }
+      } catch (error) {
+        console.error("[v0] Error checking API keys:", error)
+      } finally {
+        setCheckingApiKeys(false)
+      }
     }
 
+    checkApiKeys()
+
+    console.log("[v0] Loading strategies from localStorage...")
+    const saved = localStorage.getItem("strategies")
+    console.log("[v0] Raw localStorage data:", saved)
+
+    if (saved) {
+      try {
+        const parsedStrategies = JSON.parse(saved)
+        console.log("[v0] Parsed strategies:", parsedStrategies)
+        setStrategies(parsedStrategies)
+      } catch (error) {
+        console.error("[v0] Error parsing strategies from localStorage:", error)
+        // Clear invalid data
+        localStorage.removeItem("strategies")
+        setStrategies([])
+      }
+    }
+
+    // Check for preview strategy data
     const previewData = sessionStorage.getItem("previewStrategy")
+    console.log("[v0] Preview data from sessionStorage:", previewData)
+
     if (previewData) {
       try {
         const strategyData = JSON.parse(previewData)
+        console.log("[v0] Parsed preview strategy:", strategyData)
 
         // Create a new strategy from the preview data
         const newStrategy = {
@@ -32,9 +79,11 @@ export default function StrategiesPage() {
           leverage: strategyData.leverage,
           riskType: strategyData.riskType,
           riskAmount: strategyData.riskAmount,
-          status: "inactive", // Start as inactive
+          status: "inactive",
           createdAt: new Date().toISOString(),
         }
+
+        console.log("[v0] Creating new strategy from preview:", newStrategy)
 
         // Add to strategies list
         const existingStrategies = saved ? JSON.parse(saved) : []
@@ -47,10 +96,9 @@ export default function StrategiesPage() {
         // Clear the preview data from sessionStorage
         sessionStorage.removeItem("previewStrategy")
 
-        console.log("[v0] Created strategy from preview:", newStrategy)
+        console.log("[v0] Strategy created successfully, total strategies:", updatedStrategies.length)
       } catch (error) {
         console.error("[v0] Error creating strategy from preview:", error)
-        // Clear invalid data
         sessionStorage.removeItem("previewStrategy")
       }
     }
@@ -94,8 +142,12 @@ export default function StrategiesPage() {
   }
 
   const getRiskLabel = (strategy: any) => {
+    const baseCurrency = strategy.pair.includes("/")
+      ? strategy.pair.split("/")[0]
+      : strategy.pair.replace(/USDT|BUSD|BNB|EUR|GBP/g, "")
+
     if (strategy.riskType === "fixed_quantity") {
-      return `${strategy.riskAmount} ${strategy.pair.replace("USDT", "")}`
+      return `${strategy.riskAmount} ${baseCurrency}`
     } else if (strategy.riskType === "fixed_amount") {
       return `${strategy.riskAmount} USDT`
     } else if (strategy.riskType === "percentage") {
@@ -104,20 +156,68 @@ export default function StrategiesPage() {
     return ""
   }
 
+  const clearAllStrategies = () => {
+    if (confirm("¿Estás seguro de que deseas eliminar TODAS las estrategias? Esta acción no se puede deshacer.")) {
+      localStorage.removeItem("strategies")
+      setStrategies([])
+      console.log("[v0] All strategies cleared from localStorage")
+    }
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="space-y-6">
+        {!checkingApiKeys && !hasApiKeys && (
+          <div className="bg-destructive/10 border-2 border-destructive rounded-xl p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <AlertCircle className="h-6 w-6 text-destructive" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-destructive mb-2">Completa tu configuración</h3>
+                <p className="text-sm text-foreground mb-4">
+                  Para comenzar a ejecutar órdenes automáticamente, necesitas configurar las API keys de tu exchange.
+                  Este es el último paso para completar tu registro.
+                </p>
+                <Link href="/app/configuracion/api-inicial">
+                  <Button className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+                    Configurar API Keys ahora
+                  </Button>
+                </Link>
+              </div>
+              <button
+                onClick={() => setHasApiKeys(true)}
+                className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Cerrar advertencia"
+              >
+                <XCircle className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Estrategias</h1>
             <p className="text-muted-foreground mt-1">Gestiona tus estrategias de trading automatizado</p>
           </div>
-          <Link href="/app/estrategias/nueva">
-            <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
-              <Plus className="h-4 w-4 mr-2" />
-              Nueva estrategia
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            {strategies.length > 0 && (
+              <Button
+                onClick={clearAllStrategies}
+                variant="outline"
+                className="bg-transparent text-destructive hover:text-destructive"
+              >
+                Limpiar todo
+              </Button>
+            )}
+            <Link href="/app/estrategias/nueva">
+              <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                <Plus className="h-4 w-4 mr-2" />
+                Nueva estrategia
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Stats Overview */}

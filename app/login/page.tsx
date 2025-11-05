@@ -66,8 +66,8 @@ export default function LoginPage() {
       }
 
       if (data.user) {
-        console.log("[v0] Login successful, redirecting to /app")
-        router.push("/app")
+        console.log("[v0] Login successful, redirecting to /app/estrategias")
+        router.push("/app/estrategias")
         router.refresh()
       }
     } catch (err) {
