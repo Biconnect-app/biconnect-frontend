@@ -6,43 +6,74 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowRight, ArrowLeft, Check, Search, Sparkles } from "lucide-react"
+import { ArrowRight, ArrowLeft, Check, Search, Sparkles, AlertCircle } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
 
 const FALLBACK_TRADING_PAIRS = [
-  "BTCUSDT",
-  "ETHUSDT",
-  "BNBUSDT",
-  "SOLUSDT",
-  "XRPUSDT",
-  "ADAUSDT",
-  "DOGEUSDT",
-  "AVAXUSDT",
-  "DOTUSDT",
-  "MATICUSDT",
-  "LINKUSDT",
-  "UNIUSDT",
-  "LTCUSDT",
-  "ATOMUSDT",
-  "ETCUSDT",
-  "XLMUSDT",
-  "NEARUSDT",
-  "ALGOUSDT",
-  "FILUSDT",
-  "APTUSDT",
-  "ARBUSDT",
-  "OPUSDT",
-  "SUIUSDT",
-  "SEIUSDT",
-  "TIAUSDT",
-  "WLDUSDT",
-  "PEPEUSDT",
-  "SHIBUSDT",
-  "INJUSDT",
-  "RUNEUSDT",
+  "BTC/USDT",
+  "ETH/USDT",
+  "BNB/USDT",
+  "SOL/USDT",
+  "XRP/USDT",
+  "ADA/USDT",
+  "DOGE/USDT",
+  "AVAX/USDT",
+  "DOT/USDT",
+  "MATIC/USDT",
+  "LINK/USDT",
+  "UNI/USDT",
+  "LTC/USDT",
+  "ATOM/USDT",
+  "ETC/USDT",
+  "XLM/USDT",
+  "NEAR/USDT",
+  "ALGO/USDT",
+  "FIL/USDT",
+  "APT/USDT",
+  "ARB/USDT",
+  "OP/USDT",
+  "SUI/USDT",
+  "SEI/USDT",
+  "TIA/USDT",
+  "WLD/USDT",
+  "PEPE/USDT",
+  "SHIB/USDT",
+  "INJ/USDT",
+  "RUNE/USDT",
+  "AAVE/USDT",
+  "MKR/USDT",
+  "SNX/USDT",
+  "GRT/USDT",
+  "FTM/USDT",
+  "SAND/USDT",
+  "MANA/USDT",
+  "AXS/USDT",
+  "GALA/USDT",
+  "ENJ/USDT",
+  "CHZ/USDT",
+  "THETA/USDT",
+  "VET/USDT",
+  "ICP/USDT",
+  "FLR/USDT",
+  "IMX/USDT",
+  "APE/USDT",
+  "LDO/USDT",
+  "CRV/USDT",
+  "QNT/USDT",
+  "BTC/BUSD",
+  "ETH/BUSD",
+  "BNB/BUSD",
+  "BTC/BNB",
+  "ETH/BNB",
+  "BTC/EUR",
+  "ETH/EUR",
+  "BNB/EUR",
+  "BTC/GBP",
+  "ETH/GBP",
 ]
 
 const LEVERAGE_OPTIONS = [1, 2, 3, 5, 10, 20, 25, 50, 75, 100, 125]
@@ -94,11 +125,19 @@ export default function PreviewStrategyPage() {
 
       const data = await response.json()
       console.log("[v0] Received pairs count:", data.count)
+      console.log("[v0] Sample pairs:", data.pairs?.slice(0, 5))
 
-      setTradingPairs(data.pairs)
+      if (data.pairs && data.pairs.length > 0) {
+        setTradingPairs(data.pairs)
+        setPairsError(null)
+      } else {
+        throw new Error("No pairs received from API")
+      }
     } catch (error) {
       console.error("[v0] Error fetching trading pairs:", error)
-      setPairsError("No se pudieron cargar los pares. Usando lista predeterminada.")
+      setPairsError(
+        "Mostrando lista limitada de pares populares. Conecta tu exchange después del registro para ver todos los pares disponibles.",
+      )
       setTradingPairs(FALLBACK_TRADING_PAIRS)
     } finally {
       setLoadingPairs(false)
@@ -361,6 +400,13 @@ export default function PreviewStrategyPage() {
             <div className="bg-card border border-border rounded-xl p-6 space-y-4">
               <h2 className="text-xl font-semibold text-foreground">Par de trading</h2>
 
+              {pairsError && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription className="text-sm">{pairsError}</AlertDescription>
+                </Alert>
+              )}
+
               <div className="space-y-2">
                 <Label>Selecciona el par a operar *</Label>
                 <Popover open={openPairSelect} onOpenChange={setOpenPairSelect}>
@@ -400,11 +446,10 @@ export default function PreviewStrategyPage() {
                   </PopoverContent>
                 </Popover>
                 {errors.pair && <p className="text-xs text-destructive">{errors.pair}</p>}
-                {pairsError && <p className="text-xs text-yellow-600">{pairsError}</p>}
                 <p className="text-xs text-muted-foreground">
                   {loadingPairs
                     ? "Cargando pares disponibles desde Binance..."
-                    : `${tradingPairs.length} pares disponibles`}
+                    : `${tradingPairs.length} pares ${pairsError ? "populares" : "disponibles"}`}
                 </p>
               </div>
 

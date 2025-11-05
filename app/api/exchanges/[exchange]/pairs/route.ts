@@ -1,15 +1,15 @@
 import { type NextRequest, NextResponse } from "next/server"
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ exchange: string }> }) {
-  const { exchange } = await params
-  const { searchParams } = new URL(request.url)
-  const marketType = searchParams.get("marketType") || "spot"
-
-  console.log("[v0] Fetching pairs for exchange:", exchange, "marketType:", marketType)
-
   try {
+    const { exchange } = await params
+    const { searchParams } = new URL(request.url)
+    const marketType = searchParams.get("marketType") || "spot"
+
+    console.log("[v0] API Route called - Exchange:", exchange, "Market Type:", marketType)
+
     if (exchange.toLowerCase() !== "binance") {
-      console.log("[v0] Exchange not supported:", exchange)
+      console.log("[v0] Unsupported exchange:", exchange)
       return NextResponse.json({ error: "Exchange not supported" }, { status: 400 })
     }
 
@@ -20,34 +20,66 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     console.log("[v0] Fetching from Binance API:", apiUrl)
 
+    // Add timeout to fetch
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+
     const response = await fetch(apiUrl, {
+      signal: controller.signal,
+      headers: {
+        Accept: "application/json",
+      },
       next: { revalidate: 3600 }, // Cache for 1 hour
     })
 
+    clearTimeout(timeoutId)
+
+    console.log("[v0] Binance API response status:", response.status)
+
     if (!response.ok) {
-      console.log("[v0] Binance API response not OK:", response.status, response.statusText)
+      const errorText = await response.text()
+      console.error("[v0] Binance API error response:", errorText)
       throw new Error(`Binance API returned ${response.status}: ${response.statusText}`)
     }
 
     const data = await response.json()
-    console.log("[v0] Received symbols from Binance:", data.symbols?.length || 0)
+    console.log("[v0] Received data from Binance, symbols count:", data.symbols?.length || 0)
 
+    if (!data.symbols || !Array.isArray(data.symbols)) {
+      console.error("[v0] Invalid response format from Binance:", data)
+      throw new Error("Invalid response format from Binance API")
+    }
+
+    // Filter and format pairs
     const pairs = data.symbols
       .filter((symbol: any) => symbol.status === "TRADING")
-      .map((symbol: any) => symbol.symbol)
+      .map((symbol: any) => {
+        // Format as "BASE/QUOTE" (e.g., "BTCUSDT" -> "BTC/USDT")
+        const base = symbol.baseAsset
+        const quote = symbol.quoteAsset
+        return `${base}/${quote}`
+      })
       .sort()
 
-    console.log("[v0] Filtered trading pairs:", pairs.length)
+    console.log("[v0] Successfully processed pairs, count:", pairs.length)
+    console.log("[v0] Sample pairs:", pairs.slice(0, 5))
 
     return NextResponse.json({ pairs, count: pairs.length })
   } catch (error) {
-    console.error("[v0] Error fetching trading pairs:", error)
-    return NextResponse.json(
-      {
-        error: "Failed to fetch trading pairs",
-        details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 },
-    )
+    console.error("[v0] Error in API route:", error)
+
+    if (error instanceof Error) {
+      if (error.name === "AbortError") {
+        console.error("[v0] Request timed out")
+        return NextResponse.json(
+          { error: "Request timed out", details: "Binance API took too long to respond" },
+          { status: 504 },
+        )
+      }
+
+      return NextResponse.json({ error: "Failed to fetch trading pairs", details: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ error: "Failed to fetch trading pairs", details: String(error) }, { status: 500 })
   }
 }
