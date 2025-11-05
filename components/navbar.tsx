@@ -43,7 +43,8 @@ export function Navbar() {
           element.scrollIntoView({ behavior: "smooth", block: "start" })
         }
       } else {
-        router.push(path)
+        sessionStorage.setItem("scrollToSection", sectionId)
+        router.push("/")
       }
       return
     }
@@ -53,14 +54,17 @@ export function Navbar() {
   }
 
   useEffect(() => {
-    if (pathname === "/" && window.location.hash) {
-      const sectionId = window.location.hash.substring(1)
-      setTimeout(() => {
-        const element = document.getElementById(sectionId)
-        if (element) {
-          element.scrollIntoView({ behavior: "smooth", block: "start" })
-        }
-      }, 100)
+    if (pathname === "/") {
+      const scrollTarget = sessionStorage.getItem("scrollToSection")
+      if (scrollTarget) {
+        sessionStorage.removeItem("scrollToSection")
+        setTimeout(() => {
+          const element = document.getElementById(scrollTarget)
+          if (element) {
+            element.scrollIntoView({ behavior: "smooth", block: "start" })
+          }
+        }, 100)
+      }
     }
   }, [pathname])
 
