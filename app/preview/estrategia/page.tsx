@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,7 +12,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import Link from "next/link"
 
-const TRADING_PAIRS = [
+const FALLBACK_TRADING_PAIRS = [
   "BTCUSDT",
   "ETHUSDT",
   "BNBUSDT",
@@ -43,42 +43,6 @@ const TRADING_PAIRS = [
   "SHIBUSDT",
   "INJUSDT",
   "RUNEUSDT",
-  "FTMUSDT",
-  "AAVEUSDT",
-  "GRTUSDT",
-  "SNXUSDT",
-  "MKRUSDT",
-  "LDOUSDT",
-  "CRVUSDT",
-  "COMPUSDT",
-  "SUSHIUSDT",
-  "YFIUSDT",
-  "1INCHUSDT",
-  "BALUSDT",
-  "ZRXUSDT",
-  "ENJUSDT",
-  "MANAUSDT",
-  "SANDUSDT",
-  "AXSUSDT",
-  "GALAUSDT",
-  "CHZUSDT",
-  "FLOWUSDT",
-  "IMXUSDT",
-  "APEUSDT",
-  "BLURUSDT",
-  "MAGICUSDT",
-  "GMTUSDT",
-  "TRXUSDT",
-  "TONUSDT",
-  "ICPUSDT",
-  "STXUSDT",
-  "RENDERUSDT",
-  "FETUSDT",
-  "TAOUSDT",
-  "WIFUSDT",
-  "BONKUSDT",
-  "JUPUSDT",
-  "PYTHUSDT",
 ]
 
 const LEVERAGE_OPTIONS = [1, 2, 3, 5, 10, 20, 25, 50, 75, 100, 125]
@@ -88,6 +52,9 @@ export default function PreviewStrategyPage() {
   const [step, setStep] = useState(1)
   const [copied, setCopied] = useState(false)
   const [openPairSelect, setOpenPairSelect] = useState(false)
+  const [tradingPairs, setTradingPairs] = useState<string[]>(FALLBACK_TRADING_PAIRS)
+  const [loadingPairs, setLoadingPairs] = useState(false)
+  const [pairsError, setPairsError] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
     name: "",
@@ -101,6 +68,34 @@ export default function PreviewStrategyPage() {
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    if (formData.marketType && formData.exchange) {
+      fetchTradingPairs()
+    }
+  }, [formData.marketType, formData.exchange])
+
+  const fetchTradingPairs = async () => {
+    setLoadingPairs(true)
+    setPairsError(null)
+
+    try {
+      const response = await fetch(`/api/exchanges/${formData.exchange}/pairs?marketType=${formData.marketType}`)
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch pairs")
+      }
+
+      const data = await response.json()
+      setTradingPairs(data.pairs)
+    } catch (error) {
+      console.error("[v0] Error fetching trading pairs:", error)
+      setPairsError("No se pudieron cargar los pares. Usando lista predeterminada.")
+      setTradingPairs(FALLBACK_TRADING_PAIRS)
+    } finally {
+      setLoadingPairs(false)
+    }
+  }
 
   const validateStep = (currentStep: number) => {
     const newErrors: Record<string, string> = {}
@@ -282,8 +277,9 @@ export default function PreviewStrategyPage() {
                       role="combobox"
                       aria-expanded={openPairSelect}
                       className={`w-full justify-between bg-transparent ${errors.pair ? "border-destructive" : ""}`}
+                      disabled={loadingPairs}
                     >
-                      {formData.pair || "Buscar par..."}
+                      {loadingPairs ? "Cargando pares..." : formData.pair || "Buscar par..."}
                       <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
@@ -293,7 +289,7 @@ export default function PreviewStrategyPage() {
                       <CommandList>
                         <CommandEmpty>No se encontró el par.</CommandEmpty>
                         <CommandGroup>
-                          {TRADING_PAIRS.map((pair) => (
+                          {tradingPairs.map((pair) => (
                             <CommandItem
                               key={pair}
                               value={pair}
@@ -311,7 +307,12 @@ export default function PreviewStrategyPage() {
                   </PopoverContent>
                 </Popover>
                 {errors.pair && <p className="text-xs text-destructive">{errors.pair}</p>}
-                <p className="text-xs text-muted-foreground">Selecciona el par de criptomonedas que quieres operar</p>
+                {pairsError && <p className="text-xs text-yellow-600">{pairsError}</p>}
+                <p className="text-xs text-muted-foreground">
+                  {loadingPairs
+                    ? "Cargando pares disponibles desde Binance..."
+                    : `${tradingPairs.length} pares disponibles`}
+                </p>
               </div>
 
               <div className="flex gap-2">
