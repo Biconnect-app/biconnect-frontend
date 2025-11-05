@@ -47,7 +47,7 @@ export function PricingPreview() {
               </li>
             </ul>
 
-            <Link href="/registro" className="block">
+            <Link href="/preview/estrategia" className="block">
               <Button variant="outline" className="w-full bg-transparent" size="lg">
                 Comenzar gratis
               </Button>
@@ -111,7 +111,7 @@ export function PricingPreview() {
               </li>
             </ul>
 
-            <Link href="/registro?plan=pro" className="block">
+            <Link href="/preview/estrategia?plan=pro" className="block">
               <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" size="lg">
                 Obtener Pro
               </Button>

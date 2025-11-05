@@ -53,7 +53,7 @@ export default function PricingPage() {
                     <span className="text-6xl font-bold text-foreground">$0</span>
                     <span className="text-muted-foreground text-lg">/mes</span>
                   </div>
-                  <Link href="/registro" className="block">
+                  <Link href="/preview/estrategia" className="block">
                     <Button variant="outline" size="lg" className="w-full bg-transparent">
                       Comenzar gratis
                     </Button>
@@ -109,7 +109,7 @@ export default function PricingPage() {
                     <span className="text-primary-foreground/80 text-lg">/mes</span>
                   </div>
                   <p className="text-sm text-primary-foreground/70 mb-6">Facturación mensual o anual</p>
-                  <Link href="/registro?plan=pro" className="block">
+                  <Link href="/preview/estrategia?plan=pro" className="block">
                     <Button size="lg" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
                       Obtener Pro
                     </Button>
@@ -215,14 +215,14 @@ export default function PricingPage() {
                 <div className="grid grid-cols-3 gap-4 p-6 bg-muted/50 border-t border-border">
                   <div></div>
                   <div className="text-center">
-                    <Link href="/registro">
+                    <Link href="/preview/estrategia">
                       <Button variant="outline" className="bg-transparent">
                         Comenzar gratis
                       </Button>
                     </Link>
                   </div>
                   <div className="text-center">
-                    <Link href="/registro?plan=pro">
+                    <Link href="/preview/estrategia?plan=pro">
                       <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">Obtener Pro</Button>
                     </Link>
                   </div>
