@@ -99,8 +99,8 @@ export function Navbar() {
               Integraciones
             </a>
             <a
-              href="/precios"
-              onClick={(e) => handleNavClick(e, "/precios")}
+              href="/#precios"
+              onClick={(e) => handleNavClick(e, "/#precios")}
               className="text-sm font-medium text-foreground hover:text-primary transition-colors cursor-pointer"
             >
               Precios
@@ -191,8 +191,8 @@ export function Navbar() {
                 Integraciones
               </a>
               <a
-                href="/precios"
-                onClick={(e) => handleNavClick(e, "/precios")}
+                href="/#precios"
+                onClick={(e) => handleNavClick(e, "/#precios")}
                 className="text-sm font-medium text-foreground hover:text-primary transition-colors cursor-pointer"
               >
                 Precios
