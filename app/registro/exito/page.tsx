@@ -2,19 +2,16 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Mail, CheckCircle, Loader2, ArrowRight } from "lucide-react"
+import { Mail, CheckCircle, Loader2 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { createBrowserClient } from "@supabase/ssr"
-import { useSearchParams, useRouter } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 
 export default function SignUpSuccessPage() {
   const [isResending, setIsResending] = useState(false)
   const [email, setEmail] = useState<string | null>(null)
-  const [isAutoLoggedIn, setIsAutoLoggedIn] = useState(false)
-  const [redirectCountdown, setRedirectCountdown] = useState(5)
   const searchParams = useSearchParams()
-  const router = useRouter()
   const { toast } = useToast()
 
   useEffect(() => {
@@ -22,53 +19,7 @@ export default function SignUpSuccessPage() {
     if (emailParam) {
       setEmail(emailParam)
     }
-
-    const checkSession = async () => {
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      )
-
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
-      console.log("[v0] Session check on success page:")
-      console.log("[v0] - Session exists:", !!session)
-      if (session) {
-        console.log("[v0] - User ID:", session.user.id)
-        console.log("[v0] - Email:", session.user.email)
-        console.log("[v0] - email_confirmed_at:", session.user.email_confirmed_at)
-        console.log("[v0] - confirmed_at:", session.user.confirmed_at)
-        console.log("[v0] - Full user object:", session.user)
-      }
-
-      // If no session exists, or email is not confirmed, show verification instructions
-      if (session && session.user.email_confirmed_at) {
-        console.log("[v0] User is auto-logged in and confirmed, will redirect to estrategias")
-        setIsAutoLoggedIn(true)
-
-        // Start countdown for redirect
-        const interval = setInterval(() => {
-          setRedirectCountdown((prev) => {
-            if (prev <= 1) {
-              clearInterval(interval)
-              router.push("/app/estrategias")
-              return 0
-            }
-            return prev - 1
-          })
-        }, 1000)
-
-        return () => clearInterval(interval)
-      } else {
-        console.log("[v0] Email confirmation required, showing verification instructions")
-        console.log("[v0] - Reason: Session exists?", !!session, "Email confirmed?", session?.user.email_confirmed_at)
-      }
-    }
-
-    checkSession()
-  }, [searchParams, router])
+  }, [searchParams])
 
   const handleResendEmail = async () => {
     if (!email) {
@@ -140,79 +91,56 @@ export default function SignUpSuccessPage() {
 
           <h1 className="text-2xl font-bold text-foreground mb-3">¡Cuenta creada exitosamente!</h1>
 
-          {isAutoLoggedIn ? (
-            <>
-              <div className="mb-6 p-4 bg-accent/10 border border-accent/20 rounded-lg">
-                <Loader2 className="h-6 w-6 text-accent mx-auto mb-2 animate-spin" />
-                <p className="text-sm text-foreground font-medium">Tu cuenta está lista</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Redirigiendo a tu panel en {redirectCountdown} segundo{redirectCountdown !== 1 ? "s" : ""}...
-                </p>
+          <div className="mb-6 p-4 bg-muted/50 border border-border rounded-lg">
+            <Mail className="h-6 w-6 text-primary mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">Hemos enviado un correo de verificación a tu email.</p>
+          </div>
+
+          <div className="space-y-4 text-left mb-8">
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 bg-accent/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-xs font-bold text-accent">1</span>
               </div>
-
-              <Button
-                onClick={() => router.push("/app/estrategias")}
-                size="lg"
-                className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
-              >
-                Ir al panel ahora
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </>
-          ) : (
-            <>
-              <div className="mb-6 p-4 bg-muted/50 border border-border rounded-lg">
-                <Mail className="h-6 w-6 text-primary mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">Hemos enviado un correo de verificación a tu email.</p>
+              <div>
+                <p className="text-sm font-medium text-foreground">Revisa tu bandeja de entrada</p>
+                <p className="text-xs text-muted-foreground">Busca el correo de Biconnect</p>
               </div>
-
-              <div className="space-y-4 text-left mb-8">
-                <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 bg-accent/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs font-bold text-accent">1</span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Revisa tu bandeja de entrada</p>
-                    <p className="text-xs text-muted-foreground">Busca el correo de Biconnect</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 bg-accent/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs font-bold text-accent">2</span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Haz clic en el enlace de verificación</p>
-                    <p className="text-xs text-muted-foreground">Confirma tu dirección de email</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 bg-accent/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs font-bold text-accent">3</span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Inicia sesión</p>
-                    <p className="text-xs text-muted-foreground">Comienza a automatizar tus estrategias</p>
-                  </div>
-                </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 bg-accent/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-xs font-bold text-accent">2</span>
               </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">Haz clic en el enlace de verificación</p>
+                <p className="text-xs text-muted-foreground">Confirma tu dirección de email</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 bg-accent/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-xs font-bold text-accent">3</span>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">Inicia sesión</p>
+                <p className="text-xs text-muted-foreground">Comienza a automatizar tus estrategias</p>
+              </div>
+            </div>
+          </div>
 
-              <Button asChild size="lg" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
-                <Link href="/login">Ir a iniciar sesión</Link>
-              </Button>
+          <Button asChild size="lg" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
+            <Link href="/login">Ir a iniciar sesión</Link>
+          </Button>
 
-              <p className="mt-6 text-xs text-muted-foreground">
-                ¿No recibiste el correo?{" "}
-                <button
-                  onClick={handleResendEmail}
-                  disabled={isResending || !email}
-                  className="text-primary hover:underline disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
-                >
-                  {isResending && <Loader2 className="h-3 w-3 animate-spin" />}
-                  Reenviar correo de verificación
-                </button>
-              </p>
-            </>
-          )}
+          <p className="mt-6 text-xs text-muted-foreground">
+            ¿No recibiste el correo?{" "}
+            <button
+              onClick={handleResendEmail}
+              disabled={isResending || !email}
+              className="text-primary hover:underline disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
+            >
+              {isResending && <Loader2 className="h-3 w-3 animate-spin" />}
+              Reenviar correo de verificación
+            </button>
+          </p>
         </div>
       </div>
     </div>
