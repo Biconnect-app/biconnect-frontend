@@ -116,53 +116,12 @@ export default function StrategiesPage() {
         try {
           console.log("[v0] Creating strategy from preview:", strategyData)
 
-          const exchangeName = strategyData.exchange || "binance" // Default to binance if not specified
-
-          // Check if user has an exchange with this name
-          const { data: userExchanges, error: exchangeError } = await supabase
-            .from("exchanges")
-            .select("id")
-            .eq("user_id", user.id)
-            .eq("exchange_name", exchangeName)
-            .limit(1)
-
-          let exchangeId = null
-
-          if (exchangeError) {
-            console.error("[v0] Error checking for existing exchange:", exchangeError)
-          }
-
-          // If no exchange exists, create a placeholder
-          if (!userExchanges || userExchanges.length === 0) {
-            console.log("[v0] No exchange found, creating placeholder exchange:", exchangeName)
-
-            const { data: newExchange, error: createExchangeError } = await supabase
-              .from("exchanges")
-              .insert({
-                user_id: user.id,
-                exchange_name: exchangeName,
-                testnet: false,
-                api_key: null,
-                api_secret: null,
-              })
-              .select("id")
-              .single()
-
-            if (createExchangeError) {
-              console.error("[v0] Error creating placeholder exchange:", createExchangeError)
-              throw new Error("No se pudo crear el exchange para la estrategia")
-            }
-
-            exchangeId = newExchange.id
-            console.log("[v0] Created placeholder exchange with id:", exchangeId)
-          } else {
-            exchangeId = userExchanges[0].id
-            console.log("[v0] Using existing exchange with id:", exchangeId)
-          }
+          const exchangeName = strategyData.exchange || "binance"
 
           console.log("[v0] Inserting strategy with data:", {
             user_id: user.id,
-            exchange_id: exchangeId,
+            exchange_id: null,
+            exchange_name: exchangeName,
             name: strategyData.name,
             description: strategyData.description || "",
             trading_pair: strategyData.pair,
@@ -178,7 +137,8 @@ export default function StrategiesPage() {
             .from("strategies")
             .insert({
               user_id: user.id,
-              exchange_id: exchangeId,
+              exchange_id: null,
+              exchange_name: exchangeName,
               name: strategyData.name,
               description: strategyData.description || "",
               trading_pair: strategyData.pair,
@@ -268,7 +228,8 @@ export default function StrategiesPage() {
         .from("strategies")
         .insert({
           user_id: user.id,
-          exchange_id: strategy.exchange_id,
+          exchange_id: null,
+          exchange_name: strategy.exchange_name,
           name: `${strategy.name} (Copia)`,
           description: strategy.description,
           trading_pair: strategy.trading_pair,
@@ -339,7 +300,8 @@ export default function StrategiesPage() {
 
   const getUniqueExchanges = () => {
     if (strategies.length === 0) return ""
-    return "Binance"
+    const exchanges = [...new Set(strategies.map((s) => s.exchange_name).filter(Boolean))]
+    return exchanges.map((e) => e.charAt(0).toUpperCase() + e.slice(1)).join(", ") || "Ninguno"
   }
 
   if (loading) {
@@ -465,7 +427,11 @@ export default function StrategiesPage() {
                         </div>
                         <div>
                           <span className="text-muted-foreground">Exchange:</span>
-                          <span className="ml-2 text-foreground font-medium">Binance</span>
+                          <span className="ml-2 text-foreground font-medium">
+                            {strategy.exchange_name
+                              ? strategy.exchange_name.charAt(0).toUpperCase() + strategy.exchange_name.slice(1)
+                              : "No configurado"}
+                          </span>
                         </div>
                       </div>
                     </div>

@@ -244,16 +244,13 @@ export default function NewStrategyPage() {
           return
         }
 
-        const { data: exchanges } = await supabase.from("exchanges").select("id").eq("user_id", user.id).limit(1)
-
-        const exchangeId = exchanges && exchanges.length > 0 ? exchanges[0].id : null
-
         const { data: newStrategy, error } = await supabase
           .from("strategies")
           .insert({
             id: preGeneratedId,
             user_id: user.id,
-            exchange_id: exchangeId,
+            exchange_id: null,
+            exchange_name: formData.exchange,
             name: formData.name,
             description: formData.description || "",
             trading_pair: formData.pair,
