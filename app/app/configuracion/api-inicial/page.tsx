@@ -25,8 +25,63 @@ export default function InitialApiSetupPage() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
+  const [isTesting, setIsTesting] = useState(false)
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
 
   const supabase = createClient()
+
+  const handleTestConnection = async () => {
+    setError("")
+    setTestResult(null)
+
+    if (!formData.apiKey || !formData.apiSecret) {
+      setError("Por favor ingresa API Key y Secret primero")
+      return
+    }
+
+    setIsTesting(true)
+
+    try {
+      console.log("[v0] Testing connection...")
+
+      const response = await fetch("/api/test-connection", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          exchange: "binance",
+          apiKey: formData.apiKey,
+          apiSecret: formData.apiSecret,
+          testnet: formData.environment === "testnet",
+        }),
+      })
+
+      const data = await response.json()
+
+      console.log("[v0] Test connection response:", data)
+
+      if (data.success) {
+        setTestResult({
+          success: true,
+          message: `✓ Conexión exitosa! Cuenta: ${data.accountType || "verificada"}`,
+        })
+      } else {
+        setTestResult({
+          success: false,
+          message: `✗ ${data.error || "Error al conectar"}`,
+        })
+      }
+    } catch (err) {
+      console.error("[v0] Error testing connection:", err)
+      setTestResult({
+        success: false,
+        message: "✗ Error al probar la conexión",
+      })
+    } finally {
+      setIsTesting(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -73,7 +128,7 @@ export default function InitialApiSetupPage() {
 
       console.log("[v0] Exchange saved successfully:", data)
 
-      router.push("/app")
+      router.push("/app/estrategias")
       router.refresh()
     } catch (err) {
       console.error("[v0] Error in handleSubmit:", err)
@@ -214,6 +269,18 @@ export default function InitialApiSetupPage() {
             </ul>
           </div>
 
+          {testResult && (
+            <div
+              className={`rounded-lg p-3 text-sm ${
+                testResult.success
+                  ? "bg-accent/10 border border-accent/20 text-accent"
+                  : "bg-destructive/10 border border-destructive/20 text-destructive"
+              }`}
+            >
+              {testResult.message}
+            </div>
+          )}
+
           {error && (
             <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 text-sm text-destructive">
               {error}
@@ -222,13 +289,22 @@ export default function InitialApiSetupPage() {
 
           <div className="flex gap-3 pt-4">
             <Button
+              type="button"
+              onClick={handleTestConnection}
+              disabled={isTesting || !formData.apiKey || !formData.apiSecret}
+              variant="outline"
+              className="bg-transparent"
+            >
+              {isTesting ? "Probando..." : "Probar conexión"}
+            </Button>
+            <Button
               type="submit"
               disabled={isSubmitting}
               className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground"
             >
               {isSubmitting ? "Guardando..." : "Guardar y comenzar"}
             </Button>
-            <Link href="/app" className="flex-1">
+            <Link href="/app/estrategias" className="flex-1">
               <Button type="button" variant="outline" className="w-full bg-transparent">
                 Omitir por ahora
               </Button>

@@ -3,9 +3,10 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Plus, Power, PowerOff, Edit, Copy, MoreVertical, TrendingUp, AlertCircle, XCircle } from "lucide-react"
+import { Plus, Power, PowerOff, Edit, Copy, MoreVertical, TrendingUp } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { createClient } from "@/lib/supabase/client"
+import { ApiKeyAlert } from "@/components/api-key-alert"
 
 export default function StrategiesPage() {
   const [strategies, setStrategies] = useState<any[]>([])
@@ -156,6 +157,12 @@ export default function StrategiesPage() {
     return ""
   }
 
+  const getUniqueExchanges = () => {
+    if (strategies.length === 0) return ""
+    const exchanges = [...new Set(strategies.map((s) => s.exchange).filter(Boolean))]
+    return exchanges.join(", ")
+  }
+
   const clearAllStrategies = () => {
     if (confirm("¿Estás seguro de que deseas eliminar TODAS las estrategias? Esta acción no se puede deshacer.")) {
       localStorage.removeItem("strategies")
@@ -167,34 +174,7 @@ export default function StrategiesPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="space-y-6">
-        {!checkingApiKeys && !hasApiKeys && (
-          <div className="bg-destructive/10 border-2 border-destructive rounded-xl p-6">
-            <div className="flex items-start gap-4">
-              <div className="flex-shrink-0">
-                <AlertCircle className="h-6 w-6 text-destructive" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-destructive mb-2">Completa tu configuración</h3>
-                <p className="text-sm text-foreground mb-4">
-                  Para comenzar a ejecutar órdenes automáticamente, necesitas configurar las API keys de tu exchange.
-                  Este es el último paso para completar tu registro.
-                </p>
-                <Link href="/app/configuracion/api-inicial">
-                  <Button className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
-                    Configurar API Keys ahora
-                  </Button>
-                </Link>
-              </div>
-              <button
-                onClick={() => setHasApiKeys(true)}
-                className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors"
-                aria-label="Cerrar advertencia"
-              >
-                <XCircle className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-        )}
+        <ApiKeyAlert />
 
         <div className="flex items-center justify-between">
           <div>
@@ -240,7 +220,9 @@ export default function StrategiesPage() {
           </div>
           <div className="bg-card border border-border rounded-xl p-4">
             <div className="text-sm text-muted-foreground mb-1">Exchange</div>
-            <div className="text-lg font-bold text-foreground">Binance</div>
+            <div className="text-lg font-bold text-foreground">
+              {getUniqueExchanges() || <span className="text-muted-foreground text-sm">Ninguno</span>}
+            </div>
           </div>
         </div>
 
@@ -321,7 +303,9 @@ export default function StrategiesPage() {
                         </div>
                         <div>
                           <span className="text-muted-foreground">Exchange:</span>
-                          <span className="ml-2 text-foreground font-medium">Binance</span>
+                          <span className="ml-2 text-foreground font-medium">
+                            {strategy.exchange || <span className="text-muted-foreground text-xs">No asignado</span>}
+                          </span>
                         </div>
                       </div>
                     </div>

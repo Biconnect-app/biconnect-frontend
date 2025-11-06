@@ -5,8 +5,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Download, Search, ChevronRight } from "lucide-react"
+import { ApiKeyAlert } from "@/components/api-key-alert"
+import { Paywall } from "@/components/paywall"
+import { useUserPlan } from "@/hooks/use-user-plan"
 
 export default function LogsPage() {
+  const { isFree, loading: planLoading } = useUserPlan()
   const [logs] = useState([
     {
       id: "log-001",
@@ -40,9 +44,31 @@ export default function LogsPage() {
 
   const [expandedLog, setExpandedLog] = useState<string | null>(null)
 
+  if (planLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Cargando...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (isFree) {
+    return (
+      <div>
+        <ApiKeyAlert />
+        <Paywall feature="Los logs y auditoría completa" />
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="space-y-6">
+        <ApiKeyAlert />
+
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Logs y auditoría</h1>

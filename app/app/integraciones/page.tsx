@@ -9,6 +9,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { CheckCircle, Plus, Eye, EyeOff, Copy, Trash2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createClient } from "@/lib/supabase/client"
+import { ApiKeyAlert } from "@/components/api-key-alert"
 
 interface Exchange {
   id: string
@@ -32,6 +33,8 @@ export default function IntegrationsPage() {
     testnet: true,
   })
   const [saving, setSaving] = useState(false)
+  const [isTesting, setIsTesting] = useState(false)
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
 
   const supabase = createClient()
 
@@ -123,9 +126,56 @@ export default function IntegrationsPage() {
     }
   }
 
-  const testConnection = (id: string) => {
-    // TODO: Implement test functionality later
-    alert("Función de prueba en desarrollo...")
+  const handleTestConnection = async () => {
+    setTestResult(null)
+
+    if (!formData.apiKey || !formData.apiSecret) {
+      alert("Por favor ingresa API Key y Secret primero")
+      return
+    }
+
+    setIsTesting(true)
+
+    try {
+      console.log("[v0] Testing connection...")
+
+      const response = await fetch("/api/test-connection", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          exchange: "binance",
+          apiKey: formData.apiKey,
+          apiSecret: formData.apiSecret,
+          testnet: formData.testnet,
+        }),
+      })
+
+      const data = await response.json()
+
+      console.log("[v0] Test connection response:", data)
+
+      if (data.success) {
+        setTestResult({
+          success: true,
+          message: `✓ Conexión exitosa! Cuenta: ${data.accountType || "verificada"}`,
+        })
+      } else {
+        setTestResult({
+          success: false,
+          message: `✗ ${data.error || "Error al conectar"}`,
+        })
+      }
+    } catch (err) {
+      console.error("[v0] Error testing connection:", err)
+      setTestResult({
+        success: false,
+        message: "✗ Error al probar la conexión",
+      })
+    } finally {
+      setIsTesting(false)
+    }
   }
 
   const deleteExchange = async (id: string) => {
@@ -160,6 +210,8 @@ export default function IntegrationsPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="space-y-6">
+        <ApiKeyAlert />
+
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Integraciones</h1>
@@ -349,16 +401,34 @@ export default function IntegrationsPage() {
                 </AccordionItem>
               </Accordion>
 
+              {testResult && (
+                <div
+                  className={`rounded-lg p-3 text-sm ${
+                    testResult.success
+                      ? "bg-accent/10 border border-accent/20 text-accent"
+                      : "bg-destructive/10 border border-destructive/20 text-destructive"
+                  }`}
+                >
+                  {testResult.message}
+                </div>
+              )}
+
               <div className="flex gap-2">
+                <Button
+                  type="button"
+                  onClick={handleTestConnection}
+                  disabled={isTesting || !formData.apiKey || !formData.apiSecret}
+                  variant="outline"
+                  className="bg-transparent"
+                >
+                  {isTesting ? "Probando..." : "Probar conexión"}
+                </Button>
                 <Button
                   onClick={saveExchange}
                   disabled={saving}
                   className="bg-accent hover:bg-accent/90 text-accent-foreground"
                 >
                   {saving ? "Guardando..." : "Guardar"}
-                </Button>
-                <Button variant="outline" className="bg-transparent" onClick={() => testConnection("")} disabled>
-                  Probar (próximamente)
                 </Button>
                 <Button variant="outline" className="bg-transparent" onClick={() => setShowAddForm(false)}>
                   Cancelar
@@ -415,7 +485,7 @@ export default function IntegrationsPage() {
                   <Button
                     variant="outline"
                     className="bg-transparent"
-                    onClick={() => testConnection(exchange.id)}
+                    onClick={() => console.log("Probar conexión")}
                     disabled
                   >
                     Probar conexión (próximamente)

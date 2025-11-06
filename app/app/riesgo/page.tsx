@@ -2,11 +2,38 @@
 
 import { Button } from "@/components/ui/button"
 import { AlertTriangle, Shield } from "lucide-react"
+import { ApiKeyAlert } from "@/components/api-key-alert"
+import { Paywall } from "@/components/paywall"
+import { useUserPlan } from "@/hooks/use-user-plan"
 
 export default function RiskPage() {
+  const { isFree, loading: planLoading } = useUserPlan()
+
+  if (planLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Cargando...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (isFree) {
+    return (
+      <div>
+        <ApiKeyAlert />
+        <Paywall feature="El control de riesgo avanzado" />
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="space-y-6">
+        <ApiKeyAlert />
+
         <div>
           <h1 className="text-3xl font-bold text-foreground">Control de riesgo</h1>
           <p className="text-muted-foreground mt-1">Monitorea límites y violaciones de riesgo</p>

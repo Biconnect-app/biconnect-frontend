@@ -3,9 +3,12 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
-import { Activity, TrendingUp, AlertCircle, Clock, Zap, XCircle } from "lucide-react"
+import { Activity, TrendingUp, AlertCircle, Clock, Zap } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { ApiKeyAlert } from "@/components/api-key-alert"
+import { Paywall } from "@/components/paywall"
+import { useUserPlan } from "@/hooks/use-user-plan"
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -13,6 +16,7 @@ export default function DashboardPage() {
   const [hasApiKeys, setHasApiKeys] = useState(false)
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
+  const { isFree, loading: planLoading } = useUserPlan()
 
   useEffect(() => {
     async function checkAuth() {
@@ -90,6 +94,7 @@ export default function DashboardPage() {
             // Redirect to strategies page to show the new strategy
             console.log("[v0] Dashboard: Redirecting to strategies page")
             router.push("/app/estrategias")
+            return // Added return to prevent further execution
           } catch (error) {
             console.error("[v0] Dashboard: Error creating strategy from preview:", error)
             sessionStorage.removeItem("previewStrategy")
@@ -106,14 +111,12 @@ export default function DashboardPage() {
     checkAuth()
   }, [router, supabase])
 
-  if (loading) {
+  if (loading || planLoading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Cargando...</p>
-          </div>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Cargando...</p>
         </div>
       </div>
     )
@@ -121,6 +124,15 @@ export default function DashboardPage() {
 
   if (!user) {
     return null
+  }
+
+  if (isFree) {
+    return (
+      <div>
+        <ApiKeyAlert />
+        <Paywall feature="El Dashboard avanzado" />
+      </div>
+    )
   }
 
   const events = [
@@ -137,7 +149,12 @@ export default function DashboardPage() {
       message: "Orden ejecutada: ETHUSDT SHORT 0.5 ETH @ 2,280",
       strategy: "ETH Swing Trading",
     },
-    { time: "14:25:12", type: "error", message: "Error: Insufficient balance", strategy: "Multi-Pair Momentum" },
+    {
+      time: "14:25:12",
+      type: "error",
+      message: "Error: Insufficient balance",
+      strategy: "Multi-Pair Momentum",
+    },
     {
       time: "14:20:45",
       type: "success",
@@ -149,6 +166,8 @@ export default function DashboardPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="space-y-8">
+        <ApiKeyAlert />
+
         {!hasApiKeys && (
           <div className="bg-destructive/10 border-2 border-destructive rounded-xl p-6">
             <div className="flex items-start gap-4">
@@ -172,7 +191,7 @@ export default function DashboardPage() {
                 className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors"
                 aria-label="Cerrar advertencia"
               >
-                <XCircle className="h-5 w-5" />
+                <AlertCircle className="h-5 w-5" />
               </button>
             </div>
           </div>
@@ -180,7 +199,7 @@ export default function DashboardPage() {
 
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Overview</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard</h1>
           <p className="text-muted-foreground">Monitorea tus estrategias y ejecuciones en tiempo real</p>
         </div>
 
@@ -230,23 +249,6 @@ export default function DashboardPage() {
             <div className="text-3xl font-bold text-foreground">-2.3%</div>
             <div className="text-xs text-muted-foreground mt-1">Acumulado</div>
           </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid md:grid-cols-2 gap-4">
-          <Link href="/app/estrategias" className="block">
-            <div className="bg-card border border-border rounded-xl p-6 hover:shadow-lg transition-all cursor-pointer">
-              <h3 className="font-semibold text-foreground mb-2">Mis estrategias</h3>
-              <p className="text-sm text-muted-foreground">Gestiona y crea nuevas estrategias de trading</p>
-            </div>
-          </Link>
-
-          <Link href="/app/integraciones" className="block">
-            <div className="bg-card border border-border rounded-xl p-6 hover:shadow-lg transition-all cursor-pointer">
-              <h3 className="font-semibold text-foreground mb-2">Conectar exchange</h3>
-              <p className="text-sm text-muted-foreground">Añade API keys de exchanges</p>
-            </div>
-          </Link>
         </div>
       </div>
     </div>

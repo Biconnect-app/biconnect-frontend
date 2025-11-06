@@ -3,8 +3,12 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { RefreshCw, AlertCircle, CheckCircle, Clock, TrendingUp } from "lucide-react"
+import { ApiKeyAlert } from "@/components/api-key-alert"
+import { Paywall } from "@/components/paywall"
+import { useUserPlan } from "@/hooks/use-user-plan"
 
 export default function ExecutionPage() {
+  const { isFree, loading: planLoading } = useUserPlan()
   const [queue] = useState([
     {
       id: "exec-001",
@@ -71,9 +75,31 @@ export default function ExecutionPage() {
     }
   }
 
+  if (planLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Cargando...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (isFree) {
+    return (
+      <div>
+        <ApiKeyAlert />
+        <Paywall feature="La cola de ejecución en tiempo real" />
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="space-y-6">
+        <ApiKeyAlert />
+
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Cola de ejecución</h1>

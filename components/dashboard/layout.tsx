@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
   LayoutDashboard,
@@ -20,9 +20,11 @@ import {
   X,
   Moon,
   Sun,
+  Lock,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useTheme } from "next-themes"
+import { useUserPlan } from "@/hooks/use-user-plan"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -30,8 +32,10 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter()
+  const pathname = usePathname()
   const { theme, setTheme } = useTheme()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { isFree, loading: planLoading } = useUserPlan()
 
   const handleLogout = async () => {
     const supabase = createClient()
@@ -40,14 +44,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   const menuItems = [
-    { icon: LayoutDashboard, label: "Overview", href: "/app" },
-    { icon: Layers, label: "Estrategias", href: "/app/estrategias" },
-    { icon: Activity, label: "Ejecución", href: "/app/ejecucion" },
-    { icon: FileText, label: "Órdenes", href: "/app/ordenes" },
-    { icon: ScrollText, label: "Logs", href: "/app/logs" },
-    { icon: Shield, label: "Riesgo", href: "/app/riesgo" },
-    { icon: Plug, label: "Integraciones", href: "/app/integraciones" },
-    { icon: Settings, label: "Configuración", href: "/app/configuracion" },
+    { icon: Layers, label: "Estrategias", href: "/app/estrategias", locked: false },
+    { icon: Plug, label: "Integraciones", href: "/app/integraciones", locked: false },
+    { icon: LayoutDashboard, label: "Dashboard", href: "/app", locked: true },
+    { icon: Activity, label: "Ejecución", href: "/app/ejecucion", locked: true },
+    { icon: FileText, label: "Órdenes", href: "/app/ordenes", locked: true },
+    { icon: ScrollText, label: "Logs", href: "/app/logs", locked: true },
+    { icon: Shield, label: "Riesgo", href: "/app/riesgo", locked: true },
+    { icon: Settings, label: "Configuración", href: "/app/configuracion", locked: false },
   ]
 
   return (
@@ -82,14 +86,42 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-            {menuItems.map((item) => (
-              <Link key={item.href} href={item.href} onClick={() => setSidebarOpen(false)}>
-                <Button variant="ghost" className="w-full justify-start hover:bg-accent/10 hover:text-accent" size="lg">
-                  <item.icon className="h-5 w-5 mr-3" />
-                  {item.label}
-                </Button>
-              </Link>
-            ))}
+            {menuItems.map((item) => {
+              const isLocked = item.locked && isFree && !planLoading
+              const isActive = pathname === item.href
+
+              if (isLocked) {
+                return (
+                  <div key={item.href} className="relative" title="Disponible solo en Plan Pro">
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start opacity-50 cursor-not-allowed"
+                      size="lg"
+                      disabled
+                    >
+                      <item.icon className="h-5 w-5 mr-3" />
+                      {item.label}
+                      <Lock className="h-4 w-4 ml-auto text-muted-foreground" />
+                    </Button>
+                  </div>
+                )
+              }
+
+              return (
+                <Link key={item.href} href={item.href} onClick={() => setSidebarOpen(false)}>
+                  <Button
+                    variant="ghost"
+                    className={`w-full justify-start hover:bg-accent/10 hover:text-accent ${
+                      isActive ? "bg-accent/10 text-accent" : ""
+                    }`}
+                    size="lg"
+                  >
+                    <item.icon className="h-5 w-5 mr-3" />
+                    {item.label}
+                  </Button>
+                </Link>
+              )
+            })}
           </nav>
 
           {/* Footer Actions */}
