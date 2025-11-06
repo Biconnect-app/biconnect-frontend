@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import Link from "next/link"
+import { createClient } from "@/lib/supabase/client"
 
 const TRADING_PAIRS = [
   "BTCUSDT",
@@ -92,16 +93,50 @@ export default function EditStrategyPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    // Load strategy from localStorage
-    const saved = localStorage.getItem("strategies")
-    if (saved) {
-      const strategies = JSON.parse(saved)
-      const strategy = strategies.find((s: any) => s.id === params.id)
-      if (strategy) {
-        setFormData(strategy)
-      }
-    }
+    loadStrategy()
   }, [params.id])
+
+  const loadStrategy = async () => {
+    try {
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) {
+        console.error("[v0] No user found")
+        return
+      }
+
+      const { data: strategy, error } = await supabase
+        .from("strategies")
+        .select("*")
+        .eq("id", params.id)
+        .eq("user_id", user.id)
+        .single()
+
+      if (error) {
+        console.error("[v0] Error loading strategy:", error)
+        return
+      }
+
+      console.log("[v0] Loaded strategy:", strategy)
+      setFormData({
+        id: strategy.id,
+        name: strategy.name,
+        exchange: "binance",
+        description: strategy.description || "",
+        pair: strategy.trading_pair,
+        marketType: strategy.market_type,
+        leverage: strategy.leverage || 1,
+        riskType: strategy.risk_type,
+        riskAmount: strategy.risk_value?.toString() || "",
+        webhookUrl: strategy.webhook_url,
+      })
+    } catch (error) {
+      console.error("[v0] Error in loadStrategy:", error)
+    }
+  }
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -125,37 +160,66 @@ export default function EditStrategyPage() {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (validateForm()) {
-      // Update strategy in localStorage
-      const saved = localStorage.getItem("strategies")
-      if (saved) {
-        const strategies = JSON.parse(saved)
-        const updated = strategies.map((s: any) => (s.id === params.id ? formData : s))
-        localStorage.setItem("strategies", JSON.stringify(updated))
+      try {
+        const supabase = createClient()
+
+        const { error } = await supabase
+          .from("strategies")
+          .update({
+            name: formData.name,
+            description: formData.description || "",
+            trading_pair: formData.pair,
+            market_type: formData.marketType,
+            leverage: formData.leverage || 1,
+            risk_type: formData.riskType,
+            risk_value: Number.parseFloat(formData.riskAmount),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", params.id)
+
+        if (error) {
+          console.error("[v0] Error updating strategy:", error)
+          return
+        }
+
+        console.log("[v0] Strategy updated successfully")
         router.push("/app/estrategias")
+      } catch (error) {
+        console.error("[v0] Error in handleSave:", error)
       }
     }
   }
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (
-      confirm(
+      !confirm(
         `¿Estás seguro de que deseas eliminar la estrategia "${formData.name}"? Esta acción no se puede deshacer.`,
       )
     ) {
-      const saved = localStorage.getItem("strategies")
-      if (saved) {
-        const strategies = JSON.parse(saved)
-        const updated = strategies.filter((s: any) => s.id !== params.id)
-        localStorage.setItem("strategies", JSON.stringify(updated))
-        router.push("/app/estrategias")
+      return
+    }
+
+    try {
+      const supabase = createClient()
+
+      const { error } = await supabase.from("strategies").delete().eq("id", params.id)
+
+      if (error) {
+        console.error("[v0] Error deleting strategy:", error)
+        return
       }
+
+      console.log("[v0] Strategy deleted successfully")
+      router.push("/app/estrategias")
+    } catch (error) {
+      console.error("[v0] Error in handleDelete:", error)
     }
   }
 
   const copyWebhook = () => {
-    const webhookUrl = `https://api.biconnect.io/w/user123/${params.id}`
+    const webhookUrl = formData.webhookUrl || `https://api.biconnect.io/w/user123/${params.id}`
     navigator.clipboard.writeText(webhookUrl)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
@@ -427,7 +491,11 @@ export default function EditStrategyPage() {
           <h2 className="text-xl font-semibold text-foreground">Webhook de TradingView</h2>
 
           <div className="flex gap-2">
-            <Input value={`https://api.biconnect.io/w/user123/${params.id}`} readOnly className="font-mono text-sm" />
+            <Input
+              value={formData.webhookUrl || `https://api.biconnect.io/w/user123/${params.id}`}
+              readOnly
+              className="font-mono text-sm"
+            />
             <Button onClick={copyWebhook} variant="outline" className="bg-transparent">
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             </Button>

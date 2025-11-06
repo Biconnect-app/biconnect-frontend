@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { createClient } from "@/lib/supabase/client"
 
 // Comprehensive list of trading pairs vs USDT
 const FALLBACK_TRADING_PAIRS = [
@@ -212,20 +213,55 @@ export default function NewStrategyPage() {
     setErrors({})
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (validateStep(step)) {
-      console.log("[v0] Saving new strategy:", formData)
-      // Save strategy to localStorage
-      const existingStrategies = JSON.parse(localStorage.getItem("strategies") || "[]")
-      const newStrategy = {
-        id: `strat-${Date.now()}`,
-        ...formData,
-        createdAt: new Date().toISOString(),
-        status: "active",
+      try {
+        console.log("[v0] Saving new strategy:", formData)
+        const supabase = createClient()
+
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+
+        if (!user) {
+          console.error("[v0] No user found")
+          return
+        }
+
+        // Get user's first exchange
+        const { data: exchanges } = await supabase.from("exchanges").select("id").eq("user_id", user.id).limit(1)
+
+        const exchangeId = exchanges && exchanges.length > 0 ? exchanges[0].id : null
+
+        // Create strategy in database
+        const { data: newStrategy, error } = await supabase
+          .from("strategies")
+          .insert({
+            user_id: user.id,
+            exchange_id: exchangeId,
+            name: formData.name,
+            description: formData.description || "",
+            trading_pair: formData.pair,
+            market_type: formData.marketType,
+            leverage: formData.leverage || 1,
+            risk_type: formData.riskType,
+            risk_value: Number.parseFloat(formData.riskAmount),
+            is_active: true,
+            webhook_url: `https://api.biconnect.io/w/${user.id}/strat-${Date.now()}`,
+          })
+          .select()
+          .single()
+
+        if (error) {
+          console.error("[v0] Error saving strategy:", error)
+          return
+        }
+
+        console.log("[v0] Strategy saved successfully:", newStrategy)
+        router.push("/app/estrategias")
+      } catch (error) {
+        console.error("[v0] Error in handleSave:", error)
       }
-      localStorage.setItem("strategies", JSON.stringify([...existingStrategies, newStrategy]))
-      console.log("[v0] Strategy saved successfully")
-      router.push("/app/estrategias")
     }
   }
 
