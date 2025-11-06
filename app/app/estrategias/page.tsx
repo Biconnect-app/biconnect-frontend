@@ -7,12 +7,24 @@ import { Plus, Power, PowerOff, Edit, Copy, MoreVertical, TrendingUp } from "luc
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { createClient } from "@/lib/supabase/client"
 import { ApiKeyAlert } from "@/components/api-key-alert"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export default function StrategiesPage() {
   const [strategies, setStrategies] = useState<any[]>([])
   const [hasApiKeys, setHasApiKeys] = useState(false)
   const [checkingApiKeys, setCheckingApiKeys] = useState(true)
   const [loading, setLoading] = useState(true)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [strategyToDelete, setStrategyToDelete] = useState<any>(null)
 
   useEffect(() => {
     loadStrategies()
@@ -32,7 +44,6 @@ export default function StrategiesPage() {
         return
       }
 
-      // Check if user has API keys
       const { data: exchanges, error: exchangesError } = await supabase
         .from("exchanges")
         .select("id")
@@ -46,7 +57,6 @@ export default function StrategiesPage() {
       setHasApiKeys(exchanges && exchanges.length > 0)
       setCheckingApiKeys(false)
 
-      // Load strategies from database
       const { data: strategiesData, error: strategiesError } = await supabase
         .from("strategies")
         .select("*")
@@ -62,7 +72,6 @@ export default function StrategiesPage() {
       console.log("[v0] Loaded strategies from database:", strategiesData)
       setStrategies(strategiesData || [])
 
-      // Check for preview strategy data
       const previewData = sessionStorage.getItem("previewStrategy")
       const fromPreview = sessionStorage.getItem("fromPreview")
 
@@ -71,12 +80,10 @@ export default function StrategiesPage() {
           const strategyData = JSON.parse(previewData)
           console.log("[v0] Creating strategy from preview:", strategyData)
 
-          // Get user's first exchange
           const { data: userExchanges } = await supabase.from("exchanges").select("id").eq("user_id", user.id).limit(1)
 
           const exchangeId = userExchanges && userExchanges.length > 0 ? userExchanges[0].id : null
 
-          // Create strategy in database
           const { data: newStrategy, error: insertError } = await supabase
             .from("strategies")
             .insert({
@@ -99,11 +106,9 @@ export default function StrategiesPage() {
             console.error("[v0] Error creating strategy from preview:", insertError)
           } else {
             console.log("[v0] Strategy created successfully:", newStrategy)
-            // Reload strategies
             loadStrategies()
           }
 
-          // Clear preview data
           sessionStorage.removeItem("previewStrategy")
           sessionStorage.removeItem("fromPreview")
         } catch (error) {
@@ -134,7 +139,6 @@ export default function StrategiesPage() {
         return
       }
 
-      // Update local state
       setStrategies(strategies.map((s) => (s.id === id ? { ...s, is_active: !s.is_active } : s)))
     } catch (error) {
       console.error("[v0] Error in toggleStatus:", error)
@@ -177,38 +181,38 @@ export default function StrategiesPage() {
       }
 
       console.log("[v0] Strategy duplicated:", newStrategy)
-      // Reload strategies
       loadStrategies()
     } catch (error) {
       console.error("[v0] Error in duplicateStrategy:", error)
     }
   }
 
-  const deleteStrategy = async (id: string) => {
-    try {
-      const strategy = strategies.find((s) => s.id === id)
-      if (
-        !strategy ||
-        !confirm(
-          `¿Estás seguro de que deseas eliminar la estrategia "${strategy.name}"? Esta acción no se puede deshacer.`,
-        )
-      ) {
-        return
-      }
+  const deleteStrategy = (id: string) => {
+    const strategy = strategies.find((s) => s.id === id)
+    if (!strategy) return
 
+    setStrategyToDelete(strategy)
+    setShowDeleteDialog(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!strategyToDelete) return
+
+    try {
       const supabase = createClient()
-      const { error } = await supabase.from("strategies").delete().eq("id", id)
+      const { error } = await supabase.from("strategies").delete().eq("id", strategyToDelete.id)
 
       if (error) {
         console.error("[v0] Error deleting strategy:", error)
         return
       }
 
-      console.log("[v0] Strategy deleted:", id)
-      // Update local state
-      setStrategies(strategies.filter((s) => s.id !== id))
+      console.log("[v0] Strategy deleted:", strategyToDelete.id)
+      setStrategies(strategies.filter((s) => s.id !== strategyToDelete.id))
+      setShowDeleteDialog(false)
+      setStrategyToDelete(null)
     } catch (error) {
-      console.error("[v0] Error in deleteStrategy:", error)
+      console.error("[v0] Error in confirmDelete:", error)
     }
   }
 
@@ -229,7 +233,6 @@ export default function StrategiesPage() {
 
   const getUniqueExchanges = () => {
     if (strategies.length === 0) return ""
-    // For now, just return "Binance" since we only support Binance
     return "Binance"
   }
 
@@ -259,7 +262,6 @@ export default function StrategiesPage() {
           </Link>
         </div>
 
-        {/* Stats Overview */}
         <div className="grid md:grid-cols-4 gap-4">
           <div className="bg-card border border-border rounded-xl p-4">
             <div className="text-sm text-muted-foreground mb-1">Total estrategias</div>
@@ -281,7 +283,6 @@ export default function StrategiesPage() {
           </div>
         </div>
 
-        {/* Strategies List */}
         {strategies.length === 0 ? (
           <div className="bg-card border border-border rounded-xl p-12 text-center">
             <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -411,6 +412,27 @@ export default function StrategiesPage() {
           </div>
         )}
       </div>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar estrategia?</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de que deseas eliminar la estrategia "{strategyToDelete?.name}"? Esta acción no se puede
+              deshacer y se perderán todos los datos asociados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
