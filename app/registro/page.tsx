@@ -166,18 +166,8 @@ export default function RegisterPage() {
           }
         }
 
-        const { data: sessionData } = await supabase.auth.getSession()
-
-        if (sessionData.session) {
-          // User is logged in immediately (email confirmation disabled)
-          console.log("[v0] User auto-logged in, redirecting to estrategias")
-          localStorage.setItem("login_timestamp", Date.now().toString())
-          router.push("/app/estrategias")
-        } else {
-          // Email confirmation required
-          console.log("[v0] Email confirmation required, redirecting to success page")
-          router.push(`/registro/exito?email=${encodeURIComponent(formData.email)}`)
-        }
+        console.log("[v0] Registration successful, redirecting to success page")
+        router.push(`/registro/exito?email=${encodeURIComponent(formData.email)}`)
       }
     } catch (err) {
       console.error("[v0] Unexpected error during registration:", err)
