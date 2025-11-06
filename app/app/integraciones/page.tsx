@@ -19,20 +19,6 @@ interface Exchange {
   created_at: string
 }
 
-async function signRequest(queryString: string, apiSecret: string): Promise<string> {
-  const encoder = new TextEncoder()
-  const keyData = encoder.encode(apiSecret)
-  const messageData = encoder.encode(queryString)
-
-  const cryptoKey = await crypto.subtle.importKey("raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"])
-
-  const signature = await crypto.subtle.sign("HMAC", cryptoKey, messageData)
-
-  return Array.from(new Uint8Array(signature))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("")
-}
-
 export default function IntegrationsPage() {
   const [showSecret, setShowSecret] = useState<{ [key: string]: boolean }>({})
   const [showApiKey, setShowApiKey] = useState(false)
@@ -151,53 +137,71 @@ export default function IntegrationsPage() {
     setIsTesting(true)
 
     try {
-      console.log("[v0] Testing connection from client...")
-
       const isTestnet = formData.testnet
       const baseUrl = isTestnet ? "https://testnet.binance.vision" : "https://api.binance.com"
 
-      const timestamp = Date.now()
-      const queryString = `timestamp=${timestamp}`
+      console.log("[v0] Testing basic connectivity to", baseUrl)
 
-      const signature = await signRequest(queryString, formData.apiSecret)
+      const pingResponse = await fetch(`${baseUrl}/api/v3/ping`)
 
-      const url = `${baseUrl}/api/v3/account?${queryString}&signature=${signature}`
-
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          "X-MBX-APIKEY": formData.apiKey,
-        },
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        console.log("[v0] Connection successful:", data)
-        setTestResult({
-          success: true,
-          message: `✓ Conexión exitosa! Cuenta verificada correctamente`,
-        })
-      } else {
-        const errorData = await response.json()
-        console.error("[v0] Connection failed:", errorData)
-
-        let errorMessage = "Error al conectar"
-        if (errorData.msg) {
-          if (errorData.msg.includes("Invalid API-key")) {
-            errorMessage = "API Key inválida"
-          } else if (errorData.msg.includes("Signature")) {
-            errorMessage = "API Secret incorrecta"
-          } else if (errorData.msg.includes("IP")) {
-            errorMessage = "Restricción de IP. Verifica la configuración en Binance"
-          } else {
-            errorMessage = errorData.msg
-          }
-        }
-
+      if (!pingResponse.ok) {
         setTestResult({
           success: false,
-          message: `✗ ${errorMessage}`,
+          message: "✗ No se puede conectar al exchange. Verifica tu conexión a internet",
         })
+        setIsTesting(false)
+        return
+      }
+
+      console.log("[v0] Basic connectivity OK, testing authentication...")
+
+      const response = await fetch("/api/test-connection", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          exchange: "binance",
+          apiKey: formData.apiKey,
+          apiSecret: formData.apiSecret,
+          testnet: isTestnet,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        console.log("[v0] Authentication successful")
+        setTestResult({
+          success: true,
+          message: "✓ Conexión exitosa! API Key y Secret verificados correctamente",
+        })
+      } else {
+        console.error("[v0] Authentication failed:", data.error)
+
+        if (data.error?.includes("restricted location") || data.error?.includes("Eligibility")) {
+          setTestResult({
+            success: false,
+            message:
+              "⚠️ No se puede verificar desde esta ubicación. Puedes guardar las credenciales de todas formas - se verificarán al ejecutar órdenes.",
+          })
+        } else {
+          let errorMessage = "Error al verificar credenciales"
+          if (data.error?.includes("Invalid API-key")) {
+            errorMessage = "API Key inválida"
+          } else if (data.error?.includes("Signature")) {
+            errorMessage = "API Secret incorrecta"
+          } else if (data.error?.includes("IP")) {
+            errorMessage = "Restricción de IP. Verifica la configuración en Binance"
+          } else if (data.error) {
+            errorMessage = data.error
+          }
+
+          setTestResult({
+            success: false,
+            message: `✗ ${errorMessage}`,
+          })
+        }
       }
     } catch (err) {
       console.error("[v0] Error testing connection:", err)
@@ -258,7 +262,6 @@ export default function IntegrationsPage() {
           </Button>
         </div>
 
-        {/* TradingView Integration */}
         <div className="bg-card border border-border rounded-xl p-6">
           <div className="flex items-start gap-4 mb-6">
             <div className="text-4xl">📊</div>
@@ -299,7 +302,6 @@ export default function IntegrationsPage() {
           </div>
         </div>
 
-        {/* Add Exchange Form */}
         {showAddForm && (
           <div className="bg-card border border-border rounded-xl p-6">
             <h2 className="text-xl font-semibold text-foreground mb-4">Añadir exchange</h2>
@@ -400,7 +402,6 @@ export default function IntegrationsPage() {
                   </AccordionTrigger>
                   <AccordionContent className="px-4 pb-4">
                     <div className="space-y-4">
-                      {/* Video 1: Create Binance Account */}
                       <div className="space-y-2">
                         <h4 className="text-sm font-semibold text-foreground">1. Crear cuenta en Binance</h4>
                         <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
@@ -414,7 +415,6 @@ export default function IntegrationsPage() {
                         </div>
                       </div>
 
-                      {/* Video 2: Create API Keys */}
                       <div className="space-y-2">
                         <h4 className="text-sm font-semibold text-foreground">2. Crear API Keys</h4>
                         <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
@@ -470,7 +470,6 @@ export default function IntegrationsPage() {
           </div>
         )}
 
-        {/* Connected Exchanges */}
         <div className="space-y-4">
           <h2 className="text-xl font-semibold text-foreground">Exchanges conectados</h2>
 
@@ -536,7 +535,6 @@ export default function IntegrationsPage() {
           )}
         </div>
 
-        {/* HMAC Configuration */}
         <div className="bg-card border border-border rounded-xl p-6">
           <h2 className="text-xl font-semibold text-foreground mb-4">Validación HMAC (Plan Pro)</h2>
           <p className="text-sm text-muted-foreground mb-4">

@@ -56,53 +56,72 @@ export default function InitialApiSetupPage() {
     setIsTesting(true)
 
     try {
-      console.log("[v0] Testing connection from client...")
-
       const isTestnet = formData.environment === "testnet"
       const baseUrl = isTestnet ? "https://testnet.binance.vision" : "https://api.binance.com"
 
-      const timestamp = Date.now()
-      const queryString = `timestamp=${timestamp}`
+      console.log("[v0] Testing basic connectivity to", baseUrl)
 
-      const signature = await signRequest(queryString, formData.apiSecret)
+      // Test ping endpoint (no auth required)
+      const pingResponse = await fetch(`${baseUrl}/api/v3/ping`)
 
-      const url = `${baseUrl}/api/v3/account?${queryString}&signature=${signature}`
-
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          "X-MBX-APIKEY": formData.apiKey,
-        },
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        console.log("[v0] Connection successful:", data)
-        setTestResult({
-          success: true,
-          message: `✓ Conexión exitosa! Cuenta verificada correctamente`,
-        })
-      } else {
-        const errorData = await response.json()
-        console.error("[v0] Connection failed:", errorData)
-
-        let errorMessage = "Error al conectar"
-        if (errorData.msg) {
-          if (errorData.msg.includes("Invalid API-key")) {
-            errorMessage = "API Key inválida"
-          } else if (errorData.msg.includes("Signature")) {
-            errorMessage = "API Secret incorrecta"
-          } else if (errorData.msg.includes("IP")) {
-            errorMessage = "Restricción de IP. Verifica la configuración en Binance"
-          } else {
-            errorMessage = errorData.msg
-          }
-        }
-
+      if (!pingResponse.ok) {
         setTestResult({
           success: false,
-          message: `✗ ${errorMessage}`,
+          message: "✗ No se puede conectar al exchange. Verifica tu conexión a internet",
         })
+        setIsTesting(false)
+        return
+      }
+
+      console.log("[v0] Basic connectivity OK, testing authentication...")
+
+      const response = await fetch("/api/test-connection", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          exchange: "binance",
+          apiKey: formData.apiKey,
+          apiSecret: formData.apiSecret,
+          testnet: isTestnet,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        console.log("[v0] Authentication successful")
+        setTestResult({
+          success: true,
+          message: "✓ Conexión exitosa! API Key y Secret verificados correctamente",
+        })
+      } else {
+        console.error("[v0] Authentication failed:", data.error)
+
+        if (data.error?.includes("restricted location") || data.error?.includes("Eligibility")) {
+          setTestResult({
+            success: false,
+            message:
+              "⚠️ No se puede verificar desde esta ubicación. Puedes guardar las credenciales de todas formas - se verificarán al ejecutar órdenes.",
+          })
+        } else {
+          let errorMessage = "Error al verificar credenciales"
+          if (data.error?.includes("Invalid API-key")) {
+            errorMessage = "API Key inválida"
+          } else if (data.error?.includes("Signature")) {
+            errorMessage = "API Secret incorrecta"
+          } else if (data.error?.includes("IP")) {
+            errorMessage = "Restricción de IP. Verifica la configuración en Binance"
+          } else if (data.error) {
+            errorMessage = data.error
+          }
+
+          setTestResult({
+            success: false,
+            message: `✗ ${errorMessage}`,
+          })
+        }
       }
     } catch (err) {
       console.error("[v0] Error testing connection:", err)
