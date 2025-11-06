@@ -13,6 +13,20 @@ import { CheckCircle, Eye, EyeOff, AlertCircle, XCircle } from "lucide-react"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 
+async function signRequest(queryString: string, apiSecret: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const keyData = encoder.encode(apiSecret)
+  const messageData = encoder.encode(queryString)
+
+  const cryptoKey = await crypto.subtle.importKey("raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"])
+
+  const signature = await crypto.subtle.sign("HMAC", cryptoKey, messageData)
+
+  return Array.from(new Uint8Array(signature))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
+}
+
 export default function InitialApiSetupPage() {
   const router = useRouter()
   const [showApiKey, setShowApiKey] = useState(false)
@@ -42,41 +56,59 @@ export default function InitialApiSetupPage() {
     setIsTesting(true)
 
     try {
-      console.log("[v0] Testing connection...")
+      console.log("[v0] Testing connection from client...")
 
-      const response = await fetch("/api/test-connection", {
-        method: "POST",
+      const isTestnet = formData.environment === "testnet"
+      const baseUrl = isTestnet ? "https://testnet.binance.vision" : "https://api.binance.com"
+
+      const timestamp = Date.now()
+      const queryString = `timestamp=${timestamp}`
+
+      const signature = await signRequest(queryString, formData.apiSecret)
+
+      const url = `${baseUrl}/api/v3/account?${queryString}&signature=${signature}`
+
+      const response = await fetch(url, {
+        method: "GET",
         headers: {
-          "Content-Type": "application/json",
+          "X-MBX-APIKEY": formData.apiKey,
         },
-        body: JSON.stringify({
-          exchange: "binance",
-          apiKey: formData.apiKey,
-          apiSecret: formData.apiSecret,
-          testnet: formData.environment === "testnet",
-        }),
       })
 
-      const data = await response.json()
-
-      console.log("[v0] Test connection response:", data)
-
-      if (data.success) {
+      if (response.ok) {
+        const data = await response.json()
+        console.log("[v0] Connection successful:", data)
         setTestResult({
           success: true,
-          message: `✓ Conexión exitosa! Cuenta: ${data.accountType || "verificada"}`,
+          message: `✓ Conexión exitosa! Cuenta verificada correctamente`,
         })
       } else {
+        const errorData = await response.json()
+        console.error("[v0] Connection failed:", errorData)
+
+        let errorMessage = "Error al conectar"
+        if (errorData.msg) {
+          if (errorData.msg.includes("Invalid API-key")) {
+            errorMessage = "API Key inválida"
+          } else if (errorData.msg.includes("Signature")) {
+            errorMessage = "API Secret incorrecta"
+          } else if (errorData.msg.includes("IP")) {
+            errorMessage = "Restricción de IP. Verifica la configuración en Binance"
+          } else {
+            errorMessage = errorData.msg
+          }
+        }
+
         setTestResult({
           success: false,
-          message: `✗ ${data.error || "Error al conectar"}`,
+          message: `✗ ${errorMessage}`,
         })
       }
     } catch (err) {
       console.error("[v0] Error testing connection:", err)
       setTestResult({
         success: false,
-        message: "✗ Error al probar la conexión",
+        message: "✗ Error al probar la conexión. Verifica tu conexión a internet",
       })
     } finally {
       setIsTesting(false)
