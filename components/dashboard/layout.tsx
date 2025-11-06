@@ -75,10 +75,31 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   }, [router])
 
   const handleLogout = async () => {
-    const supabase = createClient()
-    localStorage.removeItem("login_timestamp")
-    await supabase.auth.signOut()
-    router.push("/login")
+    try {
+      console.log("[v0] Logout iniciado")
+      const supabase = createClient()
+
+      // Remove login timestamp
+      localStorage.removeItem("login_timestamp")
+      console.log("[v0] Login timestamp removido")
+
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut()
+
+      if (error) {
+        console.error("[v0] Error al cerrar sesión:", error)
+        throw error
+      }
+
+      console.log("[v0] Sesión cerrada exitosamente")
+
+      // Redirect to login
+      router.push("/login")
+    } catch (error) {
+      console.error("[v0] Error en handleLogout:", error)
+      // Even if there's an error, try to redirect to login
+      router.push("/login")
+    }
   }
 
   const menuItems = [
