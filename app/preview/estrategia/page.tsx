@@ -193,11 +193,6 @@ export default function PreviewStrategyPage() {
 
   const nextStep = () => {
     if (validateStep(step)) {
-      // Save the strategy data to sessionStorage before going to registration CTA
-      if (step === 4) {
-        console.log("[v0] Saving preview strategy to sessionStorage:", formData)
-        sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
-      }
       setStep(step + 1)
     }
   }
@@ -239,6 +234,18 @@ export default function PreviewStrategyPage() {
     payload.client_id = "{{strategy.order.id}}"
 
     return JSON.stringify(payload, null, 2)
+  }
+
+  const handleRegisterClick = () => {
+    console.log("[v0] User clicked register from preview, saving strategy data")
+    sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
+    sessionStorage.setItem("fromPreview", "true")
+  }
+
+  const handleLoginClick = () => {
+    console.log("[v0] User clicked login from preview, saving strategy data")
+    sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
+    sessionStorage.setItem("fromPreview", "true")
   }
 
   return (
@@ -652,7 +659,7 @@ export default function PreviewStrategyPage() {
                 </div>
 
                 <div className="space-y-3 pt-4">
-                  <Link href="/registro?from=preview" className="block">
+                  <Link href="/registro?from=preview" className="block" onClick={handleRegisterClick}>
                     <Button
                       size="lg"
                       className="bg-accent hover:bg-accent/90 text-accent-foreground text-lg h-14 px-8 w-full max-w-md"
@@ -663,7 +670,11 @@ export default function PreviewStrategyPage() {
                   </Link>
                   <p className="text-sm text-muted-foreground">
                     ¿Ya tienes cuenta?{" "}
-                    <Link href="/login?from=preview" className="text-accent hover:underline font-medium">
+                    <Link
+                      href="/login?from=preview"
+                      className="text-accent hover:underline font-medium"
+                      onClick={handleLoginClick}
+                    >
                       Inicia sesión aquí
                     </Link>
                   </p>

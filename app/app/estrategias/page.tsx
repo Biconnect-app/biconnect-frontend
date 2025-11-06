@@ -62,9 +62,11 @@ export default function StrategiesPage() {
 
     // Check for preview strategy data
     const previewData = sessionStorage.getItem("previewStrategy")
+    const fromPreview = sessionStorage.getItem("fromPreview")
     console.log("[v0] Preview data from sessionStorage:", previewData)
+    console.log("[v0] From preview flag:", fromPreview)
 
-    if (previewData) {
+    if (previewData && fromPreview === "true") {
       try {
         const strategyData = JSON.parse(previewData)
         console.log("[v0] Parsed preview strategy:", strategyData)
@@ -94,13 +96,14 @@ export default function StrategiesPage() {
         localStorage.setItem("strategies", JSON.stringify(updatedStrategies))
         setStrategies(updatedStrategies)
 
-        // Clear the preview data from sessionStorage
         sessionStorage.removeItem("previewStrategy")
+        sessionStorage.removeItem("fromPreview")
 
         console.log("[v0] Strategy created successfully, total strategies:", updatedStrategies.length)
       } catch (error) {
         console.error("[v0] Error creating strategy from preview:", error)
         sessionStorage.removeItem("previewStrategy")
+        sessionStorage.removeItem("fromPreview")
       }
     }
   }, [])

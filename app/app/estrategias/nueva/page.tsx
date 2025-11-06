@@ -102,7 +102,9 @@ export default function NewStrategyPage() {
 
   useEffect(() => {
     const previewData = sessionStorage.getItem("previewStrategy")
-    if (previewData) {
+    const fromPreview = sessionStorage.getItem("fromPreview")
+
+    if (previewData && fromPreview === "true") {
       try {
         const parsedData = JSON.parse(previewData)
         console.log("[v0] Loading preview data into new strategy form:", parsedData)
@@ -116,12 +118,14 @@ export default function NewStrategyPage() {
           riskType: parsedData.riskType || "",
           riskAmount: parsedData.riskAmount || "",
         })
-        // Clear preview data after loading
+        // Clear both preview data and flag after loading
         sessionStorage.removeItem("previewStrategy")
+        sessionStorage.removeItem("fromPreview")
         console.log("[v0] Preview data loaded and cleared from sessionStorage")
       } catch (error) {
         console.error("[v0] Error loading preview data:", error)
         sessionStorage.removeItem("previewStrategy")
+        sessionStorage.removeItem("fromPreview")
       }
     }
   }, [])
