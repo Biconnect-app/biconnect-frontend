@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { CheckCircle, Plus, Eye, EyeOff, Copy, Trash2 } from "lucide-react"
+import { CheckCircle, Plus, Eye, EyeOff, Copy, Trash2, AlertCircle } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createClient } from "@/lib/supabase/client"
 import { ApiKeyAlert } from "@/components/api-key-alert"
@@ -14,7 +14,8 @@ import { ApiKeyAlert } from "@/components/api-key-alert"
 interface Exchange {
   id: string
   exchange_name: string
-  api_key: string
+  api_key: string | null // Allow null values
+  api_secret: string | null // Allow null values
   testnet: boolean
   created_at: string
 }
@@ -228,7 +229,8 @@ export default function IntegrationsPage() {
     }
   }
 
-  const maskApiKey = (key: string) => {
+  const maskApiKey = (key: string | null) => {
+    if (!key) return "No configurada"
     if (key.length <= 8) return key
     return key.substring(0, 4) + "***" + key.substring(key.length - 4)
   }
@@ -495,12 +497,28 @@ export default function IntegrationsPage() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-2 px-3 py-1 bg-accent/10 text-accent rounded-full text-sm font-medium">
-                      <CheckCircle className="h-4 w-4" />
-                      Conectado
-                    </div>
+                    {exchange.api_key && exchange.api_secret ? (
+                      <div className="flex items-center gap-2 px-3 py-1 bg-accent/10 text-accent rounded-full text-sm font-medium">
+                        <CheckCircle className="h-4 w-4" />
+                        Conectado
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 px-3 py-1 bg-destructive/10 text-destructive rounded-full text-sm font-medium">
+                        <AlertCircle className="h-4 w-4" />
+                        Sin configurar
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                {(!exchange.api_key || !exchange.api_secret) && (
+                  <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                    <p className="text-sm text-destructive">
+                      Este exchange fue creado automáticamente pero necesita API keys para funcionar. Elimínalo y crea
+                      uno nuevo con tus credenciales.
+                    </p>
+                  </div>
+                )}
 
                 <div className="flex gap-2">
                   <Button

@@ -22,15 +22,16 @@ export function ApiKeyAlert() {
         if (user) {
           const { data: exchanges, error } = await supabase
             .from("exchanges")
-            .select("id")
+            .select("id, api_key, api_secret")
             .eq("user_id", user.id)
-            .limit(1)
 
           if (error) {
             console.error("[v0] Error checking API keys:", error)
           }
 
-          setHasApiKeys(exchanges && exchanges.length > 0)
+          // Check if at least one exchange has both api_key and api_secret
+          const hasValidKeys = exchanges && exchanges.some((ex) => ex.api_key && ex.api_secret)
+          setHasApiKeys(hasValidKeys)
         }
       } catch (error) {
         console.error("[v0] Error checking API keys:", error)
@@ -58,7 +59,7 @@ export function ApiKeyAlert() {
             Para comenzar a ejecutar órdenes automáticamente, necesitas configurar las API keys de tu exchange. Este es
             el último paso para completar tu registro.
           </p>
-          <Link href="/app/configuracion/api-inicial">
+          <Link href="/app/integraciones">
             <Button className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
               Configurar API Keys ahora
             </Button>
