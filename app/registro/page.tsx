@@ -81,6 +81,20 @@ export default function RegisterPage() {
     try {
       const supabase = createClient()
 
+      console.log("[v0] Checking if user already exists...")
+      const { data: existingUsers } = await supabase
+        .from("auth.users")
+        .select("email")
+        .eq("email", formData.email)
+        .limit(1)
+
+      if (existingUsers && existingUsers.length > 0) {
+        console.log("[v0] User already exists")
+        setError("Este email ya está registrado. Por favor inicia sesión o usa otro email.")
+        setLoading(false)
+        return
+      }
+
       // Sign up with Supabase Auth
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
@@ -100,10 +114,25 @@ export default function RegisterPage() {
 
       if (signUpError) {
         console.error("[v0] Registration error:", signUpError)
-        if (signUpError.message.includes("already registered")) {
-          setError("Este email ya está registrado")
+        console.error("[v0] Error code:", signUpError.code)
+        console.error("[v0] Error status:", signUpError.status)
+
+        if (
+          signUpError.message.includes("already registered") ||
+          signUpError.message.includes("User already registered") ||
+          signUpError.code === "user_already_exists"
+        ) {
+          setError("Este email ya está registrado. Por favor inicia sesión o usa otro email.")
+        } else if (signUpError.message.includes("Database error")) {
+          setError(
+            "Este email ya está registrado o hay un problema con la base de datos. Por favor intenta iniciar sesión.",
+          )
+        } else if (signUpError.message.includes("Invalid email")) {
+          setError("El email ingresado no es válido")
+        } else if (signUpError.message.includes("Password")) {
+          setError("La contraseña no cumple con los requisitos de seguridad")
         } else {
-          setError(signUpError.message)
+          setError(`Error al crear la cuenta: ${signUpError.message}`)
         }
         setLoading(false)
         return
@@ -119,12 +148,16 @@ export default function RegisterPage() {
             console.log("[v0] Saving pending strategy for user:", formData.email)
 
             // Save to pending_strategies table with user's email
-            await supabase.from("pending_strategies").insert({
+            const { error: pendingError } = await supabase.from("pending_strategies").insert({
               email: formData.email,
               strategy_data: strategyData,
             })
 
-            console.log("[v0] Pending strategy saved successfully")
+            if (pendingError) {
+              console.error("[v0] Error saving pending strategy:", pendingError)
+            } else {
+              console.log("[v0] Pending strategy saved successfully")
+            }
           } catch (error) {
             console.error("[v0] Error saving pending strategy:", error)
           }
@@ -145,7 +178,7 @@ export default function RegisterPage() {
       }
     } catch (err) {
       console.error("[v0] Unexpected error during registration:", err)
-      setError("Error al crear la cuenta. Intenta nuevamente.")
+      setError("Error inesperado al crear la cuenta. Por favor intenta nuevamente.")
       setLoading(false)
     }
   }
