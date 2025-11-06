@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { CheckCircle, Eye, EyeOff, AlertCircle, XCircle } from "lucide-react"
+import { CheckCircle, Eye, EyeOff, AlertCircle, XCircle, Server } from "lucide-react"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 
@@ -41,6 +41,8 @@ export default function InitialApiSetupPage() {
   const [error, setError] = useState("")
   const [isTesting, setIsTesting] = useState(false)
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
+  const [serverInfo, setServerInfo] = useState<any>(null)
+  const [isLoadingServerInfo, setIsLoadingServerInfo] = useState(false)
 
   const supabase = createClient()
 
@@ -179,6 +181,21 @@ export default function InitialApiSetupPage() {
     }
   }
 
+  const handleGetServerInfo = async () => {
+    setIsLoadingServerInfo(true)
+    try {
+      const response = await fetch("/api/server-info")
+      const data = await response.json()
+      console.log("[v0] Server info:", data)
+      setServerInfo(data)
+    } catch (err) {
+      console.error("[v0] Error fetching server info:", err)
+      setServerInfo({ error: "Error al obtener información del servidor" })
+    } finally {
+      setIsLoadingServerInfo(false)
+    }
+  }
+
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="space-y-6">
@@ -205,6 +222,54 @@ export default function InitialApiSetupPage() {
               </p>
             </div>
           </div>
+        </div>
+
+        {/* Server Info Section */}
+        <div className="bg-card border border-border rounded-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Server className="h-5 w-5 text-muted-foreground" />
+              <h3 className="font-semibold text-foreground">Información del Servidor</h3>
+            </div>
+            <Button
+              type="button"
+              onClick={handleGetServerInfo}
+              disabled={isLoadingServerInfo}
+              variant="outline"
+              size="sm"
+            >
+              {isLoadingServerInfo ? "Cargando..." : "Ver IP del servidor"}
+            </Button>
+          </div>
+
+          {serverInfo && (
+            <div className="space-y-2 text-sm">
+              {serverInfo.error ? (
+                <p className="text-destructive">{serverInfo.error}</p>
+              ) : (
+                <>
+                  <div className="flex justify-between py-2 border-b border-border">
+                    <span className="text-muted-foreground">IP del Servidor:</span>
+                    <span className="font-mono text-foreground">{serverInfo.serverIp}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b border-border">
+                    <span className="text-muted-foreground">Región de Vercel:</span>
+                    <span className="font-mono text-foreground">{serverInfo.vercelRegion}</span>
+                  </div>
+                  {serverInfo.vercelIp && (
+                    <div className="flex justify-between py-2 border-b border-border">
+                      <span className="text-muted-foreground">IP de Vercel:</span>
+                      <span className="font-mono text-foreground">{serverInfo.vercelIp}</span>
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-3">
+                    Esta es la IP que Binance ve cuando pruebas la conexión desde el servidor. Si cambias la región en
+                    vercel.json, esta IP debería cambiar después de un nuevo deploy.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Form */}
