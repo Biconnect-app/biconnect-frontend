@@ -20,7 +20,7 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
-    email: "",
+    emailOrUsername: "", // Changed from 'email' to 'emailOrUsername'
     password: "",
   })
 
@@ -35,14 +35,7 @@ export default function LoginPage() {
     setError("")
     setLoading(true)
 
-    console.log("[v0] Login attempt for:", formData.email)
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(formData.email)) {
-      setError("Por favor ingresa un email válido")
-      setLoading(false)
-      return
-    }
+    console.log("[v0] Login attempt for:", formData.emailOrUsername)
 
     if (formData.password.length < 8) {
       setError("La contraseña debe tener al menos 8 caracteres")
@@ -52,8 +45,50 @@ export default function LoginPage() {
 
     try {
       const supabase = createClient()
+      let emailToUse = formData.emailOrUsername
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      const isEmail = emailRegex.test(formData.emailOrUsername)
+
+      if (!isEmail) {
+        // Input is a username, look up the email
+        console.log("[v0] Input is username, looking up email...")
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("username", formData.emailOrUsername)
+          .maybeSingle()
+
+        if (profileError) {
+          console.error("[v0] Error looking up username:", profileError)
+          setError("Error al buscar el usuario")
+          setLoading(false)
+          return
+        }
+
+        if (!profile) {
+          console.log("[v0] Username not found")
+          setError("Usuario o contraseña incorrectos")
+          setLoading(false)
+          return
+        }
+
+        // Get the email from auth.users using the user ID
+        const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profile.id)
+
+        if (userError || !userData.user) {
+          console.error("[v0] Error getting user email:", userError)
+          setError("Error al obtener información del usuario")
+          setLoading(false)
+          return
+        }
+
+        emailToUse = userData.user.email || ""
+        console.log("[v0] Found email for username:", emailToUse)
+      }
+
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email: formData.email,
+        email: emailToUse,
         password: formData.password,
       })
 
@@ -64,7 +99,7 @@ export default function LoginPage() {
         if (signInError.message.includes("Email not confirmed")) {
           setError("Por favor verifica tu email antes de iniciar sesión")
         } else if (signInError.message.includes("Invalid login credentials")) {
-          setError("Email o contraseña incorrectos")
+          setError("Usuario o contraseña incorrectos")
         } else {
           setError(signInError.message)
         }
@@ -110,16 +145,16 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Email */}
+            {/* Email or Username */}
             <div className="space-y-2">
-              <Label htmlFor="email">Email o usuario</Label>
+              <Label htmlFor="emailOrUsername">Email o usuario</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="tu@email.com"
+                id="emailOrUsername"
+                type="text"
+                placeholder="tu@email.com o usuario"
                 required
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                value={formData.emailOrUsername}
+                onChange={(e) => setFormData({ ...formData, emailOrUsername: e.target.value })}
                 className="h-12"
                 aria-invalid={error ? "true" : "false"}
               />
@@ -194,7 +229,7 @@ export default function LoginPage() {
                   />
                   <path
                     fill="currentColor"
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23 7.7 23 3.99 20.53 2.18 17.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
                   />
                   <path
                     fill="currentColor"
@@ -209,7 +244,7 @@ export default function LoginPage() {
               </Button>
               <Button variant="outline" disabled className="bg-transparent">
                 <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-6.627-5.373-12-12-12z" />
+                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
                 </svg>
                 GitHub
               </Button>

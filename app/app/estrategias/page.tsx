@@ -116,19 +116,62 @@ export default function StrategiesPage() {
         try {
           console.log("[v0] Creating strategy from preview:", strategyData)
 
-          const { data: userExchanges } = await supabase.from("exchanges").select("id").eq("user_id", user.id).limit(1)
+          const exchangeName = strategyData.exchange || "binance" // Default to binance if not specified
 
-          const exchangeId = userExchanges && userExchanges.length > 0 ? userExchanges[0].id : null
+          // Check if user has an exchange with this name
+          const { data: userExchanges, error: exchangeError } = await supabase
+            .from("exchanges")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("exchange_name", exchangeName)
+            .limit(1)
+
+          let exchangeId = null
+
+          if (exchangeError) {
+            console.error("[v0] Error checking for existing exchange:", exchangeError)
+          }
+
+          // If no exchange exists, create a placeholder
+          if (!userExchanges || userExchanges.length === 0) {
+            console.log("[v0] No exchange found, creating placeholder exchange:", exchangeName)
+
+            const { data: newExchange, error: createExchangeError } = await supabase
+              .from("exchanges")
+              .insert({
+                user_id: user.id,
+                exchange_name: exchangeName,
+                testnet: false,
+                api_key: null,
+                api_secret: null,
+              })
+              .select("id")
+              .single()
+
+            if (createExchangeError) {
+              console.error("[v0] Error creating placeholder exchange:", createExchangeError)
+              throw new Error("No se pudo crear el exchange para la estrategia")
+            }
+
+            exchangeId = newExchange.id
+            console.log("[v0] Created placeholder exchange with id:", exchangeId)
+          } else {
+            exchangeId = userExchanges[0].id
+            console.log("[v0] Using existing exchange with id:", exchangeId)
+          }
 
           console.log("[v0] Inserting strategy with data:", {
             user_id: user.id,
             exchange_id: exchangeId,
             name: strategyData.name,
+            description: strategyData.description || "",
             trading_pair: strategyData.pair,
             market_type: strategyData.marketType,
             leverage: strategyData.leverage || 1,
             risk_type: strategyData.riskType,
             risk_value: Number.parseFloat(strategyData.riskAmount),
+            is_active: true,
+            webhook_url: `https://api.biconnect.io/w/${user.id}/strat-${Date.now()}`,
           })
 
           const { data: newStrategy, error: insertError } = await supabase

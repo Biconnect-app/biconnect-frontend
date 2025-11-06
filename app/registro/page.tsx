@@ -47,7 +47,7 @@ export default function RegisterPage() {
     setError("")
     setLoading(true)
 
-    console.log("[v0] Registration attempt for:", formData.email)
+    console.log("[v0] Registration attempt for:", formData.email, "username:", formData.username)
 
     // Validate email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -81,16 +81,20 @@ export default function RegisterPage() {
     try {
       const supabase = createClient()
 
-      console.log("[v0] Checking if user already exists...")
-      const { data: existingUsers } = await supabase
-        .from("auth.users")
-        .select("email")
-        .eq("email", formData.email)
-        .limit(1)
+      console.log("[v0] Checking if username already exists...")
+      const { data: existingUsername, error: usernameCheckError } = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("username", formData.username)
+        .maybeSingle()
 
-      if (existingUsers && existingUsers.length > 0) {
-        console.log("[v0] User already exists")
-        setError("Este email ya está registrado. Por favor inicia sesión o usa otro email.")
+      if (usernameCheckError) {
+        console.error("[v0] Error checking username:", usernameCheckError)
+      }
+
+      if (existingUsername) {
+        console.log("[v0] Username already exists")
+        setError("Este nombre de usuario ya está en uso. Por favor elige otro.")
         setLoading(false)
         return
       }
@@ -124,9 +128,8 @@ export default function RegisterPage() {
         ) {
           setError("Este email ya está registrado. Por favor inicia sesión o usa otro email.")
         } else if (signUpError.message.includes("Database error")) {
-          setError(
-            "Este email ya está registrado o hay un problema con la base de datos. Por favor intenta iniciar sesión.",
-          )
+          // This could be username conflict if our check above failed
+          setError("El nombre de usuario ya está en uso. Por favor elige otro.")
         } else if (signUpError.message.includes("Invalid email")) {
           setError("El email ingresado no es válido")
         } else if (signUpError.message.includes("Password")) {
