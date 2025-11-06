@@ -33,8 +33,8 @@ export default function SignUpSuccessPage() {
         data: { session },
       } = await supabase.auth.getSession()
 
-      if (session) {
-        console.log("[v0] User is auto-logged in, will redirect to estrategias")
+      if (session && session.user.email_confirmed_at) {
+        console.log("[v0] User is auto-logged in and confirmed, will redirect to estrategias")
         setIsAutoLoggedIn(true)
 
         // Start countdown for redirect
@@ -50,6 +50,8 @@ export default function SignUpSuccessPage() {
         }, 1000)
 
         return () => clearInterval(interval)
+      } else {
+        console.log("[v0] Email confirmation required, showing verification instructions")
       }
     }
 
