@@ -29,6 +29,24 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  if (user) {
+    const session = await supabase.auth.getSession()
+    if (session.data.session) {
+      const sessionCreatedAt = new Date(session.data.session.created_at || 0).getTime()
+      const now = Date.now()
+      const twentyFourHours = 24 * 60 * 60 * 1000 // 24 hours in milliseconds
+
+      // If session is older than 24 hours, sign out
+      if (now - sessionCreatedAt > twentyFourHours) {
+        await supabase.auth.signOut()
+        const url = request.nextUrl.clone()
+        url.pathname = "/login"
+        url.searchParams.set("expired", "true")
+        return NextResponse.redirect(url)
+      }
+    }
+  }
+
   // Protect /app routes - require authentication
   if (request.nextUrl.pathname.startsWith("/app") && !user) {
     const url = request.nextUrl.clone()
@@ -36,10 +54,9 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Redirect authenticated users away from auth pages
   if ((request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/registro") && user) {
     const url = request.nextUrl.clone()
-    url.pathname = "/app"
+    url.pathname = "/app/estrategias"
     return NextResponse.redirect(url)
   }
 
