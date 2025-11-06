@@ -289,6 +289,7 @@ export default function NewStrategyPage() {
 
   const generatePayload = () => {
     const payload = {
+      // Simplified payload - v2.0
       user_id: userId || "{{user_id}}",
       strategy_id: "{{strategy_id}}",
     }

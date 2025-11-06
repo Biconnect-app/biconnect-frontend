@@ -213,25 +213,10 @@ export default function PreviewStrategyPage() {
   const getQuoteCurrency = () => formData.pair.split("/")[1] || "USDT"
 
   const generatePayload = () => {
-    const payload: any = {
-      action: "{{action}}",
-      symbol: formData.pair,
-      market_type: formData.marketType,
+    const payload = {
+      user_id: "{{user_id}}",
+      strategy_id: "{{strategy_id}}",
     }
-
-    if (formData.marketType === "futures") {
-      payload.leverage = formData.leverage
-    }
-
-    if (formData.riskType === "fixed_quantity") {
-      payload.quantity = Number.parseFloat(formData.riskAmount)
-    } else if (formData.riskType === "fixed_amount") {
-      payload.amount_usdt = Number.parseFloat(formData.riskAmount)
-    } else if (formData.riskType === "percentage") {
-      payload.capital_percentage = Number.parseFloat(formData.riskAmount)
-    }
-
-    payload.client_id = "{{strategy.order.id}}"
 
     return JSON.stringify(payload, null, 2)
   }

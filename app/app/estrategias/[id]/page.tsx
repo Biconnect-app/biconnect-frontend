@@ -235,6 +235,7 @@ export default function EditStrategyPage() {
     if (!formData) return ""
 
     const payload = {
+      // Simplified payload - v2.0
       user_id: userId || "{{user_id}}",
       strategy_id: params.id || "{{strategy_id}}",
     }
