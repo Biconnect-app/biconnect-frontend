@@ -101,6 +101,32 @@ export default function NewStrategyPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
+    const previewData = sessionStorage.getItem("previewStrategy")
+    if (previewData) {
+      try {
+        const parsedData = JSON.parse(previewData)
+        console.log("[v0] Loading preview data into new strategy form:", parsedData)
+        setFormData({
+          name: parsedData.name || "",
+          exchange: parsedData.exchange || "binance",
+          description: parsedData.description || "",
+          pair: parsedData.pair || "",
+          marketType: parsedData.marketType || "",
+          leverage: parsedData.leverage || 1,
+          riskType: parsedData.riskType || "",
+          riskAmount: parsedData.riskAmount || "",
+        })
+        // Clear preview data after loading
+        sessionStorage.removeItem("previewStrategy")
+        console.log("[v0] Preview data loaded and cleared from sessionStorage")
+      } catch (error) {
+        console.error("[v0] Error loading preview data:", error)
+        sessionStorage.removeItem("previewStrategy")
+      }
+    }
+  }, [])
+
+  useEffect(() => {
     if (formData.marketType && formData.exchange) {
       fetchTradingPairs()
     }
@@ -184,19 +210,17 @@ export default function NewStrategyPage() {
 
   const handleSave = () => {
     if (validateStep(step)) {
-      // Save strategy (in real app, this would be an API call)
-      localStorage.setItem(
-        "strategies",
-        JSON.stringify([
-          ...(JSON.parse(localStorage.getItem("strategies") || "[]") || []),
-          {
-            id: `strat-${Date.now()}`,
-            ...formData,
-            createdAt: new Date().toISOString(),
-            status: "active",
-          },
-        ]),
-      )
+      console.log("[v0] Saving new strategy:", formData)
+      // Save strategy to localStorage
+      const existingStrategies = JSON.parse(localStorage.getItem("strategies") || "[]")
+      const newStrategy = {
+        id: `strat-${Date.now()}`,
+        ...formData,
+        createdAt: new Date().toISOString(),
+        status: "active",
+      }
+      localStorage.setItem("strategies", JSON.stringify([...existingStrategies, newStrategy]))
+      console.log("[v0] Strategy saved successfully")
       router.push("/app/estrategias")
     }
   }
@@ -208,11 +232,9 @@ export default function NewStrategyPage() {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  // Get base and quote currency from pair
   const getBaseCurrency = () => formData.pair.split("/")[0]
   const getQuoteCurrency = () => formData.pair.split("/")[1]
 
-  // Generate JSON payload
   const generatePayload = () => {
     const payload: any = {
       action: "{{action}}",

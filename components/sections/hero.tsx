@@ -1,8 +1,39 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, BookOpen } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
 
 export function Hero() {
+  const router = useRouter()
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [checkingAuth, setCheckingAuth] = useState(true)
+
+  useEffect(() => {
+    async function checkAuth() {
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      setIsAuthenticated(!!user)
+      setCheckingAuth(false)
+    }
+    checkAuth()
+  }, [])
+
+  const handleStartFree = () => {
+    if (isAuthenticated) {
+      // User is logged in, go directly to create strategy
+      router.push("/app/estrategias/nueva")
+    } else {
+      // User is not logged in, show preview
+      router.push("/preview/estrategia")
+    }
+  }
+
   return (
     <section className="pt-32 pb-20 px-4 bg-gradient-to-b from-primary/5 to-background">
       <div className="container mx-auto">
@@ -22,12 +53,15 @@ export function Hero() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/preview/estrategia">
-              <Button size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground text-lg h-14 px-8">
-                Comenzar gratis
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
+            <Button
+              size="lg"
+              className="bg-accent hover:bg-accent/90 text-accent-foreground text-lg h-14 px-8"
+              onClick={handleStartFree}
+              disabled={checkingAuth}
+            >
+              {checkingAuth ? "Cargando..." : "Comenzar gratis"}
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
             <Link href="/docs">
               <Button size="lg" variant="outline" className="text-lg h-14 px-8 bg-transparent">
                 <BookOpen className="mr-2 h-5 w-5" />

@@ -12,6 +12,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
+import { createClient } from "@/lib/supabase/client"
 
 const FALLBACK_TRADING_PAIRS = [
   "BTC/USDT",
@@ -101,6 +102,25 @@ export default function PreviewStrategyPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
+    async function checkAuth() {
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (user) {
+        console.log("[v0] User is already logged in, redirecting to create strategy")
+        // Save current form data to sessionStorage before redirecting
+        if (formData.name || formData.pair) {
+          sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
+        }
+        router.push("/app/estrategias/nueva")
+      }
+    }
+    checkAuth()
+  }, [])
+
+  useEffect(() => {
     if (formData.marketType && formData.exchange) {
       fetchTradingPairs()
     }
@@ -175,6 +195,7 @@ export default function PreviewStrategyPage() {
     if (validateStep(step)) {
       // Save the strategy data to sessionStorage before going to registration CTA
       if (step === 4) {
+        console.log("[v0] Saving preview strategy to sessionStorage:", formData)
         sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
       }
       setStep(step + 1)
