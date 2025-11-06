@@ -25,6 +25,16 @@ import {
 import { createClient } from "@/lib/supabase/client"
 import { useTheme } from "next-themes"
 import { useUserPlan } from "@/hooks/use-user-plan"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -36,6 +46,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { theme, setTheme } = useTheme()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { isFree, loading: planLoading } = useUserPlan()
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false)
 
   useEffect(() => {
     console.log("[v0] DashboardLayout rendered on route:", pathname)
@@ -79,7 +90,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const handleLogout = async () => {
     try {
-      console.log("[v0] Logout iniciado")
+      console.log("[v0] Logout confirmado, cerrando sesión...")
       const supabase = createClient()
 
       // Remove login timestamp
@@ -94,14 +105,16 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         throw error
       }
 
-      console.log("[v0] Sesión cerrada exitosamente")
+      console.log("[v0] Sesión cerrada exitosamente, redirigiendo a /login")
 
       // Redirect to login
       router.push("/login")
+      router.refresh()
     } catch (error) {
       console.error("[v0] Error en handleLogout:", error)
       // Even if there's an error, try to redirect to login
       router.push("/login")
+      router.refresh()
     }
   }
 
@@ -199,11 +212,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             </Button>
             <Button
               variant="ghost"
-              className="w-full justify-start text-destructive"
+              className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
               size="lg"
               onClick={() => {
-                console.log("[v0] Logout button clicked on route:", pathname)
-                handleLogout()
+                console.log("[v0] Botón Salir clickeado en ruta:", pathname)
+                setShowLogoutDialog(true)
               }}
             >
               <LogOut className="h-5 w-5 mr-3" />
@@ -222,6 +235,30 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
+
+      <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Cerrar sesión?</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro que quieres cerrar sesión? Tendrás que volver a iniciar sesión para acceder a tu cuenta.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => console.log("[v0] Logout cancelado")}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                console.log("[v0] Logout confirmado por el usuario")
+                setShowLogoutDialog(false)
+                handleLogout()
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Cerrar sesión
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
