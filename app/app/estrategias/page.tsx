@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Plus, Power, PowerOff, Edit, Copy, MoreVertical, TrendingUp } from "lucide-react"
@@ -26,13 +26,14 @@ export default function StrategiesPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [strategyToDelete, setStrategyToDelete] = useState<any>(null)
 
+  const supabase = useMemo(() => createClient(), [])
+
   useEffect(() => {
     loadStrategies()
   }, [])
 
   const loadStrategies = async () => {
     try {
-      const supabase = createClient()
       const {
         data: { user },
       } = await supabase.auth.getUser()
@@ -43,6 +44,8 @@ export default function StrategiesPage() {
         setCheckingApiKeys(false)
         return
       }
+
+      console.log("[v0] Current user:", { id: user.id, email: user.email })
 
       const { data: exchanges, error: exchangesError } = await supabase
         .from("exchanges")
@@ -74,8 +77,10 @@ export default function StrategiesPage() {
 
       let strategyData = null
       let fromPreview = false
+      let pendingStrategyId = null
 
-      // First, check database for pending strategies
+      console.log("[v0] Checking for pending strategies with email:", user.email)
+
       const { data: pendingStrategies, error: pendingError } = await supabase
         .from("pending_strategies")
         .select("*")
@@ -83,14 +88,19 @@ export default function StrategiesPage() {
         .order("created_at", { ascending: false })
         .limit(1)
 
+      console.log("[v0] Pending strategies query result:", {
+        data: pendingStrategies,
+        error: pendingError,
+        found: pendingStrategies && pendingStrategies.length > 0,
+      })
+
       if (!pendingError && pendingStrategies && pendingStrategies.length > 0) {
         console.log("[v0] Found pending strategy in database:", pendingStrategies[0])
         strategyData = pendingStrategies[0].strategy_data
         fromPreview = true
-
-        // Delete the pending strategy after retrieving it
-        await supabase.from("pending_strategies").delete().eq("id", pendingStrategies[0].id)
+        pendingStrategyId = pendingStrategies[0].id
       } else {
+        console.log("[v0] No pending strategies found in database, checking sessionStorage")
         // Fallback to sessionStorage
         const previewDataString = sessionStorage.getItem("previewStrategy")
         const fromPreviewString = sessionStorage.getItem("fromPreview")
@@ -109,6 +119,17 @@ export default function StrategiesPage() {
           const { data: userExchanges } = await supabase.from("exchanges").select("id").eq("user_id", user.id).limit(1)
 
           const exchangeId = userExchanges && userExchanges.length > 0 ? userExchanges[0].id : null
+
+          console.log("[v0] Inserting strategy with data:", {
+            user_id: user.id,
+            exchange_id: exchangeId,
+            name: strategyData.name,
+            trading_pair: strategyData.pair,
+            market_type: strategyData.marketType,
+            leverage: strategyData.leverage || 1,
+            risk_type: strategyData.riskType,
+            risk_value: Number.parseFloat(strategyData.riskAmount),
+          })
 
           const { data: newStrategy, error: insertError } = await supabase
             .from("strategies")
@@ -132,6 +153,22 @@ export default function StrategiesPage() {
             console.error("[v0] Error creating strategy from preview:", insertError)
           } else {
             console.log("[v0] Strategy created successfully:", newStrategy)
+
+            if (pendingStrategyId) {
+              console.log("[v0] Deleting pending strategy:", pendingStrategyId)
+              const { error: deleteError } = await supabase
+                .from("pending_strategies")
+                .delete()
+                .eq("id", pendingStrategyId)
+
+              if (deleteError) {
+                console.error("[v0] Error deleting pending strategy:", deleteError)
+              } else {
+                console.log("[v0] Pending strategy deleted successfully")
+              }
+            }
+
+            // Reload strategies to show the new one
             loadStrategies()
           }
 
@@ -143,6 +180,8 @@ export default function StrategiesPage() {
           sessionStorage.removeItem("previewStrategy")
           sessionStorage.removeItem("fromPreview")
         }
+      } else {
+        console.log("[v0] No preview data to process")
       }
 
       setLoading(false)
@@ -155,7 +194,6 @@ export default function StrategiesPage() {
 
   const toggleStatus = async (id: string) => {
     try {
-      const supabase = createClient()
       const strategy = strategies.find((s) => s.id === id)
       if (!strategy) return
 
@@ -174,7 +212,6 @@ export default function StrategiesPage() {
 
   const duplicateStrategy = async (id: string) => {
     try {
-      const supabase = createClient()
       const {
         data: { user },
       } = await supabase.auth.getUser()
@@ -226,7 +263,6 @@ export default function StrategiesPage() {
     if (!strategyToDelete) return
 
     try {
-      const supabase = createClient()
       const { error } = await supabase.from("strategies").delete().eq("id", strategyToDelete.id)
 
       if (error) {
