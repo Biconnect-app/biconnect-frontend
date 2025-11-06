@@ -38,6 +38,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { isFree, loading: planLoading } = useUserPlan()
 
   useEffect(() => {
+    console.log("[v0] DashboardLayout rendered on route:", pathname)
+    console.log("[v0] Sidebar open state:", sidebarOpen)
+
     const checkSessionExpiration = async () => {
       const supabase = createClient()
       const {
@@ -72,7 +75,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     const interval = setInterval(checkSessionExpiration, 5 * 60 * 1000)
 
     return () => clearInterval(interval)
-  }, [router])
+  }, [router, pathname, sidebarOpen])
 
   const handleLogout = async () => {
     try {
@@ -194,7 +197,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               {theme === "dark" ? <Sun className="h-5 w-5 mr-3" /> : <Moon className="h-5 w-5 mr-3" />}
               {theme === "dark" ? "Modo claro" : "Modo oscuro"}
             </Button>
-            <Button variant="ghost" className="w-full justify-start text-destructive" size="lg" onClick={handleLogout}>
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-destructive"
+              size="lg"
+              onClick={() => {
+                console.log("[v0] Logout button clicked on route:", pathname)
+                handleLogout()
+              }}
+            >
               <LogOut className="h-5 w-5 mr-3" />
               Salir
             </Button>
