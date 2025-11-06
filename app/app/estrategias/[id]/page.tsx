@@ -91,6 +91,7 @@ export default function EditStrategyPage() {
   const [openPairSelect, setOpenPairSelect] = useState(false)
   const [formData, setFormData] = useState<any>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [userId, setUserId] = useState<string>("")
 
   useEffect(() => {
     loadStrategy()
@@ -107,6 +108,8 @@ export default function EditStrategyPage() {
         console.error("[v0] No user found")
         return
       }
+
+      setUserId(user.id)
 
       const { data: strategy, error } = await supabase
         .from("strategies")
@@ -231,25 +234,10 @@ export default function EditStrategyPage() {
   const generatePayload = () => {
     if (!formData) return ""
 
-    const payload: any = {
-      action: "{{action}}",
-      symbol: formData.pair,
-      market_type: formData.marketType,
+    const payload = {
+      user_id: userId || "{{user_id}}",
+      strategy_id: params.id || "{{strategy_id}}",
     }
-
-    if (formData.marketType === "futures") {
-      payload.leverage = formData.leverage
-    }
-
-    if (formData.riskType === "fixed_quantity") {
-      payload.quantity = Number.parseFloat(formData.riskAmount)
-    } else if (formData.riskType === "fixed_amount") {
-      payload.amount_usdt = Number.parseFloat(formData.riskAmount)
-    } else if (formData.riskType === "percentage") {
-      payload.capital_percentage = Number.parseFloat(formData.riskAmount)
-    }
-
-    payload.client_id = "{{strategy.order.id}}"
 
     return JSON.stringify(payload, null, 2)
   }

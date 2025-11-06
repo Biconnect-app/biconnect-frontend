@@ -87,6 +87,7 @@ export default function NewStrategyPage() {
   const [tradingPairs, setTradingPairs] = useState<string[]>(FALLBACK_TRADING_PAIRS)
   const [loadingPairs, setLoadingPairs] = useState(false)
   const [pairsError, setPairsError] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string>("")
 
   const [formData, setFormData] = useState({
     name: "",
@@ -102,6 +103,17 @@ export default function NewStrategyPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
+    const getUserId = async () => {
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (user) {
+        setUserId(user.id)
+      }
+    }
+    getUserId()
+
     const previewData = sessionStorage.getItem("previewStrategy")
     const fromPreview = sessionStorage.getItem("fromPreview")
 
@@ -276,25 +288,10 @@ export default function NewStrategyPage() {
   const getQuoteCurrency = () => formData.pair.split("/")[1]
 
   const generatePayload = () => {
-    const payload: any = {
-      action: "{{action}}",
-      symbol: formData.pair,
-      market_type: formData.marketType,
+    const payload = {
+      user_id: userId || "{{user_id}}",
+      strategy_id: "{{strategy_id}}",
     }
-
-    if (formData.marketType === "futures") {
-      payload.leverage = formData.leverage
-    }
-
-    if (formData.riskType === "fixed_quantity") {
-      payload.quantity = Number.parseFloat(formData.riskAmount)
-    } else if (formData.riskType === "fixed_amount") {
-      payload.amount_usdt = Number.parseFloat(formData.riskAmount)
-    } else if (formData.riskType === "percentage") {
-      payload.capital_percentage = Number.parseFloat(formData.riskAmount)
-    }
-
-    payload.client_id = "{{strategy.order.id}}"
 
     return JSON.stringify(payload, null, 2)
   }

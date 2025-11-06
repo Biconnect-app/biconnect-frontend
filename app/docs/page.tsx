@@ -102,63 +102,35 @@ export default function DocsPage() {
                   <h3 className="text-xl font-semibold text-foreground mb-3">Ejemplo de payload JSON</h3>
                   <div className="bg-muted rounded-lg p-4 font-mono text-sm overflow-x-auto">
                     <pre className="text-foreground">{`{
-  "action": "long",
-  "symbol": "{{ticker}}",
-  "price": "{{close}}",
-  "qty_pct": 5,
-  "leverage": 5,
-  "tp": 0.01,
-  "sl": 0.005,
-  "client_id": "{{strategy.order.id}}"
+  "user_id": "550e8400-e29b-41d4-a716-446655440000",
+  "strategy_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7"
 }`}</pre>
                   </div>
+                  <p className="text-sm text-muted-foreground mt-3">
+                    El payload solo incluye los identificadores necesarios. El backend de Biconnect usa estos IDs para
+                    buscar la configuración completa de la estrategia en la base de datos y ejecutar la orden según los
+                    parámetros configurados.
+                  </p>
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-semibold text-foreground mb-3">Campos disponibles</h3>
+                  <h3 className="text-xl font-semibold text-foreground mb-3">Campos del payload</h3>
                   <div className="space-y-3">
                     <div className="p-3 bg-muted/30 rounded-lg">
                       <div className="font-medium text-foreground mb-1">
-                        <code className="text-sm">action</code>
+                        <code className="text-sm">user_id</code>
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        Acción a ejecutar: "long", "short", "buy", "sell", "close"
+                        ID único del usuario. Se obtiene automáticamente al crear la estrategia.
                       </div>
                     </div>
                     <div className="p-3 bg-muted/30 rounded-lg">
                       <div className="font-medium text-foreground mb-1">
-                        <code className="text-sm">symbol</code>
+                        <code className="text-sm">strategy_id</code>
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        Símbolo del activo. Usa {`{{ticker}}`} para el símbolo actual
-                      </div>
-                    </div>
-                    <div className="p-3 bg-muted/30 rounded-lg">
-                      <div className="font-medium text-foreground mb-1">
-                        <code className="text-sm">qty_pct</code>
-                      </div>
-                      <div className="text-sm text-muted-foreground">Porcentaje del balance a usar (1-100)</div>
-                    </div>
-                    <div className="p-3 bg-muted/30 rounded-lg">
-                      <div className="font-medium text-foreground mb-1">
-                        <code className="text-sm">leverage</code>
-                      </div>
-                      <div className="text-sm text-muted-foreground">Leverage para futuros (1-125)</div>
-                    </div>
-                    <div className="p-3 bg-muted/30 rounded-lg">
-                      <div className="font-medium text-foreground mb-1">
-                        <code className="text-sm">tp / sl</code>
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        Take profit y stop loss como porcentaje (0.01 = 1%)
-                      </div>
-                    </div>
-                    <div className="p-3 bg-muted/30 rounded-lg">
-                      <div className="font-medium text-foreground mb-1">
-                        <code className="text-sm">client_id</code>
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        ID único para idempotencia. Usa {`{{strategy.order.id}}`}
+                        ID único de la estrategia. El backend usa este ID para cargar la configuración completa (par,
+                        gestión de riesgo, leverage, etc.) y ejecutar la orden.
                       </div>
                     </div>
                   </div>
