@@ -88,6 +88,7 @@ export default function NewStrategyPage() {
   const [loadingPairs, setLoadingPairs] = useState(false)
   const [pairsError, setPairsError] = useState<string | null>(null)
   const [userId, setUserId] = useState<string>("")
+  const [preGeneratedId, setPreGeneratedId] = useState<string>("")
 
   const [formData, setFormData] = useState({
     name: "",
@@ -103,6 +104,10 @@ export default function NewStrategyPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
+    const strategyId = crypto.randomUUID()
+    setPreGeneratedId(strategyId)
+    console.log("[v0] Pre-generated strategy ID:", strategyId)
+
     const getUserId = async () => {
       const supabase = createClient()
       const {
@@ -131,7 +136,6 @@ export default function NewStrategyPage() {
           riskType: parsedData.riskType || "",
           riskAmount: parsedData.riskAmount || "",
         })
-        // Clear both preview data and flag after loading
         sessionStorage.removeItem("previewStrategy")
         sessionStorage.removeItem("fromPreview")
         console.log("[v0] Preview data loaded and cleared from sessionStorage")
@@ -240,15 +244,14 @@ export default function NewStrategyPage() {
           return
         }
 
-        // Get user's first exchange
         const { data: exchanges } = await supabase.from("exchanges").select("id").eq("user_id", user.id).limit(1)
 
         const exchangeId = exchanges && exchanges.length > 0 ? exchanges[0].id : null
 
-        // Create strategy in database
         const { data: newStrategy, error } = await supabase
           .from("strategies")
           .insert({
+            id: preGeneratedId,
             user_id: user.id,
             exchange_id: exchangeId,
             name: formData.name,
@@ -259,7 +262,7 @@ export default function NewStrategyPage() {
             risk_type: formData.riskType,
             risk_value: Number.parseFloat(formData.riskAmount),
             is_active: true,
-            webhook_url: `https://api.biconnect.io/w/${user.id}/strat-${Date.now()}`,
+            webhook_url: `https://api.biconnect.io/w/${user.id}/${preGeneratedId}`,
           })
           .select()
           .single()
@@ -289,9 +292,8 @@ export default function NewStrategyPage() {
 
   const generatePayload = () => {
     const payload = {
-      // Simplified payload - v2.0
       user_id: userId || "{{user_id}}",
-      strategy_id: "{{strategy_id}}",
+      strategy_id: preGeneratedId || "{{strategy_id}}",
     }
 
     return JSON.stringify(payload, null, 2)
@@ -305,7 +307,6 @@ export default function NewStrategyPage() {
           <p className="text-muted-foreground mt-1">Configura una nueva estrategia de trading automatizado</p>
         </div>
 
-        {/* Progress Steps */}
         <div className="flex items-center gap-2">
           {[1, 2, 3, 4, 5].map((s, idx) => (
             <div key={s} className="flex items-center gap-2 flex-1">
@@ -321,7 +322,6 @@ export default function NewStrategyPage() {
           ))}
         </div>
 
-        {/* Step 1: Basic Info */}
         {step === 1 && (
           <div className="bg-card border border-border rounded-xl p-6 space-y-4">
             <h2 className="text-xl font-semibold text-foreground">Información básica</h2>
@@ -373,7 +373,6 @@ export default function NewStrategyPage() {
           </div>
         )}
 
-        {/* Step 2: Market Type & Leverage */}
         {step === 2 && (
           <div className="bg-card border border-border rounded-xl p-6 space-y-4">
             <h2 className="text-xl font-semibold text-foreground">Tipo de mercado</h2>
@@ -458,7 +457,6 @@ export default function NewStrategyPage() {
           </div>
         )}
 
-        {/* Step 3: Trading Pair */}
         {step === 3 && (
           <div className="bg-card border border-border rounded-xl p-6 space-y-4">
             <h2 className="text-xl font-semibold text-foreground">Par de trading</h2>
@@ -529,7 +527,6 @@ export default function NewStrategyPage() {
           </div>
         )}
 
-        {/* Step 4: Risk Management */}
         {step === 4 && (
           <div className="bg-card border border-border rounded-xl p-6 space-y-4">
             <h2 className="text-xl font-semibold text-foreground">Gestión del riesgo</h2>
@@ -642,7 +639,6 @@ export default function NewStrategyPage() {
           </div>
         )}
 
-        {/* Step 5: Review & Save */}
         {step === 5 && (
           <div className="space-y-4">
             <div className="bg-card border border-border rounded-xl p-6 space-y-4">
@@ -653,7 +649,7 @@ export default function NewStrategyPage() {
 
               <div className="flex gap-2">
                 <Input
-                  value={`https://api.biconnect.io/w/user123/strat-${Date.now()}`}
+                  value={`https://api.biconnect.io/w/user123/${preGeneratedId}`}
                   readOnly
                   className="font-mono text-sm"
                 />
