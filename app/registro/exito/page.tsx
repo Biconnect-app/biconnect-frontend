@@ -33,6 +33,17 @@ export default function SignUpSuccessPage() {
         data: { session },
       } = await supabase.auth.getSession()
 
+      console.log("[v0] Session check on success page:")
+      console.log("[v0] - Session exists:", !!session)
+      if (session) {
+        console.log("[v0] - User ID:", session.user.id)
+        console.log("[v0] - Email:", session.user.email)
+        console.log("[v0] - email_confirmed_at:", session.user.email_confirmed_at)
+        console.log("[v0] - confirmed_at:", session.user.confirmed_at)
+        console.log("[v0] - Full user object:", session.user)
+      }
+
+      // If no session exists, or email is not confirmed, show verification instructions
       if (session && session.user.email_confirmed_at) {
         console.log("[v0] User is auto-logged in and confirmed, will redirect to estrategias")
         setIsAutoLoggedIn(true)
@@ -52,6 +63,7 @@ export default function SignUpSuccessPage() {
         return () => clearInterval(interval)
       } else {
         console.log("[v0] Email confirmation required, showing verification instructions")
+        console.log("[v0] - Reason: Session exists?", !!session, "Email confirmed?", session?.user.email_confirmed_at)
       }
     }
 
