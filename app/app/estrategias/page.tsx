@@ -89,7 +89,7 @@ export default function StrategiesPage() {
               leverage: strategyData.leverage || 1,
               risk_type: strategyData.riskType,
               risk_value: Number.parseFloat(strategyData.riskAmount),
-              is_active: false,
+              is_active: true,
               webhook_url: `https://api.biconnect.io/w/${user.id}/strat-${Date.now()}`,
             })
             .select()
@@ -165,7 +165,7 @@ export default function StrategiesPage() {
           leverage: strategy.leverage,
           risk_type: strategy.risk_type,
           risk_value: strategy.risk_value,
-          is_active: false,
+          is_active: true,
           webhook_url: `https://api.biconnect.io/w/${user.id}/strat-${Date.now()}`,
         })
         .select()
