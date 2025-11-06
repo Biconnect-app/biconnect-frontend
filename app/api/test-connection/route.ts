@@ -25,6 +25,8 @@ export async function POST(request: NextRequest) {
     const queryString = `timestamp=${timestamp}`
     const signature = crypto.createHmac("sha256", apiSecret).update(queryString).digest("hex")
 
+    console.log("[v0] Making request to:", `${baseUrl}/api/v3/account`)
+
     // Test the connection by fetching account information
     const response = await fetch(`${baseUrl}/api/v3/account?${queryString}&signature=${signature}`, {
       method: "GET",
@@ -37,23 +39,40 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorData = await response.json()
-      console.error("[v0] Binance API error:", errorData)
+      console.error("[v0] Binance API error:", JSON.stringify(errorData))
 
-      // Parse Binance error messages
       let errorMessage = "Error al conectar con Binance"
+      let isGeoRestriction = false
+
       if (errorData.msg) {
-        if (errorData.msg.includes("Invalid API-key")) {
-          errorMessage = "API Key inválida"
-        } else if (errorData.msg.includes("Signature")) {
-          errorMessage = "API Secret incorrecta"
-        } else if (errorData.msg.includes("IP")) {
-          errorMessage = "IP no autorizada. Verifica las restricciones de IP en Binance"
+        const msg = errorData.msg.toLowerCase()
+
+        // Check for geographic restriction
+        if (msg.includes("restricted location") || msg.includes("eligibility")) {
+          errorMessage = errorData.msg
+          isGeoRestriction = true
+        } else if (msg.includes("invalid api-key") || errorData.code === -2014) {
+          errorMessage = "API Key inválida. Verifica que la copiaste correctamente."
+        } else if (msg.includes("signature") || errorData.code === -1022) {
+          errorMessage = "API Secret incorrecta. Verifica que la copiaste correctamente."
+        } else if (msg.includes("ip") || msg.includes("whitelist")) {
+          errorMessage = "IP no autorizada. Verifica las restricciones de IP en tu API key de Binance."
+        } else if (msg.includes("timestamp")) {
+          errorMessage = "Error de sincronización de tiempo. Intenta nuevamente."
         } else {
           errorMessage = errorData.msg
         }
       }
 
-      return NextResponse.json({ success: false, error: errorMessage }, { status: 400 })
+      return NextResponse.json(
+        {
+          success: false,
+          error: errorMessage,
+          isGeoRestriction,
+          code: errorData.code,
+        },
+        { status: 400 },
+      )
     }
 
     const data = await response.json()
@@ -61,7 +80,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "Conexión exitosa",
+      message: "Conexión exitosa con Binance",
       accountType: data.accountType,
       canTrade: data.canTrade,
       canDeposit: data.canDeposit,
@@ -70,7 +89,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[v0] Error testing connection:", error)
     return NextResponse.json(
-      { success: false, error: "Error al probar la conexión. Verifica tus credenciales." },
+      { success: false, error: "Error al probar la conexión. Verifica tu conexión a internet." },
       { status: 500 },
     )
   }

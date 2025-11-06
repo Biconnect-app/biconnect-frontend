@@ -89,37 +89,28 @@ export default function InitialApiSetupPage() {
       })
 
       const data = await response.json()
+      console.log("[v0] Test connection response:", data)
 
       if (data.success) {
         console.log("[v0] Authentication successful")
         setTestResult({
           success: true,
-          message: "✓ Conexión exitosa! API Key y Secret verificados correctamente",
+          message: `✓ Conexión exitosa! API Key y Secret verificados correctamente. Cuenta: ${data.accountType || "verificada"}`,
         })
       } else {
-        console.error("[v0] Authentication failed:", data.error)
+        console.error("[v0] Authentication failed:", data)
 
-        if (data.error?.includes("restricted location") || data.error?.includes("Eligibility")) {
+        if (data.isGeoRestriction) {
           setTestResult({
             success: false,
             message:
-              "⚠️ No se puede verificar desde esta ubicación. Puedes guardar las credenciales de todas formas - se verificarán al ejecutar órdenes.",
+              "⚠️ No se puede verificar desde esta ubicación del servidor. Puedes guardar las credenciales de todas formas - se verificarán al ejecutar órdenes desde tu ubicación.",
           })
         } else {
-          let errorMessage = "Error al verificar credenciales"
-          if (data.error?.includes("Invalid API-key")) {
-            errorMessage = "API Key inválida"
-          } else if (data.error?.includes("Signature")) {
-            errorMessage = "API Secret incorrecta"
-          } else if (data.error?.includes("IP")) {
-            errorMessage = "Restricción de IP. Verifica la configuración en Binance"
-          } else if (data.error) {
-            errorMessage = data.error
-          }
-
+          // Show specific error message from API
           setTestResult({
             success: false,
-            message: `✗ ${errorMessage}`,
+            message: `✗ ${data.error || "Error al verificar credenciales"}`,
           })
         }
       }
