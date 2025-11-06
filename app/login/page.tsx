@@ -73,6 +73,7 @@ export default function LoginPage() {
       }
 
       if (data.user) {
+        localStorage.setItem("login_timestamp", Date.now().toString())
         console.log("[v0] Login successful, redirecting to /app/estrategias")
         router.replace("/app/estrategias")
       }
@@ -193,7 +194,7 @@ export default function LoginPage() {
                   />
                   <path
                     fill="currentColor"
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23 7.7 23 3.99 20.53 2.18 17.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                   />
                   <path
                     fill="currentColor"

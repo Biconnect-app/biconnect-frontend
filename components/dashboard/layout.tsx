@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -37,8 +37,46 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { isFree, loading: planLoading } = useUserPlan()
 
+  useEffect(() => {
+    const checkSessionExpiration = async () => {
+      const supabase = createClient()
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (session) {
+        // Store login timestamp in localStorage when session is first detected
+        const loginTimestamp = localStorage.getItem("login_timestamp")
+
+        if (!loginTimestamp) {
+          // First time detecting this session, store the current time
+          localStorage.setItem("login_timestamp", Date.now().toString())
+        } else {
+          // Check if session is older than 24 hours
+          const twentyFourHours = 24 * 60 * 60 * 1000
+          const sessionAge = Date.now() - Number.parseInt(loginTimestamp)
+
+          if (sessionAge > twentyFourHours) {
+            // Session expired, sign out
+            localStorage.removeItem("login_timestamp")
+            await supabase.auth.signOut()
+            router.push("/login?expired=true")
+          }
+        }
+      }
+    }
+
+    checkSessionExpiration()
+
+    // Check every 5 minutes
+    const interval = setInterval(checkSessionExpiration, 5 * 60 * 1000)
+
+    return () => clearInterval(interval)
+  }, [router])
+
   const handleLogout = async () => {
     const supabase = createClient()
+    localStorage.removeItem("login_timestamp")
     await supabase.auth.signOut()
     router.push("/login")
   }
