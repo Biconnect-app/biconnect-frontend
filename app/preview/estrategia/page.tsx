@@ -97,6 +97,7 @@ export default function PreviewStrategyPage() {
     leverage: 1,
     riskType: "",
     riskAmount: "",
+    email: "", // Added email field
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -221,16 +222,66 @@ export default function PreviewStrategyPage() {
     return JSON.stringify(payload, null, 2)
   }
 
-  const handleRegisterClick = () => {
-    console.log("[v0] User clicked register from preview, saving strategy data")
-    sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
-    sessionStorage.setItem("fromPreview", "true")
+  const handleRegisterClick = async () => {
+    console.log("[v0] User clicked register from preview, saving strategy to database")
+
+    try {
+      const supabase = createClient()
+
+      // Save to pending_strategies table
+      const { error } = await supabase.from("pending_strategies").insert({
+        email: formData.email || "temp@preview.com", // Will be updated with actual email during registration
+        strategy_data: formData,
+      })
+
+      if (error) {
+        console.error("[v0] Error saving pending strategy:", error)
+        // Fallback to sessionStorage if database save fails
+        sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
+        sessionStorage.setItem("fromPreview", "true")
+      } else {
+        console.log("[v0] Pending strategy saved to database")
+        // Also save to sessionStorage as backup
+        sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
+        sessionStorage.setItem("fromPreview", "true")
+      }
+    } catch (error) {
+      console.error("[v0] Error in handleRegisterClick:", error)
+      // Fallback to sessionStorage
+      sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
+      sessionStorage.setItem("fromPreview", "true")
+    }
   }
 
-  const handleLoginClick = () => {
-    console.log("[v0] User clicked login from preview, saving strategy data")
-    sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
-    sessionStorage.setItem("fromPreview", "true")
+  const handleLoginClick = async () => {
+    console.log("[v0] User clicked login from preview, saving strategy to database")
+
+    try {
+      const supabase = createClient()
+
+      // Save to pending_strategies table
+      const { error } = await supabase.from("pending_strategies").insert({
+        email: formData.email || "temp@preview.com",
+        strategy_data: formData,
+      })
+
+      if (error) {
+        console.error("[v0] Error saving pending strategy:", error)
+        // Fallback to sessionStorage if database save fails
+        sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
+        sessionStorage.setItem("fromPreview", "true")
+      } else {
+        console.log("[v0] Pending strategy saved to database")
+        // Also save to sessionStorage as backup
+        sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
+        sessionStorage.setItem("fromPreview", "true")
+      }
+    } catch (error) {
+      console.error("[v0] Error in handleLoginClick:", error)
+      // Fallback to sessionStorage
+      sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
+      sessionStorage.setItem("fromPreview", "true")
+    }
   }
 
   return (

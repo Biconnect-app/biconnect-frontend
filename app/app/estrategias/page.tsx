@@ -72,12 +72,38 @@ export default function StrategiesPage() {
       console.log("[v0] Loaded strategies from database:", strategiesData)
       setStrategies(strategiesData || [])
 
-      const previewData = sessionStorage.getItem("previewStrategy")
-      const fromPreview = sessionStorage.getItem("fromPreview")
+      let strategyData = null
+      let fromPreview = false
 
-      if (previewData && fromPreview === "true") {
+      // First, check database for pending strategies
+      const { data: pendingStrategies, error: pendingError } = await supabase
+        .from("pending_strategies")
+        .select("*")
+        .eq("email", user.email)
+        .order("created_at", { ascending: false })
+        .limit(1)
+
+      if (!pendingError && pendingStrategies && pendingStrategies.length > 0) {
+        console.log("[v0] Found pending strategy in database:", pendingStrategies[0])
+        strategyData = pendingStrategies[0].strategy_data
+        fromPreview = true
+
+        // Delete the pending strategy after retrieving it
+        await supabase.from("pending_strategies").delete().eq("id", pendingStrategies[0].id)
+      } else {
+        // Fallback to sessionStorage
+        const previewDataString = sessionStorage.getItem("previewStrategy")
+        const fromPreviewString = sessionStorage.getItem("fromPreview")
+
+        if (previewDataString && fromPreviewString === "true") {
+          console.log("[v0] Found preview strategy in sessionStorage")
+          strategyData = JSON.parse(previewDataString)
+          fromPreview = true
+        }
+      }
+
+      if (strategyData && fromPreview) {
         try {
-          const strategyData = JSON.parse(previewData)
           console.log("[v0] Creating strategy from preview:", strategyData)
 
           const { data: userExchanges } = await supabase.from("exchanges").select("id").eq("user_id", user.id).limit(1)
@@ -109,6 +135,7 @@ export default function StrategiesPage() {
             loadStrategies()
           }
 
+          // Clean up sessionStorage
           sessionStorage.removeItem("previewStrategy")
           sessionStorage.removeItem("fromPreview")
         } catch (error) {

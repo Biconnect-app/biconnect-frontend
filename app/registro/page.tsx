@@ -110,9 +110,38 @@ export default function RegisterPage() {
       }
 
       if (data.user) {
-        console.log("[v0] Registration successful, redirecting to success page")
-        // Redirect to success page to inform user to check email
-        router.push("/registro/exito")
+        const previewDataString = sessionStorage.getItem("previewStrategy")
+        const fromPreviewString = sessionStorage.getItem("fromPreview")
+
+        if (previewDataString && fromPreviewString === "true") {
+          try {
+            const strategyData = JSON.parse(previewDataString)
+            console.log("[v0] Saving pending strategy for user:", formData.email)
+
+            // Save to pending_strategies table with user's email
+            await supabase.from("pending_strategies").insert({
+              email: formData.email,
+              strategy_data: strategyData,
+            })
+
+            console.log("[v0] Pending strategy saved successfully")
+          } catch (error) {
+            console.error("[v0] Error saving pending strategy:", error)
+          }
+        }
+
+        const { data: sessionData } = await supabase.auth.getSession()
+
+        if (sessionData.session) {
+          // User is logged in immediately (email confirmation disabled)
+          console.log("[v0] User auto-logged in, redirecting to estrategias")
+          localStorage.setItem("login_timestamp", Date.now().toString())
+          router.push("/app/estrategias")
+        } else {
+          // Email confirmation required
+          console.log("[v0] Email confirmation required, redirecting to success page")
+          router.push("/registro/exito")
+        }
       }
     } catch (err) {
       console.error("[v0] Unexpected error during registration:", err)
