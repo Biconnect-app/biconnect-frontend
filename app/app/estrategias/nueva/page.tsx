@@ -89,6 +89,8 @@ export default function NewStrategyPage() {
   const [pairsError, setPairsError] = useState<string | null>(null)
   const [userId, setUserId] = useState<string>("")
   const [preGeneratedId, setPreGeneratedId] = useState<string>("")
+  const [checkingName, setCheckingName] = useState(false)
+  const [nameExists, setNameExists] = useState(false)
 
   const [formData, setFormData] = useState({
     name: "",
@@ -191,11 +193,51 @@ export default function NewStrategyPage() {
     }
   }
 
+  const checkNameExists = async (name: string) => {
+    if (!name.trim()) {
+      setNameExists(false)
+      return
+    }
+
+    setCheckingName(true)
+    try {
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) {
+        setCheckingName(false)
+        return
+      }
+
+      const { data: existingStrategies, error } = await supabase
+        .from("strategies")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("name", name.trim())
+        .limit(1)
+
+      if (error) {
+        console.error("[v0] Error checking strategy name:", error)
+        setCheckingName(false)
+        return
+      }
+
+      setNameExists(existingStrategies && existingStrategies.length > 0)
+    } catch (error) {
+      console.error("[v0] Exception checking name:", error)
+    } finally {
+      setCheckingName(false)
+    }
+  }
+
   const validateStep = (currentStep: number) => {
     const newErrors: Record<string, string> = {}
 
     if (currentStep === 1) {
       if (!formData.name.trim()) newErrors.name = "El nombre es requerido"
+      else if (nameExists) newErrors.name = "Ya existe una estrategia con este nombre"
     } else if (currentStep === 2) {
       if (!formData.marketType) newErrors.marketType = "Debes seleccionar el tipo de mercado"
     } else if (currentStep === 3) {
@@ -252,26 +294,6 @@ export default function NewStrategyPage() {
 
         console.log("[v0] User found:", user.id)
 
-        console.log("[v0] Verificando si el nombre de estrategia ya existe para el usuario")
-        const { data: existingStrategies, error: checkError } = await supabase
-          .from("strategies")
-          .select("id, name")
-          .eq("user_id", user.id)
-          .eq("name", formData.name.trim())
-
-        if (checkError) {
-          console.error("[v0] ❌ Error al verificar nombre de estrategia:", checkError)
-          alert(`Error al verificar el nombre: ${checkError.message}`)
-          return
-        }
-
-        if (existingStrategies && existingStrategies.length > 0) {
-          console.error("[v0] ❌ Ya existe una estrategia con este nombre para el usuario")
-          alert(`Ya tienes una estrategia con el nombre "${formData.name}". Por favor elige un nombre diferente.`)
-          return
-        }
-
-        console.log("[v0] ✅ Nombre de estrategia disponible")
         console.log("[v0] Pre-generated strategy ID:", preGeneratedId)
 
         const strategyData = {
@@ -383,8 +405,13 @@ export default function NewStrategyPage() {
                   placeholder="Ej: BTC Scalping 5m"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className={errors.name ? "border-destructive" : ""}
+                  onBlur={(e) => checkNameExists(e.target.value)}
+                  className={errors.name || nameExists ? "border-destructive" : ""}
                 />
+                {checkingName && <p className="text-xs text-muted-foreground">Verificando disponibilidad...</p>}
+                {nameExists && !checkingName && (
+                  <p className="text-xs text-destructive">Ya existe una estrategia con este nombre</p>
+                )}
                 {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
               </div>
 
