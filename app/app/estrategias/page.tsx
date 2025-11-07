@@ -490,7 +490,10 @@ export default function StrategiesPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => copyToClipboard("https://biconnect.vercel.app/api/webhook")}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              copyToClipboard("https://biconnect.vercel.app/api/webhook")
+                            }}
                           >
                             <Copy className="h-3 w-3 mr-1" />
                             Copiar
@@ -507,7 +510,10 @@ export default function StrategiesPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => copyToClipboard(JSON.stringify(getPayloadExample(strategy), null, 2))}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              copyToClipboard(JSON.stringify(getPayloadExample(strategy), null, 2))
+                            }}
                           >
                             <Copy className="h-3 w-3 mr-1" />
                             Copiar
