@@ -464,12 +464,6 @@ export class WebhookValidator {
         }
       }
 
-      const remainder = (truncatedQuantity - minQty) % stepSize
-      const tolerance = stepSize * 0.01 // 1% de tolerancia
-      if (Math.abs(remainder) > tolerance && stepSize > 0) {
-        errors.push(`❌ La cantidad '${truncatedQuantity}'${baseAsset} no es múltiplo válido de ${stepSize}`)
-      }
-
       const notional = truncatedQuantity * price
 
       // Validar notional mínimo
@@ -811,9 +805,14 @@ export class WebhookValidator {
       return quantity.toString()
     }
 
+    // Calcular precisión: precision = int(round(-math.log(step_size, 10), 0))
     const precision = Math.max(0, Math.round(-Math.log10(stepSize)))
-    const stepDecimal = Math.floor(quantity / stepSize)
-    const truncated = stepDecimal * stepSize
+
+    // Truncar hacia abajo multiplicando y dividiendo por el factor de precisión
+    const factor = Math.pow(10, precision)
+    const truncated = Math.floor(quantity * factor) / factor
+
+    // Retornar como string con el formato correcto
     return truncated.toFixed(precision)
   }
 }
