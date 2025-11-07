@@ -251,6 +251,27 @@ export default function NewStrategyPage() {
         }
 
         console.log("[v0] User found:", user.id)
+
+        console.log("[v0] Verificando si el nombre de estrategia ya existe para el usuario")
+        const { data: existingStrategies, error: checkError } = await supabase
+          .from("strategies")
+          .select("id, name")
+          .eq("user_id", user.id)
+          .eq("name", formData.name.trim())
+
+        if (checkError) {
+          console.error("[v0] ❌ Error al verificar nombre de estrategia:", checkError)
+          alert(`Error al verificar el nombre: ${checkError.message}`)
+          return
+        }
+
+        if (existingStrategies && existingStrategies.length > 0) {
+          console.error("[v0] ❌ Ya existe una estrategia con este nombre para el usuario")
+          alert(`Ya tienes una estrategia con el nombre "${formData.name}". Por favor elige un nombre diferente.`)
+          return
+        }
+
+        console.log("[v0] ✅ Nombre de estrategia disponible")
         console.log("[v0] Pre-generated strategy ID:", preGeneratedId)
 
         const strategyData = {
