@@ -9,28 +9,29 @@ import { createClient } from "@supabase/supabase-js"
  * Endpoint principal para TradingView Webhook
  * Procesa las señales de TradingView y ejecuta órdenes en Binance
  *
- * El webhook URL debe contener user_id y strategy_id para identificar la estrategia
- * y las credenciales del exchange
+ * El payload debe contener:
+ * - user_id: ID del usuario
+ * - strategy_id: ID de la estrategia
+ * - action: "buy" | "sell" | "long" | "short"
+ * - quantity (opcional): cantidad específica
+ * - percentage (opcional): porcentaje del balance
+ * - usdt_amount (opcional): monto en USDT
  */
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json()
-    const url = new URL(request.url)
 
-    logger.info({ payload: data, url: url.toString() }, "[WEBHOOK] 📥 Webhook recibido")
+    logger.info({ payload: data }, "[WEBHOOK] 📥 Webhook recibido")
 
-    const { user_id, strategy_id } = data
+    const { user_id, strategy_id, action } = data
 
-    console.log("[v0] user_id recibido:", user_id)
-    console.log("[v0] strategy_id recibido:", strategy_id)
-
-    if (!user_id || !strategy_id) {
-      logger.warn("[WEBHOOK] ❌ Faltan user_id o strategy_id en el payload")
+    if (!user_id || !strategy_id || !action) {
+      logger.warn("[WEBHOOK] ❌ Faltan campos requeridos en el payload")
       return NextResponse.json(
         {
           status: "error",
-          message: "Se requiere user_id y strategy_id en el payload",
-          log_summary: "Faltan user_id o strategy_id",
+          message: "Se requiere user_id, strategy_id y action en el payload",
+          log_summary: "Faltan campos requeridos: user_id, strategy_id o action",
         },
         { status: 400 },
       )
@@ -53,16 +54,12 @@ export async function POST(request: NextRequest) {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    console.log("[v0] Consultando estrategia con id:", strategy_id, "y user_id:", user_id)
-
     const { data: strategy, error: strategyError } = await supabase
       .from("strategies")
       .select("*")
       .eq("id", strategy_id)
       .eq("user_id", user_id)
       .single()
-
-    console.log("[v0] Resultado de consulta de estrategia:", { strategy, strategyError })
 
     if (strategyError || !strategy) {
       logger.error({ error: strategyError }, "[WEBHOOK] ❌ Error al obtener estrategia")
@@ -71,13 +68,10 @@ export async function POST(request: NextRequest) {
           status: "error",
           message: "Estrategia no encontrada",
           log_summary: "Estrategia no encontrada o no pertenece al usuario",
-          debug: { strategyError, user_id, strategy_id },
         },
         { status: 404 },
       )
     }
-
-    console.log("[v0] Estrategia encontrada:", strategy.exchange_name)
 
     const { data: exchange, error: exchangeError } = await supabase
       .from("exchanges")
@@ -85,8 +79,6 @@ export async function POST(request: NextRequest) {
       .eq("user_id", user_id)
       .eq("exchange_name", strategy.exchange_name)
       .single()
-
-    console.log("[v0] Resultado de consulta de exchange:", { exchange, exchangeError })
 
     if (exchangeError || !exchange) {
       logger.error({ error: exchangeError }, "[WEBHOOK] ❌ Error al obtener exchange")
@@ -112,6 +104,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const completePayload = {
+      symbol: strategy.trading_pair, // de la tabla strategies
+      action: action, // del webhook
+      quantity: data.quantity, // opcional del webhook
+      percentage: data.percentage, // opcional del webhook
+      usdt_amount: data.usdt_amount, // opcional del webhook
+      leverage: strategy.leverage, // de la tabla strategies
+      close_position: data.close_position || false, // opcional del webhook
+    }
+
+    logger.info({ completePayload }, "[WEBHOOK] 📦 Payload completo construido desde DB")
+
     const spotTestnetBaseURL = "https://testnet.binance.vision"
     const futuresTestnetBaseURL = "https://testnet.binancefuture.com"
     const spotProductionBaseURL = "https://api.binance.com"
@@ -128,9 +132,9 @@ export async function POST(request: NextRequest) {
       baseURL: isTestnet ? futuresTestnetBaseURL : futuresProductionBaseURL,
     })
 
-    // Validar datos del webhook
+    // Validar datos completos del webhook
     const validator = new WebhookValidator(spotClient, futuresClient)
-    const validationResult = await validator.validate(data)
+    const validationResult = await validator.validate(completePayload)
 
     if (!validationResult.valid) {
       logger.warn(
@@ -151,8 +155,8 @@ export async function POST(request: NextRequest) {
     }
 
     const trade_data = validationResult.clean_data!
-    const action = trade_data.action
-    const symbol = trade_data.symbol || strategy.trading_pair
+    const tradeAction = trade_data.action
+    const symbol = trade_data.symbol
     const quantity = Number.parseFloat(trade_data.quantity)
 
     let order: any
@@ -160,8 +164,8 @@ export async function POST(request: NextRequest) {
     // ──────────────────────────────────────────────
     // Ejecución en SPOT
     // ──────────────────────────────────────────────
-    if (action === "buy" || action === "sell") {
-      const side = action.toUpperCase() as "BUY" | "SELL"
+    if (tradeAction === "buy" || tradeAction === "sell") {
+      const side = tradeAction.toUpperCase() as "BUY" | "SELL"
 
       try {
         const response = await spotClient.newOrder(symbol, side, "MARKET", {
@@ -179,7 +183,7 @@ export async function POST(request: NextRequest) {
     // ──────────────────────────────────────────────
     // Ejecución en FUTURES
     // ──────────────────────────────────────────────
-    else if (action === "long" || action === "short") {
+    else if (tradeAction === "long" || tradeAction === "short") {
       try {
         const orderParams: any = {
           quantity: quantity.toString(),
@@ -204,8 +208,8 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json(
       {
         status: "success",
-        message: `✅ Orden de tipo '${action.toUpperCase()}' ejecutada con éxito: acción=${action}, símbolo=${symbol}, cantidad=${quantity}.`,
-        log_summary: `Orden ejecutada con éxito: acción=${action}, símbolo=${symbol}, cantidad=${quantity}. ${JSON.stringify(
+        message: `✅ Orden de tipo '${tradeAction.toUpperCase()}' ejecutada con éxito: acción=${tradeAction}, símbolo=${symbol}, cantidad=${quantity}.`,
+        log_summary: `Orden ejecutada con éxito: acción=${tradeAction}, símbolo=${symbol}, cantidad=${quantity}. ${JSON.stringify(
           order,
         )}`,
       },
