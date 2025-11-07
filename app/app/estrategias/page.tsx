@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Plus, Power, PowerOff, Edit, Copy, MoreVertical, TrendingUp } from "lucide-react"
+import { Plus, Power, PowerOff, Copy, MoreVertical, TrendingUp, ChevronDown, ChevronUp } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { createClient } from "@/lib/supabase/client"
 import { ApiKeyAlert } from "@/components/api-key-alert"
@@ -25,6 +25,7 @@ export default function StrategiesPage() {
   const [loading, setLoading] = useState(true)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [strategyToDelete, setStrategyToDelete] = useState<any>(null)
+  const [expandedStrategyId, setExpandedStrategyId] = useState<string | null>(null)
 
   const supabase = useMemo(() => createClient(), [])
 
@@ -304,6 +305,18 @@ export default function StrategiesPage() {
     return exchanges.map((e) => e.charAt(0).toUpperCase() + e.slice(1)).join(", ") || "Ninguno"
   }
 
+  const getPayloadExample = (strategy: any) => {
+    return {
+      user_id: strategy.user_id,
+      strategy_id: strategy.id,
+      action: strategy.market_type === "spot" ? "buy" : "long",
+    }
+  }
+
+  const copyToClipboard = async (text: string) => {
+    await navigator.clipboard.writeText(text)
+  }
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -368,116 +381,149 @@ export default function StrategiesPage() {
         ) : (
           <div className="space-y-4">
             {strategies.map((strategy) => (
-              <div
-                key={strategy.id}
-                className="bg-card border border-border rounded-xl p-6 hover:shadow-lg transition-all"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-start gap-4 flex-1">
-                    <div
-                      className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                        strategy.is_active ? "bg-accent/10" : "bg-muted"
-                      }`}
-                    >
-                      <TrendingUp
-                        className={`h-6 w-6 ${strategy.is_active ? "text-accent" : "text-muted-foreground"}`}
-                      />
+              <div key={strategy.id} className="bg-card border border-border rounded-xl overflow-hidden">
+                <div
+                  className="p-6 hover:bg-accent/5 transition-colors cursor-pointer"
+                  onClick={() => setExpandedStrategyId(expandedStrategyId === strategy.id ? null : strategy.id)}
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-start gap-4 flex-1">
+                      <div
+                        className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                          strategy.is_active ? "bg-accent/10" : "bg-muted"
+                        }`}
+                      >
+                        <TrendingUp
+                          className={`h-6 w-6 ${strategy.is_active ? "text-accent" : "text-muted-foreground"}`}
+                        />
+                      </div>
+
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-xl font-semibold text-foreground">{strategy.name}</h3>
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                              strategy.is_active ? "bg-accent/10 text-accent" : "bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            {strategy.is_active ? (
+                              <>
+                                <Power className="h-3 w-3" />
+                                Activa
+                              </>
+                            ) : (
+                              <>
+                                <PowerOff className="h-3 w-3" />
+                                Inactiva
+                              </>
+                            )}
+                          </span>
+                        </div>
+
+                        {strategy.description && (
+                          <p className="text-sm text-muted-foreground mb-3">{strategy.description}</p>
+                        )}
+
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Par:</span>
+                            <span className="ml-2 text-foreground font-medium">{strategy.trading_pair}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Mercado:</span>
+                            <span className="ml-2 text-foreground font-medium">
+                              {strategy.market_type === "spot" ? "Spot" : `Futuros ${strategy.leverage}x`}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Gestión:</span>
+                            <span className="ml-2 text-foreground font-medium">{getRiskLabel(strategy)}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Exchange:</span>
+                            <span className="ml-2 text-foreground font-medium">
+                              {strategy.exchange_name
+                                ? strategy.exchange_name.charAt(0).toUpperCase() + strategy.exchange_name.slice(1)
+                                : "No configurado"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-xl font-semibold text-foreground">{strategy.name}</h3>
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                            strategy.is_active ? "bg-accent/10 text-accent" : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {strategy.is_active ? (
-                            <>
-                              <Power className="h-3 w-3" />
-                              Activa
-                            </>
-                          ) : (
-                            <>
-                              <PowerOff className="h-3 w-3" />
-                              Inactiva
-                            </>
-                          )}
-                        </span>
-                      </div>
-
-                      {strategy.description && (
-                        <p className="text-sm text-muted-foreground mb-3">{strategy.description}</p>
+                    <div className="flex items-center gap-2">
+                      {expandedStrategyId === strategy.id ? (
+                        <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-5 w-5 text-muted-foreground" />
                       )}
 
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">Par:</span>
-                          <span className="ml-2 text-foreground font-medium">{strategy.trading_pair}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Mercado:</span>
-                          <span className="ml-2 text-foreground font-medium">
-                            {strategy.market_type === "spot" ? "Spot" : `Futuros ${strategy.leverage}x`}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Gestión:</span>
-                          <span className="ml-2 text-foreground font-medium">{getRiskLabel(strategy)}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Exchange:</span>
-                          <span className="ml-2 text-foreground font-medium">
-                            {strategy.exchange_name
-                              ? strategy.exchange_name.charAt(0).toUpperCase() + strategy.exchange_name.slice(1)
-                              : "No configurado"}
-                          </span>
-                        </div>
-                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => toggleStatus(strategy.id)}>
+                            {strategy.is_active ? "Desactivar" : "Activar"}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/app/estrategias/${strategy.id}`}>Editar</Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => duplicateStrategy(strategy.id)}>Duplicar</DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => deleteStrategy(strategy.id)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            Eliminar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
 
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => toggleStatus(strategy.id)}>
-                        {strategy.is_active ? "Desactivar" : "Activar"}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href={`/app/estrategias/${strategy.id}`}>Editar</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => duplicateStrategy(strategy.id)}>Duplicar</DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => deleteStrategy(strategy.id)}
-                        className="text-destructive focus:text-destructive"
-                      >
-                        Eliminar
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
+                  {expandedStrategyId === strategy.id && (
+                    <div className="border-t border-border bg-muted/30 p-6 space-y-4">
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-sm font-medium text-foreground">Webhook URL</label>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToClipboard("https://biconnect.vercel.app/api/webhook")}
+                          >
+                            <Copy className="h-3 w-3 mr-1" />
+                            Copiar
+                          </Button>
+                        </div>
+                        <div className="bg-background border border-border rounded-lg p-3 font-mono text-sm text-foreground break-all">
+                          https://biconnect.vercel.app/api/webhook
+                        </div>
+                      </div>
 
-                <div className="flex gap-2">
-                  <Link href={`/app/estrategias/${strategy.id}`} className="flex-1">
-                    <Button variant="outline" className="w-full bg-transparent">
-                      <Edit className="h-4 w-4 mr-2" />
-                      Editar
-                    </Button>
-                  </Link>
-                  <Button
-                    variant="outline"
-                    className="bg-transparent"
-                    onClick={() => {
-                      navigator.clipboard.writeText(strategy.webhook_url || "")
-                    }}
-                  >
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copiar webhook
-                  </Button>
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-sm font-medium text-foreground">Payload de ejemplo</label>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToClipboard(JSON.stringify(getPayloadExample(strategy), null, 2))}
+                          >
+                            <Copy className="h-3 w-3 mr-1" />
+                            Copiar
+                          </Button>
+                        </div>
+                        <div className="bg-background border border-border rounded-lg p-3 font-mono text-xs text-foreground overflow-x-auto">
+                          <pre>{JSON.stringify(getPayloadExample(strategy), null, 2)}</pre>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Nota: Puedes cambiar el "action" a "buy", "sell", "long" o "short" según tu necesidad. Para
+                          cerrar posiciones, agrega "close_position": true
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -490,8 +536,7 @@ export default function StrategiesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar estrategia?</AlertDialogTitle>
             <AlertDialogDescription>
-              ¿Estás seguro de que deseas eliminar la estrategia "{strategyToDelete?.name}"? Esta acción no se puede
-              deshacer y se perderán todos los datos asociados.
+              {`¿Estás seguro de que deseas eliminar la estrategia "${strategyToDelete?.name}"? Esta acción no se puede deshacer y se perderán todos los datos asociados.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
