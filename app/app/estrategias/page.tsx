@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -26,6 +28,8 @@ export default function StrategiesPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [strategyToDelete, setStrategyToDelete] = useState<any>(null)
   const [expandedStrategyId, setExpandedStrategyId] = useState<string | null>(null)
+  const [copiedUrl, setCopiedUrl] = useState<string | null>(null)
+  const [copiedPayload, setCopiedPayload] = useState<string | null>(null)
 
   const supabase = useMemo(() => createClient(), [])
 
@@ -316,6 +320,20 @@ export default function StrategiesPage() {
     await navigator.clipboard.writeText(text)
   }
 
+  const handleCopyUrl = async (e: React.MouseEvent, strategyId: string) => {
+    e.stopPropagation()
+    await copyToClipboard("https://biconnect.vercel.app/api/webhook")
+    setCopiedUrl(strategyId)
+    setTimeout(() => setCopiedUrl(null), 2000)
+  }
+
+  const handleCopyPayload = async (e: React.MouseEvent, strategy: any) => {
+    e.stopPropagation()
+    await copyToClipboard(JSON.stringify(getPayloadExample(strategy), null, 2))
+    setCopiedPayload(strategy.id)
+    setTimeout(() => setCopiedPayload(null), 2000)
+  }
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -487,16 +505,9 @@ export default function StrategiesPage() {
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <label className="text-sm font-medium text-foreground">Webhook URL</label>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              copyToClipboard("https://biconnect.vercel.app/api/webhook")
-                            }}
-                          >
+                          <Button variant="ghost" size="sm" onClick={(e) => handleCopyUrl(e, strategy.id)}>
                             <Copy className="h-3 w-3 mr-1" />
-                            Copiar
+                            {copiedUrl === strategy.id ? "Copiado" : "Copiar"}
                           </Button>
                         </div>
                         <div className="bg-background border border-border rounded-lg p-3 font-mono text-sm text-foreground break-all">
@@ -507,16 +518,9 @@ export default function StrategiesPage() {
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <label className="text-sm font-medium text-foreground">Payload de ejemplo</label>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              copyToClipboard(JSON.stringify(getPayloadExample(strategy), null, 2))
-                            }}
-                          >
+                          <Button variant="ghost" size="sm" onClick={(e) => handleCopyPayload(e, strategy)}>
                             <Copy className="h-3 w-3 mr-1" />
-                            Copiar
+                            {copiedPayload === strategy.id ? "Copiado" : "Copiar"}
                           </Button>
                         </div>
                         <div className="bg-background border border-border rounded-lg p-3 font-mono text-xs text-foreground overflow-x-auto">
