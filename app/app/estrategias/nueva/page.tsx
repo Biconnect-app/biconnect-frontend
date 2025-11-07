@@ -376,17 +376,17 @@ export default function NewStrategyPage() {
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
                   step > s
-                    ? "bg-accent text-accent-foreground shadow-md ring-2 ring-accent/30"
+                    ? "bg-green-500 text-white shadow-md ring-2 ring-green-300"
                     : step === s
-                      ? "bg-accent text-accent-foreground shadow-lg ring-4 ring-accent/50 scale-110"
-                      : "bg-muted text-muted-foreground"
+                      ? "bg-blue-500 text-white shadow-lg ring-4 ring-blue-300 scale-110"
+                      : "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
                 }`}
               >
                 {step > s ? <Check className="h-5 w-5" /> : s}
               </div>
               {idx < 4 && (
                 <div
-                  className={`flex-1 h-1 rounded-full transition-all ${step > s ? "bg-accent shadow-sm" : "bg-border"}`}
+                  className={`flex-1 h-1 rounded-full transition-all ${step > s ? "bg-green-500 shadow-sm" : "bg-gray-300 dark:bg-gray-700"}`}
                 />
               )}
             </div>
