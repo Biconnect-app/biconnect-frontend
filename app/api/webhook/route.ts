@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           status: "error",
-          message: "Exchange no configurado",
+          message: `Exchange ${strategy.exchange_name} no configurado para este usuario`,
           log_summary: `Exchange ${strategy.exchange_name} no configurado para este usuario`,
         },
         { status: 404 },
@@ -111,6 +111,11 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       )
     }
+
+    console.log("[v0] API Key length:", exchange.api_key.length)
+    console.log("[v0] API Secret length:", exchange.api_secret.length)
+    console.log("[v0] Testnet mode:", exchange.testnet)
+    console.log("[v0] Exchange name:", strategy.exchange_name)
 
     const completePayload = {
       symbol: strategy.trading_pair,
@@ -142,12 +147,18 @@ export async function POST(request: NextRequest) {
     const apiKey = exchange.api_key
     const apiSecret = exchange.api_secret
 
+    console.log("[v0] Usando testnet:", isTestnet)
+    console.log("[v0] Base URL SPOT:", isTestnet ? spotTestnetBaseURL : spotProductionBaseURL)
+    console.log("[v0] Base URL FUTURES:", isTestnet ? futuresTestnetBaseURL : futuresProductionBaseURL)
+
     const spotClient = new Spot(apiKey, apiSecret, {
       baseURL: isTestnet ? spotTestnetBaseURL : spotProductionBaseURL,
     })
     const futuresClient = new UMFutures(apiKey, apiSecret, {
       baseURL: isTestnet ? futuresTestnetBaseURL : futuresProductionBaseURL,
     })
+
+    console.log("[v0] Payload a validar:", JSON.stringify(completePayload, null, 2))
 
     // Validar datos completos del webhook
     const validator = new WebhookValidator(spotClient, futuresClient)
