@@ -117,17 +117,31 @@ export async function POST(request: NextRequest) {
     console.log("[v0] Testnet mode:", exchange.testnet)
     console.log("[v0] Exchange name:", strategy.exchange_name)
 
-    const completePayload = {
-      symbol: strategy.trading_pair,
-      action: determineAction(strategy.market_type, strategy.risk_type),
-      quantity: calculateQuantity(strategy.risk_type, strategy.risk_value),
-      leverage: strategy.leverage,
+    const binanceSymbol = strategy.trading_pair.replace("/", "")
+
+    const completePayload: any = {
+      symbol: binanceSymbol,
+      action: strategy.market_type === "spot" ? "buy" : "long", // Determinar acción según market_type
+    }
+
+    // Agregar parámetros según risk_type
+    if (strategy.risk_type === "fixed_amount") {
+      completePayload.usdt_amount = strategy.risk_value // WebhookValidator calculará la cantidad en BTC
+    } else if (strategy.risk_type === "percentage") {
+      completePayload.percentage = strategy.risk_value // WebhookValidator calculará según balance
+    }
+
+    // Si es futures, agregar leverage
+    if (strategy.market_type === "futures") {
+      completePayload.leverage = strategy.leverage || 1
+      completePayload.close_position = false // Por defecto, abrir posición
     }
 
     logger.info(
       {
         strategy: {
           trading_pair: strategy.trading_pair,
+          binance_symbol: binanceSymbol,
           market_type: strategy.market_type,
           leverage: strategy.leverage,
           risk_type: strategy.risk_type,
@@ -275,30 +289,6 @@ export async function POST(request: NextRequest) {
 
     return errorResponse
   }
-}
-
-function determineAction(market_type: string, risk_type: string): string {
-  // Determinar la acción basada en market_type
-  // Esto debe adaptarse a tu lógica de negocio
-  if (market_type === "spot") {
-    return "buy" // o "sell" según tu lógica
-  } else if (market_type === "futures") {
-    return "long" // o "short" según tu lógica
-  }
-  return "buy"
-}
-
-function calculateQuantity(risk_type: string, risk_value: number): string {
-  // Calcular la cantidad basada en risk_type y risk_value
-  // Esto debe adaptarse a tu lógica de negocio
-  if (risk_type === "fixed") {
-    return risk_value.toString()
-  } else if (risk_type === "percentage") {
-    // Aquí necesitarías el balance para calcular el porcentaje
-    // Por ahora retornamos el valor directamente
-    return risk_value.toString()
-  }
-  return risk_value.toString()
 }
 
 // Método OPTIONS para CORS si es necesario
