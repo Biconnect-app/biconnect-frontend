@@ -230,50 +230,73 @@ export default function NewStrategyPage() {
   }
 
   const handleSave = async () => {
+    console.log("[v0] handleSave called - starting save process")
+    console.log("[v0] Current step:", step)
+    console.log("[v0] Form data:", formData)
+
     if (validateStep(step)) {
+      console.log("[v0] Validation passed")
       try {
-        console.log("[v0] Saving new strategy:", formData)
         const supabase = createClient()
 
+        console.log("[v0] Getting user...")
         const {
           data: { user },
         } = await supabase.auth.getUser()
 
         if (!user) {
-          console.error("[v0] No user found")
+          console.error("[v0] ❌ No user found - user must be logged in")
+          alert("Debes estar autenticado para guardar la estrategia")
           return
         }
 
-        const { data: newStrategy, error } = await supabase
-          .from("strategies")
-          .insert({
-            id: preGeneratedId,
-            user_id: user.id,
-            exchange_id: null,
-            exchange_name: formData.exchange,
-            name: formData.name,
-            description: formData.description || "",
-            trading_pair: formData.pair,
-            market_type: formData.marketType,
-            leverage: formData.leverage || 1,
-            risk_type: formData.riskType,
-            risk_value: Number.parseFloat(formData.riskAmount),
-            is_active: true,
-            webhook_url: `https://biconnect.vercel.app/api/webhook`,
-          })
-          .select()
-          .single()
+        console.log("[v0] User found:", user.id)
+        console.log("[v0] Pre-generated strategy ID:", preGeneratedId)
+
+        const strategyData = {
+          id: preGeneratedId,
+          user_id: user.id,
+          exchange_id: null,
+          exchange_name: formData.exchange,
+          name: formData.name,
+          description: formData.description || "",
+          trading_pair: formData.pair,
+          market_type: formData.marketType,
+          leverage: formData.leverage || 1,
+          risk_type: formData.riskType,
+          risk_value: Number.parseFloat(formData.riskAmount),
+          is_active: true,
+          webhook_url: `https://biconnect.vercel.app/api/webhook`,
+        }
+
+        console.log("[v0] Attempting to insert strategy with data:", strategyData)
+
+        const { data: newStrategy, error } = await supabase.from("strategies").insert(strategyData).select().single()
 
         if (error) {
-          console.error("[v0] Error saving strategy:", error)
+          console.error("[v0] ❌ Supabase error saving strategy:", error)
+          console.error("[v0] Error code:", error.code)
+          console.error("[v0] Error message:", error.message)
+          console.error("[v0] Error details:", error.details)
+          console.error("[v0] Error hint:", error.hint)
+          alert(`Error al guardar la estrategia: ${error.message}`)
           return
         }
 
-        console.log("[v0] Strategy saved successfully:", newStrategy)
+        console.log("[v0] ✅ Strategy saved successfully:", newStrategy)
+        console.log("[v0] Redirecting to /app/estrategias")
         router.push("/app/estrategias")
       } catch (error) {
-        console.error("[v0] Error in handleSave:", error)
+        console.error("[v0] ❌ Exception in handleSave:", error)
+        if (error instanceof Error) {
+          console.error("[v0] Error message:", error.message)
+          console.error("[v0] Error stack:", error.stack)
+          alert(`Error inesperado: ${error.message}`)
+        }
       }
+    } else {
+      console.log("[v0] ❌ Validation failed, errors:", errors)
+      alert("Por favor completa todos los campos requeridos")
     }
   }
 
