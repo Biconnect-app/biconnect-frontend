@@ -130,7 +130,7 @@ export default function StrategiesPage() {
             risk_type: strategyData.riskType,
             risk_value: Number.parseFloat(strategyData.riskAmount),
             is_active: true,
-            webhook_url: `https://api.biconnect.io/w/${user.id}/strat-${Date.now()}`,
+            webhook_url: `https://biconnect.vercel.app/api/webhook`,
           })
 
           const { data: newStrategy, error: insertError } = await supabase
@@ -147,7 +147,7 @@ export default function StrategiesPage() {
               risk_type: strategyData.riskType,
               risk_value: Number.parseFloat(strategyData.riskAmount),
               is_active: true,
-              webhook_url: `https://api.biconnect.io/w/${user.id}/strat-${Date.now()}`,
+              webhook_url: `https://biconnect.vercel.app/api/webhook`,
             })
             .select()
             .single()
@@ -238,7 +238,7 @@ export default function StrategiesPage() {
           risk_type: strategy.risk_type,
           risk_value: strategy.risk_value,
           is_active: true,
-          webhook_url: `https://api.biconnect.io/w/${user.id}/strat-${Date.now()}`,
+          webhook_url: `https://biconnect.vercel.app/api/webhook`,
         })
         .select()
         .single()

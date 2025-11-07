@@ -259,7 +259,7 @@ export default function NewStrategyPage() {
             risk_type: formData.riskType,
             risk_value: Number.parseFloat(formData.riskAmount),
             is_active: true,
-            webhook_url: `https://api.biconnect.io/w/${user.id}/${preGeneratedId}`,
+            webhook_url: `https://biconnect.vercel.app/api/webhook`,
           })
           .select()
           .single()
@@ -278,7 +278,7 @@ export default function NewStrategyPage() {
   }
 
   const copyWebhook = () => {
-    const webhookUrl = `https://api.biconnect.io/w/user123/strat-${Date.now()}`
+    const webhookUrl = `https://biconnect.vercel.app/api/webhook`
     navigator.clipboard.writeText(webhookUrl)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
@@ -645,11 +645,7 @@ export default function NewStrategyPage() {
               </p>
 
               <div className="flex gap-2">
-                <Input
-                  value={`https://api.biconnect.io/w/user123/${preGeneratedId}`}
-                  readOnly
-                  className="font-mono text-sm"
-                />
+                <Input value={`https://biconnect.vercel.app/api/webhook`} readOnly className="font-mono text-sm" />
                 <Button onClick={copyWebhook} variant="outline" className="bg-transparent">
                   {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                 </Button>

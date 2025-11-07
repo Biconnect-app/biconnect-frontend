@@ -204,7 +204,7 @@ export default function PreviewStrategyPage() {
   }
 
   const copyWebhook = () => {
-    const webhookUrl = `https://api.biconnect.io/w/preview/strat-${Date.now()}`
+    const webhookUrl = `https://biconnect.vercel.app/api/webhook`
     navigator.clipboard.writeText(webhookUrl)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
