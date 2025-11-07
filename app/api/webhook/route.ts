@@ -116,6 +116,8 @@ export async function POST(request: NextRequest) {
     console.log("[v0] API Secret length:", exchange.api_secret.length)
     console.log("[v0] Testnet mode:", exchange.testnet)
     console.log("[v0] Exchange name:", strategy.exchange_name)
+    console.log("[v0] API Key primeros 10 chars:", exchange.api_key.substring(0, 10))
+    console.log("[v0] API Secret primeros 10 chars:", exchange.api_secret.substring(0, 10))
 
     const binanceSymbol = strategy.trading_pair.replace("/", "")
 
@@ -165,18 +167,34 @@ export async function POST(request: NextRequest) {
     console.log("[v0] Base URL SPOT:", isTestnet ? spotTestnetBaseURL : spotProductionBaseURL)
     console.log("[v0] Base URL FUTURES:", isTestnet ? futuresTestnetBaseURL : futuresProductionBaseURL)
 
+    // Inicializando cliente SPOT...
+    console.log("[v0] Inicializando cliente SPOT...")
     const spotClient = new Spot(apiKey, apiSecret, {
       baseURL: isTestnet ? spotTestnetBaseURL : spotProductionBaseURL,
     })
+    console.log("[v0] Cliente SPOT inicializado correctamente")
+
+    // Inicializando cliente FUTURES...
+    console.log("[v0] Inicializando cliente FUTURES...")
     const futuresClient = new UMFutures(apiKey, apiSecret, {
       baseURL: isTestnet ? futuresTestnetBaseURL : futuresProductionBaseURL,
     })
+    console.log("[v0] Cliente FUTURES inicializado correctamente")
 
     console.log("[v0] Payload a validar:", JSON.stringify(completePayload, null, 2))
 
-    // Validar datos completos del webhook
+    console.log("[v0] Iniciando validación del payload...")
     const validator = new WebhookValidator(spotClient, futuresClient)
-    const validationResult = await validator.validate(completePayload)
+
+    let validationResult
+    try {
+      validationResult = await validator.validate(completePayload)
+      console.log("[v0] Validación completada, resultado:", validationResult.valid ? "VÁLIDO" : "INVÁLIDO")
+    } catch (error: any) {
+      console.error("[v0] Error durante la validación:", error.message)
+      console.error("[v0] Stack trace:", error.stack)
+      throw error
+    }
 
     if (!validationResult.valid) {
       logger.warn(
