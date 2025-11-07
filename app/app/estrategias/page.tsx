@@ -526,10 +526,6 @@ export default function StrategiesPage() {
                         <div className="bg-background border border-border rounded-lg p-3 font-mono text-xs text-foreground overflow-x-auto">
                           <pre>{JSON.stringify(getPayloadExample(strategy), null, 2)}</pre>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Nota: Puedes cambiar el "action" a "buy", "sell", "long" o "short" según tu necesidad. Para
-                          cerrar posiciones, agrega "close_position": true
-                        </p>
                       </div>
                     </div>
                   )}
