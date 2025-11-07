@@ -6,80 +6,56 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, Copy, Check, Save, Search, Trash2 } from "lucide-react"
+import { ArrowLeft, Copy, Check, Save, Search, Trash2, AlertCircle } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 
-const TRADING_PAIRS = [
-  "BTCUSDT",
-  "ETHUSDT",
-  "BNBUSDT",
-  "SOLUSDT",
-  "XRPUSDT",
-  "ADAUSDT",
-  "DOGEUSDT",
-  "AVAXUSDT",
-  "DOTUSDT",
-  "MATICUSDT",
-  "LINKUSDT",
-  "UNIUSDT",
-  "LTCUSDT",
-  "ATOMUSDT",
-  "ETCUSDT",
-  "XLMUSDT",
-  "NEARUSDT",
-  "ALGOUSDT",
-  "FILUSDT",
-  "APTUSDT",
-  "ARBUSDT",
-  "OPUSDT",
-  "SUIUSDT",
-  "SEIUSDT",
-  "TIAUSDT",
-  "WLDUSDT",
-  "PEPEUSDT",
-  "SHIBUSDT",
-  "INJUSDT",
-  "RUNEUSDT",
-  "FTMUSDT",
-  "AAVEUSDT",
-  "GRTUSDT",
-  "SNXUSDT",
-  "MKRUSDT",
-  "LDOUSDT",
-  "CRVUSDT",
-  "COMPUSDT",
-  "SUSHIUSDT",
-  "YFIUSDT",
-  "1INCHUSDT",
-  "BALUSDT",
-  "ZRXUSDT",
-  "ENJUSDT",
-  "MANAUSDT",
-  "SANDUSDT",
-  "AXSUSDT",
-  "GALAUSDT",
-  "CHZUSDT",
-  "FLOWUSDT",
-  "IMXUSDT",
-  "APEUSDT",
-  "BLURUSDT",
-  "MAGICUSDT",
-  "GMTUSDT",
-  "TRXUSDT",
-  "TONUSDT",
-  "ICPUSDT",
-  "STXUSDT",
-  "RENDERUSDT",
-  "FETUSDT",
-  "TAOUSDT",
-  "WIFUSDT",
-  "BONKUSDT",
-  "JUPUSDT",
-  "PYTHUSDT",
+const FALLBACK_TRADING_PAIRS = [
+  "BTC/USDT",
+  "ETH/USDT",
+  "BNB/USDT",
+  "SOL/USDT",
+  "XRP/USDT",
+  "ADA/USDT",
+  "DOGE/USDT",
+  "AVAX/USDT",
+  "DOT/USDT",
+  "MATIC/USDT",
+  "LINK/USDT",
+  "UNI/USDT",
+  "LTC/USDT",
+  "ATOM/USDT",
+  "ETC/USDT",
+  "XLM/USDT",
+  "NEAR/USDT",
+  "ALGO/USDT",
+  "FIL/USDT",
+  "APT/USDT",
+  "ARB/USDT",
+  "OP/USDT",
+  "SUI/USDT",
+  "SEI/USDT",
+  "TIA/USDT",
+  "WLD/USDT",
+  "PEPE/USDT",
+  "SHIB/USDT",
+  "INJ/USDT",
+  "RUNE/USDT",
+  "AAVE/USDT",
+  "MKR/USDT",
+  "SNX/USDT",
+  "GRT/USDT",
+  "FTM/USDT",
+  "SAND/USDT",
+  "MANA/USDT",
+  "AXS/USDT",
+  "GALA/USDT",
+  "ENJ/USDT",
+  "CHZ/USDT",
 ]
 
 const LEVERAGE_OPTIONS = [1, 2, 3, 5, 10, 20, 25, 50, 75, 100, 125]
@@ -92,10 +68,50 @@ export default function EditStrategyPage() {
   const [formData, setFormData] = useState<any>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [userId, setUserId] = useState<string>("")
+  const [tradingPairs, setTradingPairs] = useState<string[]>(FALLBACK_TRADING_PAIRS)
+  const [loadingPairs, setLoadingPairs] = useState(false)
+  const [pairsError, setPairsError] = useState<string | null>(null)
 
   useEffect(() => {
     loadStrategy()
   }, [params.id])
+
+  useEffect(() => {
+    if (formData?.marketType && formData?.exchange) {
+      fetchTradingPairs()
+    }
+  }, [formData?.marketType, formData?.exchange])
+
+  const fetchTradingPairs = async () => {
+    setLoadingPairs(true)
+    setPairsError(null)
+
+    try {
+      const response = await fetch(`/api/exchanges/${formData.exchange}/pairs?marketType=${formData.marketType}`)
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.details || "Failed to fetch pairs")
+      }
+
+      const data = await response.json()
+
+      if (data.pairs && data.pairs.length > 0) {
+        setTradingPairs(data.pairs)
+        setPairsError(null)
+      } else {
+        throw new Error("No pairs received from API")
+      }
+    } catch (error) {
+      console.error("[v0] Error fetching trading pairs:", error)
+      setPairsError(
+        "Mostrando lista limitada de pares populares. Conecta tu exchange en Integraciones para ver todos los pares disponibles.",
+      )
+      setTradingPairs(FALLBACK_TRADING_PAIRS)
+    } finally {
+      setLoadingPairs(false)
+    }
+  }
 
   const loadStrategy = async () => {
     try {
@@ -222,7 +238,7 @@ export default function EditStrategyPage() {
   }
 
   const copyWebhook = () => {
-    const webhookUrl = formData.webhookUrl || `https://api.biconnect.io/w/user123/${params.id}`
+    const webhookUrl = formData.webhookUrl || `https://biconnect.vercel.app/api/webhook`
     navigator.clipboard.writeText(webhookUrl)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
@@ -235,7 +251,6 @@ export default function EditStrategyPage() {
     if (!formData) return ""
 
     const payload = {
-      // Simplified payload - v2.0
       user_id: userId || "{{user_id}}",
       strategy_id: params.id || "{{strategy_id}}",
     }
@@ -266,7 +281,6 @@ export default function EditStrategyPage() {
           </div>
         </div>
 
-        {/* Basic Info */}
         <div className="bg-card border border-border rounded-xl p-6 space-y-4">
           <h2 className="text-xl font-semibold text-foreground">Información básica</h2>
 
@@ -309,9 +323,15 @@ export default function EditStrategyPage() {
           </div>
         </div>
 
-        {/* Trading Pair */}
         <div className="bg-card border border-border rounded-xl p-6 space-y-4">
           <h2 className="text-xl font-semibold text-foreground">Par de trading</h2>
+
+          {pairsError && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-sm">{pairsError}</AlertDescription>
+            </Alert>
+          )}
 
           <div className="space-y-2">
             <Label>Par a operar *</Label>
@@ -322,8 +342,9 @@ export default function EditStrategyPage() {
                   role="combobox"
                   aria-expanded={openPairSelect}
                   className={`w-full justify-between bg-transparent ${errors.pair ? "border-destructive" : ""}`}
+                  disabled={loadingPairs}
                 >
-                  {formData.pair || "Buscar par..."}
+                  {loadingPairs ? "Cargando pares..." : formData.pair || "Buscar par..."}
                   <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
@@ -333,7 +354,7 @@ export default function EditStrategyPage() {
                   <CommandList>
                     <CommandEmpty>No se encontró el par.</CommandEmpty>
                     <CommandGroup>
-                      {TRADING_PAIRS.map((pair) => (
+                      {tradingPairs.map((pair) => (
                         <CommandItem
                           key={pair}
                           value={pair}
@@ -351,10 +372,14 @@ export default function EditStrategyPage() {
               </PopoverContent>
             </Popover>
             {errors.pair && <p className="text-xs text-destructive">{errors.pair}</p>}
+            <p className="text-xs text-muted-foreground">
+              {loadingPairs
+                ? "Cargando pares disponibles desde Binance..."
+                : `${tradingPairs.length} pares ${pairsError ? "populares" : "disponibles"}`}
+            </p>
           </div>
         </div>
 
-        {/* Market Type & Leverage */}
         <div className="bg-card border border-border rounded-xl p-6 space-y-4">
           <h2 className="text-xl font-semibold text-foreground">Tipo de mercado</h2>
 
@@ -365,24 +390,34 @@ export default function EditStrategyPage() {
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, marketType: "spot", leverage: 1 })}
-                  className={`p-4 rounded-xl border-2 transition-all ${
+                  className={`relative p-4 rounded-xl border-2 transition-all ${
                     formData.marketType === "spot"
-                      ? "border-accent bg-accent/5"
+                      ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
                       : "border-border hover:border-accent/50"
                   }`}
                 >
+                  {formData.marketType === "spot" && (
+                    <div className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
+                      <Check className="h-3 w-3 text-accent-foreground" />
+                    </div>
+                  )}
                   <div className="font-semibold text-foreground">Spot</div>
                   <div className="text-sm text-muted-foreground mt-1">Compra/venta directa</div>
                 </button>
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, marketType: "futures" })}
-                  className={`p-4 rounded-xl border-2 transition-all ${
+                  className={`relative p-4 rounded-xl border-2 transition-all ${
                     formData.marketType === "futures"
-                      ? "border-accent bg-accent/5"
+                      ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
                       : "border-border hover:border-accent/50"
                   }`}
                 >
+                  {formData.marketType === "futures" && (
+                    <div className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
+                      <Check className="h-3 w-3 text-accent-foreground" />
+                    </div>
+                  )}
                   <div className="font-semibold text-foreground">Futuros</div>
                   <div className="text-sm text-muted-foreground mt-1">Con apalancamiento</div>
                 </button>
@@ -412,7 +447,6 @@ export default function EditStrategyPage() {
           </div>
         </div>
 
-        {/* Risk Management */}
         <div className="bg-card border border-border rounded-xl p-6 space-y-4">
           <h2 className="text-xl font-semibold text-foreground">Gestión del riesgo</h2>
 
@@ -475,16 +509,11 @@ export default function EditStrategyPage() {
           </div>
         </div>
 
-        {/* Webhook & Payload */}
         <div className="bg-card border border-border rounded-xl p-6 space-y-4">
           <h2 className="text-xl font-semibold text-foreground">Webhook de TradingView</h2>
 
           <div className="flex gap-2">
-            <Input
-              value={formData.webhookUrl || `https://api.biconnect.io/w/user123/${params.id}`}
-              readOnly
-              className="font-mono text-sm"
-            />
+            <Input value={`https://biconnect.vercel.app/api/webhook`} readOnly className="font-mono text-sm" />
             <Button onClick={copyWebhook} variant="outline" className="bg-transparent">
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             </Button>
@@ -497,7 +526,6 @@ export default function EditStrategyPage() {
           <Textarea value={generatePayload()} readOnly className="font-mono text-sm" rows={12} />
         </div>
 
-        {/* Actions */}
         <div className="flex gap-4">
           <Button onClick={handleSave} className="bg-accent hover:bg-accent/90 text-accent-foreground">
             <Save className="h-4 w-4 mr-2" />
