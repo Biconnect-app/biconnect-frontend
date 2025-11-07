@@ -108,6 +108,56 @@ export default function LoginPage() {
       }
 
       if (data.user) {
+        const previewDataString = sessionStorage.getItem("previewStrategy")
+        const fromPreviewString = sessionStorage.getItem("fromPreview")
+
+        if (previewDataString && fromPreviewString === "true") {
+          try {
+            const strategyData = JSON.parse(previewDataString)
+            console.log("[v0] User logged in from preview, checking strategy name:", strategyData.name)
+
+            // Verificar si el nombre de la estrategia ya existe
+            const { data: existingStrategies, error: checkError } = await supabase
+              .from("strategies")
+              .select("name")
+              .eq("user_id", data.user.id)
+              .eq("name", strategyData.name)
+
+            if (checkError) {
+              console.error("[v0] Error checking existing strategy names:", checkError)
+            } else if (existingStrategies && existingStrategies.length > 0) {
+              console.log("[v0] Strategy name already exists, adding (copia) suffix")
+
+              // Encontrar un nombre único agregando (copia), (copia 2), etc.
+              let newName = `${strategyData.name} (copia)`
+              let counter = 2
+
+              while (true) {
+                const { data: duplicateCheck } = await supabase
+                  .from("strategies")
+                  .select("name")
+                  .eq("user_id", data.user.id)
+                  .eq("name", newName)
+
+                if (!duplicateCheck || duplicateCheck.length === 0) {
+                  break
+                }
+
+                newName = `${strategyData.name} (copia ${counter})`
+                counter++
+              }
+
+              console.log("[v0] New unique strategy name:", newName)
+              strategyData.name = newName
+
+              // Actualizar el sessionStorage con el nuevo nombre
+              sessionStorage.setItem("previewStrategy", JSON.stringify(strategyData))
+            }
+          } catch (error) {
+            console.error("[v0] Error processing preview strategy name:", error)
+          }
+        }
+
         localStorage.setItem("login_timestamp", Date.now().toString())
         console.log("[v0] Login successful, redirecting to /app/estrategias")
         router.replace("/app/estrategias")

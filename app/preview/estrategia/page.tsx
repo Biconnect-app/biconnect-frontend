@@ -315,11 +315,11 @@ export default function PreviewStrategyPage() {
             {[1, 2, 3, 4, 5].map((s, idx) => (
               <div key={s} className="flex items-center gap-2 flex-1">
                 <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
+                  className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 ${
                     step > s
                       ? "bg-accent text-accent-foreground shadow-md ring-2 ring-accent/30"
                       : step === s
-                        ? "bg-accent text-accent-foreground shadow-lg ring-4 ring-accent/50 scale-110"
+                        ? "bg-primary text-primary-foreground shadow-lg ring-4 ring-primary/30 scale-110"
                         : "bg-muted text-muted-foreground"
                   }`}
                 >
@@ -327,7 +327,7 @@ export default function PreviewStrategyPage() {
                 </div>
                 {idx < 4 && (
                   <div
-                    className={`flex-1 h-1 rounded-full transition-all ${
+                    className={`flex-1 h-1 rounded-full transition-all duration-300 ${
                       step > s ? "bg-accent shadow-sm" : "bg-border"
                     }`}
                   />
