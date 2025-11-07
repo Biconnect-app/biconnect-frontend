@@ -465,7 +465,7 @@ export class WebhookValidator {
       }
 
       const remainder = (truncatedQuantity - minQty) % stepSize
-      const tolerance = stepSize * 0.0001 // 0.01% de tolerancia
+      const tolerance = stepSize * 0.01 // 1% de tolerancia
       if (Math.abs(remainder) > tolerance && stepSize > 0) {
         errors.push(`❌ La cantidad '${truncatedQuantity}'${baseAsset} no es múltiplo válido de ${stepSize}`)
       }
