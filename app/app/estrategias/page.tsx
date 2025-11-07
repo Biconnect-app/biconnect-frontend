@@ -309,7 +309,6 @@ export default function StrategiesPage() {
     return {
       user_id: strategy.user_id,
       strategy_id: strategy.id,
-      action: strategy.market_type === "spot" ? "buy" : "long",
     }
   }
 
