@@ -3,13 +3,14 @@ import { WebhookValidator } from "@/lib/webhook-validator"
 import { Spot } from "@binance/connector"
 import { UMFutures } from "@binance/futures-connector"
 import { logger } from "@/lib/logger"
+import { createClient } from "@/lib/supabase/server"
 
 /**
  * Endpoint principal para TradingView Webhook
  * Procesa las señales de TradingView y ejecuta órdenes en Binance
  *
- * El webhook URL debe contener un identificador de estrategia o se puede
- * identificar la estrategia por algún campo en el payload del webhook
+ * El webhook URL debe contener user_id y strategy_id para identificar la estrategia
+ * y las credenciales del exchange
  */
 export async function POST(request: NextRequest) {
   try {
@@ -18,17 +19,86 @@ export async function POST(request: NextRequest) {
 
     logger.info({ payload: data, url: url.toString() }, "[WEBHOOK] 📥 Webhook recibido")
 
+    const { user_id, strategy_id } = data
+
+    if (!user_id || !strategy_id) {
+      logger.warn("[WEBHOOK] ❌ Faltan user_id o strategy_id en el payload")
+      return NextResponse.json(
+        {
+          status: "error",
+          message: "Se requiere user_id y strategy_id en el payload",
+          log_summary: "Faltan user_id o strategy_id",
+        },
+        { status: 400 },
+      )
+    }
+
+    const supabase = await createClient()
+
+    const { data: strategy, error: strategyError } = await supabase
+      .from("strategies")
+      .select("*")
+      .eq("id", strategy_id)
+      .eq("user_id", user_id)
+      .single()
+
+    if (strategyError || !strategy) {
+      logger.error({ error: strategyError }, "[WEBHOOK] ❌ Error al obtener estrategia")
+      return NextResponse.json(
+        {
+          status: "error",
+          message: "Estrategia no encontrada",
+          log_summary: "Estrategia no encontrada o no pertenece al usuario",
+        },
+        { status: 404 },
+      )
+    }
+
+    const { data: exchange, error: exchangeError } = await supabase
+      .from("exchanges")
+      .select("*")
+      .eq("user_id", user_id)
+      .eq("exchange_name", strategy.exchange_name)
+      .single()
+
+    if (exchangeError || !exchange) {
+      logger.error({ error: exchangeError }, "[WEBHOOK] ❌ Error al obtener exchange")
+      return NextResponse.json(
+        {
+          status: "error",
+          message: "Exchange no configurado",
+          log_summary: `Exchange ${strategy.exchange_name} no configurado para este usuario`,
+        },
+        { status: 404 },
+      )
+    }
+
+    if (!exchange.api_key || !exchange.api_secret) {
+      logger.warn("[WEBHOOK] ❌ API key o secret no configuradas")
+      return NextResponse.json(
+        {
+          status: "error",
+          message: "Credenciales del exchange no configuradas",
+          log_summary: "API key o secret no configuradas",
+        },
+        { status: 400 },
+      )
+    }
+
     const spotTestnetBaseURL = "https://testnet.binance.vision"
     const futuresTestnetBaseURL = "https://testnet.binancefuture.com"
+    const spotProductionBaseURL = "https://api.binance.com"
+    const futuresProductionBaseURL = "https://fapi.binance.com"
 
-    const binanceApikEY = " HARDCODE API KEY"
-    const binanceApiSecret = " HARDCODE API SECRET"
+    const isTestnet = exchange.testnet || false
+    const apiKey = exchange.api_key
+    const apiSecret = exchange.api_secret
 
-    const spotClient = new Spot(binanceApikEY, binanceApiSecret, {
-      baseURL: spotTestnetBaseURL,
+    const spotClient = new Spot(apiKey, apiSecret, {
+      baseURL: isTestnet ? spotTestnetBaseURL : spotProductionBaseURL,
     })
-    const futuresClient = new UMFutures(binanceApikEY, binanceApiSecret, {
-      baseURL: futuresTestnetBaseURL,
+    const futuresClient = new UMFutures(apiKey, apiSecret, {
+      baseURL: isTestnet ? futuresTestnetBaseURL : futuresProductionBaseURL,
     })
 
     // Validar datos del webhook
@@ -55,7 +125,7 @@ export async function POST(request: NextRequest) {
 
     const trade_data = validationResult.clean_data!
     const action = trade_data.action
-    const symbol = trade_data.symbol
+    const symbol = trade_data.symbol || strategy.trading_pair
     const quantity = Number.parseFloat(trade_data.quantity)
 
     let order: any
