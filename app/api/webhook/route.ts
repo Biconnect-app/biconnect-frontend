@@ -12,6 +12,8 @@ import { createClient } from "@supabase/supabase-js"
  * El payload debe contener:
  * - user_id: ID del usuario
  * - strategy_id: ID de la estrategia
+ * - action: "buy" | "sell" | "long" | "short"
+ * - close_position: boolean (opcional, solo para futures)
  */
 export async function POST(request: NextRequest) {
   try {
@@ -19,15 +21,28 @@ export async function POST(request: NextRequest) {
 
     logger.info({ payload: data }, "[WEBHOOK] 📥 Webhook recibido")
 
-    const { user_id, strategy_id } = data
+    const { user_id, strategy_id, action, close_position } = data
 
-    if (!user_id || !strategy_id) {
+    if (!user_id || !strategy_id || !action) {
       logger.warn("[WEBHOOK] ❌ Faltan campos requeridos en el payload")
       return NextResponse.json(
         {
           status: "error",
-          message: "Se requiere user_id y strategy_id en el payload",
-          log_summary: "Faltan campos requeridos: user_id o strategy_id",
+          message: "Se requiere user_id, strategy_id y action en el payload",
+          log_summary: "Faltan campos requeridos: user_id, strategy_id o action",
+        },
+        { status: 400 },
+      )
+    }
+
+    const validActions = ["buy", "sell", "long", "short"]
+    if (!validActions.includes(action.toLowerCase())) {
+      logger.warn("[WEBHOOK] ❌ Action inválido")
+      return NextResponse.json(
+        {
+          status: "error",
+          message: `Action debe ser uno de: ${validActions.join(", ")}`,
+          log_summary: `Action inválido: ${action}`,
         },
         { status: 400 },
       )
@@ -123,20 +138,18 @@ export async function POST(request: NextRequest) {
 
     const completePayload: any = {
       symbol: binanceSymbol,
-      action: strategy.market_type === "spot" ? "buy" : "long", // Determinar acción según market_type
+      action: action.toLowerCase(),
     }
 
-    // Agregar parámetros según risk_type
     if (strategy.risk_type === "fixed_amount") {
-      completePayload.usdt_amount = strategy.risk_value // WebhookValidator calculará la cantidad en BTC
+      completePayload.usdt_amount = strategy.risk_value
     } else if (strategy.risk_type === "percentage") {
-      completePayload.percentage = strategy.risk_value // WebhookValidator calculará según balance
+      completePayload.percentage = strategy.risk_value
     }
 
-    // Si es futures, agregar leverage
     if (strategy.market_type === "futures") {
       completePayload.leverage = strategy.leverage || 1
-      completePayload.close_position = false // Por defecto, abrir posición
+      completePayload.close_position = close_position !== undefined ? close_position : false
     }
 
     logger.info(
@@ -167,15 +180,11 @@ export async function POST(request: NextRequest) {
     console.log("[v0] Base URL SPOT:", isTestnet ? spotTestnetBaseURL : spotProductionBaseURL)
     console.log("[v0] Base URL FUTURES:", isTestnet ? futuresTestnetBaseURL : futuresProductionBaseURL)
 
-    // Inicializando cliente SPOT...
-    console.log("[v0] Inicializando cliente SPOT...")
     const spotClient = new Spot(apiKey, apiSecret, {
       baseURL: isTestnet ? spotTestnetBaseURL : spotProductionBaseURL,
     })
     console.log("[v0] Cliente SPOT inicializado correctamente")
 
-    // Inicializando cliente FUTURES...
-    console.log("[v0] Inicializando cliente FUTURES...")
     const futuresClient = new UMFutures(apiKey, apiSecret, {
       baseURL: isTestnet ? futuresTestnetBaseURL : futuresProductionBaseURL,
     })
@@ -221,9 +230,6 @@ export async function POST(request: NextRequest) {
 
     let order: any
 
-    // ──────────────────────────────────────────────
-    // Ejecución en SPOT
-    // ──────────────────────────────────────────────
     if (tradeAction === "buy" || tradeAction === "sell") {
       const side = tradeAction.toUpperCase() as "BUY" | "SELL"
 
@@ -239,11 +245,7 @@ export async function POST(request: NextRequest) {
         const errorMessage = error?.response?.data?.msg || error?.message || "Error desconocido al crear orden SPOT"
         throw new Error(`Error ejecutando orden SPOT: ${errorMessage}`)
       }
-    }
-    // ──────────────────────────────────────────────
-    // Ejecución en FUTURES
-    // ──────────────────────────────────────────────
-    else if (tradeAction === "long" || tradeAction === "short") {
+    } else if (tradeAction === "long" || tradeAction === "short") {
       try {
         const orderParams: any = {
           quantity: quantity.toString(),
@@ -264,7 +266,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Respuesta unificada de éxito
     const response = NextResponse.json(
       {
         status: "success",
@@ -276,7 +277,6 @@ export async function POST(request: NextRequest) {
       { status: 200 },
     )
 
-    // Agregar headers de seguridad
     response.headers.set("X-Frame-Options", "SAMEORIGIN")
     response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
     response.headers.set(
@@ -297,7 +297,6 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     )
 
-    // Headers de seguridad también en errores
     errorResponse.headers.set("X-Frame-Options", "SAMEORIGIN")
     errorResponse.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
     errorResponse.headers.set(
@@ -309,7 +308,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Método OPTIONS para CORS si es necesario
 export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,
