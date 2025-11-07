@@ -3,7 +3,7 @@ import { WebhookValidator } from "@/lib/webhook-validator"
 import { Spot } from "@binance/connector"
 import { UMFutures } from "@binance/futures-connector"
 import { logger } from "@/lib/logger"
-import { createClient } from "@/lib/supabase/server"
+import { createClient } from "@supabase/supabase-js"
 
 /**
  * Endpoint principal para TradingView Webhook
@@ -21,6 +21,9 @@ export async function POST(request: NextRequest) {
 
     const { user_id, strategy_id } = data
 
+    console.log("[v0] user_id recibido:", user_id)
+    console.log("[v0] strategy_id recibido:", strategy_id)
+
     if (!user_id || !strategy_id) {
       logger.warn("[WEBHOOK] ❌ Faltan user_id o strategy_id en el payload")
       return NextResponse.json(
@@ -33,7 +36,24 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = await createClient()
+    const supabaseUrl = process.env.SUPABASE_URL!
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      logger.error("[WEBHOOK] ❌ Variables de entorno de Supabase no configuradas")
+      return NextResponse.json(
+        {
+          status: "error",
+          message: "Configuración de Supabase incompleta",
+          log_summary: "Variables de entorno de Supabase no configuradas",
+        },
+        { status: 500 },
+      )
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+    console.log("[v0] Consultando estrategia con id:", strategy_id, "y user_id:", user_id)
 
     const { data: strategy, error: strategyError } = await supabase
       .from("strategies")
@@ -42,6 +62,8 @@ export async function POST(request: NextRequest) {
       .eq("user_id", user_id)
       .single()
 
+    console.log("[v0] Resultado de consulta de estrategia:", { strategy, strategyError })
+
     if (strategyError || !strategy) {
       logger.error({ error: strategyError }, "[WEBHOOK] ❌ Error al obtener estrategia")
       return NextResponse.json(
@@ -49,10 +71,13 @@ export async function POST(request: NextRequest) {
           status: "error",
           message: "Estrategia no encontrada",
           log_summary: "Estrategia no encontrada o no pertenece al usuario",
+          debug: { strategyError, user_id, strategy_id },
         },
         { status: 404 },
       )
     }
+
+    console.log("[v0] Estrategia encontrada:", strategy.exchange_name)
 
     const { data: exchange, error: exchangeError } = await supabase
       .from("exchanges")
@@ -60,6 +85,8 @@ export async function POST(request: NextRequest) {
       .eq("user_id", user_id)
       .eq("exchange_name", strategy.exchange_name)
       .single()
+
+    console.log("[v0] Resultado de consulta de exchange:", { exchange, exchangeError })
 
     if (exchangeError || !exchange) {
       logger.error({ error: exchangeError }, "[WEBHOOK] ❌ Error al obtener exchange")
