@@ -374,19 +374,19 @@ export default function NewStrategyPage() {
           {[1, 2, 3, 4, 5].map((s, idx) => (
             <div key={s} className="flex items-center gap-2 flex-1">
               <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
+                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 ${
                   step > s
-                    ? "bg-green-500 text-white shadow-md ring-2 ring-green-300"
+                    ? "bg-accent text-accent-foreground shadow-md ring-2 ring-accent/30"
                     : step === s
-                      ? "bg-blue-500 text-white shadow-lg ring-4 ring-blue-300 scale-110"
-                      : "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
+                      ? "bg-primary text-primary-foreground shadow-lg ring-4 ring-primary/20 scale-110"
+                      : "bg-muted text-muted-foreground"
                 }`}
               >
                 {step > s ? <Check className="h-5 w-5" /> : s}
               </div>
               {idx < 4 && (
                 <div
-                  className={`flex-1 h-1 rounded-full transition-all ${step > s ? "bg-green-500 shadow-sm" : "bg-gray-300 dark:bg-gray-700"}`}
+                  className={`flex-1 h-1 rounded-full transition-all duration-300 ${step > s ? "bg-accent shadow-sm" : "bg-border"}`}
                 />
               )}
             </div>
