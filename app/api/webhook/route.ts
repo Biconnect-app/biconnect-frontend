@@ -12,10 +12,6 @@ import { createClient } from "@supabase/supabase-js"
  * El payload debe contener:
  * - user_id: ID del usuario
  * - strategy_id: ID de la estrategia
- * - action: "buy" | "sell" | "long" | "short"
- * - quantity (opcional): cantidad específica
- * - percentage (opcional): porcentaje del balance
- * - usdt_amount (opcional): monto en USDT
  */
 export async function POST(request: NextRequest) {
   try {
@@ -23,15 +19,15 @@ export async function POST(request: NextRequest) {
 
     logger.info({ payload: data }, "[WEBHOOK] 📥 Webhook recibido")
 
-    const { user_id, strategy_id, action } = data
+    const { user_id, strategy_id } = data
 
-    if (!user_id || !strategy_id || !action) {
+    if (!user_id || !strategy_id) {
       logger.warn("[WEBHOOK] ❌ Faltan campos requeridos en el payload")
       return NextResponse.json(
         {
           status: "error",
-          message: "Se requiere user_id, strategy_id y action en el payload",
-          log_summary: "Faltan campos requeridos: user_id, strategy_id o action",
+          message: "Se requiere user_id y strategy_id en el payload",
+          log_summary: "Faltan campos requeridos: user_id o strategy_id",
         },
         { status: 400 },
       )
@@ -56,7 +52,7 @@ export async function POST(request: NextRequest) {
 
     const { data: strategy, error: strategyError } = await supabase
       .from("strategies")
-      .select("*")
+      .select("trading_pair, market_type, leverage, risk_type, risk_value, is_active, exchange_name")
       .eq("id", strategy_id)
       .eq("user_id", user_id)
       .single()
@@ -73,9 +69,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (!strategy.is_active) {
+      logger.warn("[WEBHOOK] ⚠️ Estrategia inactiva")
+      return NextResponse.json(
+        {
+          status: "warning",
+          message: "La estrategia está inactiva. Por favor, actívala desde el panel de control para continuar.",
+          log_summary: "Estrategia inactiva - no se puede ejecutar",
+        },
+        { status: 403 },
+      )
+    }
+
     const { data: exchange, error: exchangeError } = await supabase
       .from("exchanges")
-      .select("*")
+      .select("api_key, api_secret, testnet")
       .eq("user_id", user_id)
       .eq("exchange_name", strategy.exchange_name)
       .single()
@@ -105,16 +113,25 @@ export async function POST(request: NextRequest) {
     }
 
     const completePayload = {
-      symbol: strategy.trading_pair, // de la tabla strategies
-      action: action, // del webhook
-      quantity: data.quantity, // opcional del webhook
-      percentage: data.percentage, // opcional del webhook
-      usdt_amount: data.usdt_amount, // opcional del webhook
-      leverage: strategy.leverage, // de la tabla strategies
-      close_position: data.close_position || false, // opcional del webhook
+      symbol: strategy.trading_pair,
+      action: determineAction(strategy.market_type, strategy.risk_type),
+      quantity: calculateQuantity(strategy.risk_type, strategy.risk_value),
+      leverage: strategy.leverage,
     }
 
-    logger.info({ completePayload }, "[WEBHOOK] 📦 Payload completo construido desde DB")
+    logger.info(
+      {
+        strategy: {
+          trading_pair: strategy.trading_pair,
+          market_type: strategy.market_type,
+          leverage: strategy.leverage,
+          risk_type: strategy.risk_type,
+          risk_value: strategy.risk_value,
+        },
+        completePayload,
+      },
+      "[WEBHOOK] 📦 Payload construido desde estrategia",
+    )
 
     const spotTestnetBaseURL = "https://testnet.binance.vision"
     const futuresTestnetBaseURL = "https://testnet.binancefuture.com"
@@ -247,6 +264,30 @@ export async function POST(request: NextRequest) {
 
     return errorResponse
   }
+}
+
+function determineAction(market_type: string, risk_type: string): string {
+  // Determinar la acción basada en market_type
+  // Esto debe adaptarse a tu lógica de negocio
+  if (market_type === "spot") {
+    return "buy" // o "sell" según tu lógica
+  } else if (market_type === "futures") {
+    return "long" // o "short" según tu lógica
+  }
+  return "buy"
+}
+
+function calculateQuantity(risk_type: string, risk_value: number): string {
+  // Calcular la cantidad basada en risk_type y risk_value
+  // Esto debe adaptarse a tu lógica de negocio
+  if (risk_type === "fixed") {
+    return risk_value.toString()
+  } else if (risk_type === "percentage") {
+    // Aquí necesitarías el balance para calcular el porcentaje
+    // Por ahora retornamos el valor directamente
+    return risk_value.toString()
+  }
+  return risk_value.toString()
 }
 
 // Método OPTIONS para CORS si es necesario
