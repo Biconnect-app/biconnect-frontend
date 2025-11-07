@@ -96,6 +96,33 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const normalizedAction = action.toLowerCase()
+    if (strategy.market_type === "spot") {
+      if (normalizedAction !== "buy" && normalizedAction !== "sell") {
+        logger.warn("[WEBHOOK] ❌ Action incompatible con estrategia SPOT")
+        return NextResponse.json(
+          {
+            status: "error",
+            message: `Para estrategias SPOT solo se permiten acciones 'buy' o 'sell'. Recibido: '${action}'`,
+            log_summary: `Action '${action}' incompatible con estrategia SPOT`,
+          },
+          { status: 400 },
+        )
+      }
+    } else if (strategy.market_type === "futures") {
+      if (normalizedAction !== "long" && normalizedAction !== "short") {
+        logger.warn("[WEBHOOK] ❌ Action incompatible con estrategia FUTURES")
+        return NextResponse.json(
+          {
+            status: "error",
+            message: `Para estrategias FUTURES solo se permiten acciones 'long' o 'short'. Recibido: '${action}'`,
+            log_summary: `Action '${action}' incompatible con estrategia FUTURES`,
+          },
+          { status: 400 },
+        )
+      }
+    }
+
     const { data: exchange, error: exchangeError } = await supabase
       .from("exchanges")
       .select("api_key, api_secret, testnet")
