@@ -12,31 +12,48 @@ export default function Home() {
     async function checkAuthAndStrategies() {
       const supabase = createClient()
       
+      console.log("[v0] ========== CHECKING AUTH AND STRATEGIES ==========")
       const { data: { user } } = await supabase.auth.getUser()
 
       if (!user) {
-        // Usuario no logueado → redirigir a preview/estrategia
+        console.log("[v0] No user found, redirecting to preview/estrategia")
         router.replace("/preview/estrategia")
         return
       }
 
-      // Usuario logueado → verificar si tiene estrategias
+      console.log("[v0] User found:", { id: user.id, email: user.email })
+
       const { data: strategies, error } = await supabase
         .from("strategies")
         .select("id")
         .eq("user_id", user.id)
 
       if (error) {
-        console.error("Error fetching strategies:", error)
+        console.error("[v0] Error fetching strategies:", error)
         router.replace("/app/estrategias/nueva")
         return
       }
 
-      if (!strategies || strategies.length === 0) {
-        // Usuario logueado pero sin estrategias → crear estrategia
+      console.log("[v0] Strategies found:", strategies?.length || 0)
+
+      const { data: pendingStrategies, error: pendingError } = await supabase
+        .from("pending_strategies")
+        .select("id")
+        .eq("email", user.email)
+
+      if (pendingError) {
+        console.error("[v0] Error fetching pending strategies:", pendingError)
+      }
+
+      console.log("[v0] Pending strategies found:", pendingStrategies?.length || 0)
+
+      const hasAnyStrategy = (strategies && strategies.length > 0) || (pendingStrategies && pendingStrategies.length > 0)
+
+      if (!hasAnyStrategy) {
+        console.log("[v0] No strategies or pending strategies found, redirecting to nueva")
         router.replace("/app/estrategias/nueva")
       } else {
-        // Usuario logueado con estrategias → mostrar lista
+        console.log("[v0] Strategies or pending strategies found, redirecting to estrategias")
         router.replace("/app/estrategias")
       }
     }
