@@ -396,13 +396,7 @@ export default function NewStrategyPage() {
           </div>
         </div>
 
-        <div 
-          className="bg-card border border-border rounded-xl p-6 space-y-4 transition-all duration-500 ease-out"
-          style={{
-            opacity: formData.name && formData.exchange ? 1 : 0.5,
-            transform: formData.name && formData.exchange ? 'translateY(0)' : 'translateY(-10px)'
-          }}
-        >
+        <div className="bg-card border border-border rounded-xl p-6 space-y-4">
           <h2 className="text-xl font-semibold text-foreground">Tipo de mercado</h2>
 
           <div className="space-y-4">
@@ -471,13 +465,7 @@ export default function NewStrategyPage() {
           </div>
         </div>
 
-        <div 
-          className="bg-card border border-border rounded-xl p-6 space-y-4 transition-all duration-500 ease-out"
-          style={{
-            opacity: formData.marketType ? 1 : 0.5,
-            transform: formData.marketType ? 'translateY(0)' : 'translateY(-10px)'
-          }}
-        >
+        <div className="bg-card border border-border rounded-xl p-6 space-y-4">
           <h2 className="text-xl font-semibold text-foreground">Par de trading</h2>
 
           {pairsError && (
@@ -534,13 +522,7 @@ export default function NewStrategyPage() {
           </div>
         </div>
 
-        <div 
-          className="bg-card border border-border rounded-xl p-6 space-y-4 transition-all duration-500 ease-out"
-          style={{
-            opacity: formData.pair ? 1 : 0.5,
-            transform: formData.pair ? 'translateY(0)' : 'translateY(-10px)'
-          }}
-        >
+        <div className="bg-card border border-border rounded-xl p-6 space-y-4">
           <h2 className="text-xl font-semibold text-foreground">Gestión del riesgo</h2>
 
           <div className="space-y-4">
@@ -602,13 +584,7 @@ export default function NewStrategyPage() {
           </div>
         </div>
 
-        <div 
-          className="bg-card border border-border rounded-xl p-6 space-y-4 transition-all duration-500 ease-out"
-          style={{
-            opacity: formData.riskType && formData.riskAmount ? 1 : 0.5,
-            transform: formData.riskType && formData.riskAmount ? 'translateY(0)' : 'translateY(-10px)'
-          }}
-        >
+        <div className="bg-card border border-border rounded-xl p-6 space-y-4">
           <h2 className="text-xl font-semibold text-foreground">Webhook de TradingView</h2>
 
           <div className="flex gap-2">
@@ -619,13 +595,7 @@ export default function NewStrategyPage() {
           </div>
         </div>
 
-        <div 
-          className="bg-card border border-border rounded-xl p-6 space-y-4 transition-all duration-500 ease-out"
-          style={{
-            opacity: formData.riskType && formData.riskAmount ? 1 : 0.5,
-            transform: formData.riskType && formData.riskAmount ? 'translateY(0)' : 'translateY(-10px)'
-          }}
-        >
+        <div className="bg-card border border-border rounded-xl p-6 space-y-4">
           <h2 className="text-xl font-semibold text-foreground">Payload JSON</h2>
 
           <Textarea value={generatePayload()} readOnly className="font-mono text-sm" rows={12} />
