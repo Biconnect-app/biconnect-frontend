@@ -1,16 +1,17 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowRight, ArrowLeft, Copy, Check, Search, AlertCircle } from "lucide-react"
+import { ArrowLeft, Copy, Check, Save, Search, AlertCircle } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 
 // Comprehensive list of trading pairs vs USDT
@@ -81,7 +82,6 @@ const LEVERAGE_OPTIONS = [1, 2, 3, 5, 10, 20, 25, 50, 75, 100, 125]
 
 export default function NewStrategyPage() {
   const router = useRouter()
-  const [step, setStep] = useState(1)
   const [copied, setCopied] = useState(false)
   const [openPairSelect, setOpenPairSelect] = useState(false)
   const [tradingPairs, setTradingPairs] = useState<string[]>(FALLBACK_TRADING_PAIRS)
@@ -232,27 +232,22 @@ export default function NewStrategyPage() {
     }
   }
 
-  const validateStep = (currentStep: number) => {
+  const validateForm = () => {
     const newErrors: Record<string, string> = {}
 
-    if (currentStep === 1) {
-      if (!formData.name.trim()) newErrors.name = "El nombre es requerido"
-      else if (nameExists) newErrors.name = "Ya existe una estrategia con este nombre"
-    } else if (currentStep === 2) {
-      if (!formData.marketType) newErrors.marketType = "Debes seleccionar el tipo de mercado"
-    } else if (currentStep === 3) {
-      if (!formData.pair) newErrors.pair = "Debes seleccionar un par"
-    } else if (currentStep === 4) {
-      if (!formData.riskType) newErrors.riskType = "Debes seleccionar un tipo de gestión"
-      if (!formData.riskAmount) {
-        newErrors.riskAmount = "Debes ingresar una cantidad"
-      } else {
-        const amount = Number.parseFloat(formData.riskAmount)
-        if (isNaN(amount) || amount <= 0) {
-          newErrors.riskAmount = "La cantidad debe ser mayor a 0"
-        } else if (formData.riskType === "percentage" && (amount < 0 || amount > 100)) {
-          newErrors.riskAmount = "El porcentaje debe estar entre 0 y 100"
-        }
+    if (!formData.name.trim()) newErrors.name = "El nombre es requerido"
+    else if (nameExists) newErrors.name = "Ya existe una estrategia con este nombre"
+    if (!formData.pair) newErrors.pair = "Debes seleccionar un par"
+    if (!formData.marketType) newErrors.marketType = "Debes seleccionar el tipo de mercado"
+    if (!formData.riskType) newErrors.riskType = "Debes seleccionar un tipo de gestión"
+    if (!formData.riskAmount) {
+      newErrors.riskAmount = "Debes ingresar una cantidad"
+    } else {
+      const amount = Number.parseFloat(formData.riskAmount)
+      if (isNaN(amount) || amount <= 0) {
+        newErrors.riskAmount = "La cantidad debe ser mayor a 0"
+      } else if (formData.riskType === "percentage" && (amount < 0 || amount > 100)) {
+        newErrors.riskAmount = "El porcentaje debe estar entre 0 y 100"
       }
     }
 
@@ -260,41 +255,25 @@ export default function NewStrategyPage() {
     return Object.keys(newErrors).length === 0
   }
 
-  const nextStep = () => {
-    if (validateStep(step)) {
-      setStep(step + 1)
-    }
-  }
-
-  const prevStep = () => {
-    setStep(step - 1)
-    setErrors({})
-  }
-
   const handleSave = async () => {
     console.log("[v0] handleSave called - starting save process")
-    console.log("[v0] Current step:", step)
-    console.log("[v0] Form data:", formData)
 
-    if (validateStep(step)) {
+    if (validateForm()) {
       console.log("[v0] Validation passed")
       try {
         const supabase = createClient()
 
-        console.log("[v0] Getting user...")
         const {
           data: { user },
         } = await supabase.auth.getUser()
 
         if (!user) {
-          console.error("[v0] ❌ No user found - user must be logged in")
+          console.error("[v0] ❌ No user found")
           alert("Debes estar autenticado para guardar la estrategia")
           return
         }
 
         console.log("[v0] User found:", user.id)
-
-        console.log("[v0] Pre-generated strategy ID:", preGeneratedId)
 
         const strategyData = {
           id: preGeneratedId,
@@ -312,33 +291,24 @@ export default function NewStrategyPage() {
           webhook_url: `https://biconnect.vercel.app/api/webhook`,
         }
 
-        console.log("[v0] Attempting to insert strategy with data:", strategyData)
-
         const { data: newStrategy, error } = await supabase.from("strategies").insert(strategyData).select().single()
 
         if (error) {
-          console.error("[v0] ❌ Supabase error saving strategy:", error)
-          console.error("[v0] Error code:", error.code)
-          console.error("[v0] Error message:", error.message)
-          console.error("[v0] Error details:", error.details)
-          console.error("[v0] Error hint:", error.hint)
+          console.error("[v0] ❌ Error saving strategy:", error)
           alert(`Error al guardar la estrategia: ${error.message}`)
           return
         }
 
-        console.log("[v0] ✅ Strategy saved successfully:", newStrategy)
-        console.log("[v0] Redirecting to /app/estrategias")
+        console.log("[v0] ✅ Strategy saved successfully")
         router.push("/app/estrategias")
       } catch (error) {
         console.error("[v0] ❌ Exception in handleSave:", error)
         if (error instanceof Error) {
-          console.error("[v0] Error message:", error.message)
-          console.error("[v0] Error stack:", error.stack)
           alert(`Error inesperado: ${error.message}`)
         }
       }
     } else {
-      console.log("[v0] ❌ Validation failed, errors:", errors)
+      console.log("[v0] ❌ Validation failed")
       alert("Por favor completa todos los campos requeridos")
     }
   }
@@ -365,392 +335,281 @@ export default function NewStrategyPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="space-y-6 max-w-3xl mx-auto">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Nueva estrategia</h1>
-          <p className="text-muted-foreground mt-1">Configura una nueva estrategia de trading automatizado</p>
+        <div className="flex items-center gap-4">
+          <Link href="/app/estrategias">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Nueva estrategia</h1>
+            <p className="text-muted-foreground mt-1">Configura una nueva estrategia de trading automatizado</p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {[1, 2, 3, 4, 5].map((s, idx) => (
-            <div key={s} className="flex items-center gap-2 flex-1">
-              <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 ${
-                  step > s
-                    ? "bg-accent text-accent-foreground shadow-md ring-2 ring-accent/30"
-                    : step === s
-                      ? "bg-primary text-primary-foreground shadow-lg ring-4 ring-primary/20 scale-110"
-                      : "bg-muted text-muted-foreground"
-                }`}
-              >
-                {step > s ? <Check className="h-5 w-5" /> : s}
-              </div>
-              {idx < 4 && (
-                <div
-                  className={`flex-1 h-1 rounded-full transition-all duration-300 ${step > s ? "bg-accent shadow-sm" : "bg-border"}`}
-                />
+        <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+          <h2 className="text-xl font-semibold text-foreground">Información básica</h2>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nombre de la estrategia *</Label>
+              <Input
+                id="name"
+                placeholder="Ej: BTC Scalping 5m"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onBlur={(e) => checkNameExists(e.target.value)}
+                className={errors.name || nameExists ? "border-destructive" : ""}
+              />
+              {checkingName && <p className="text-xs text-muted-foreground">Verificando disponibilidad...</p>}
+              {nameExists && !checkingName && (
+                <p className="text-xs text-destructive">Ya existe una estrategia con este nombre</p>
               )}
+              {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
             </div>
-          ))}
+
+            <div className="space-y-2">
+              <Label htmlFor="exchange">Exchange *</Label>
+              <Select
+                value={formData.exchange}
+                onValueChange={(value) => setFormData({ ...formData, exchange: value })}
+              >
+                <SelectTrigger id="exchange">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="binance">Binance</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Descripción (opcional)</Label>
+              <Textarea
+                id="description"
+                placeholder="Describe tu estrategia..."
+                rows={3}
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              />
+            </div>
+          </div>
         </div>
 
-        {step === 1 && (
-          <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">Información básica</h2>
+        <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+          <h2 className="text-xl font-semibold text-foreground">Par de trading</h2>
 
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nombre de la estrategia *</Label>
-                <Input
-                  id="name"
-                  placeholder="Ej: BTC Scalping 5m"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  onBlur={(e) => checkNameExists(e.target.value)}
-                  className={errors.name || nameExists ? "border-destructive" : ""}
-                />
-                {checkingName && <p className="text-xs text-muted-foreground">Verificando disponibilidad...</p>}
-                {nameExists && !checkingName && (
-                  <p className="text-xs text-destructive">Ya existe una estrategia con este nombre</p>
-                )}
-                {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
-              </div>
+          {pairsError && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-sm">{pairsError}</AlertDescription>
+            </Alert>
+          )}
 
-              <div className="space-y-2">
-                <Label htmlFor="exchange">Exchange *</Label>
-                <Select
-                  value={formData.exchange}
-                  onValueChange={(value) => setFormData({ ...formData, exchange: value })}
+          <div className="space-y-2">
+            <Label>Par a operar *</Label>
+            <Popover open={openPairSelect} onOpenChange={setOpenPairSelect}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={openPairSelect}
+                  className={`w-full justify-between bg-transparent ${errors.pair ? "border-destructive" : ""}`}
+                  disabled={loadingPairs}
                 >
-                  <SelectTrigger id="exchange">
+                  {loadingPairs ? "Cargando pares..." : formData.pair || "Buscar par..."}
+                  <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Buscar par..." />
+                  <CommandList>
+                    <CommandEmpty>No se encontró el par.</CommandEmpty>
+                    <CommandGroup>
+                      {tradingPairs.map((pair) => (
+                        <CommandItem
+                          key={pair}
+                          value={pair}
+                          onSelect={(value) => {
+                            setFormData({ ...formData, pair: value.toUpperCase() })
+                            setOpenPairSelect(false)
+                          }}
+                        >
+                          {pair}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            {errors.pair && <p className="text-xs text-destructive">{errors.pair}</p>}
+            <p className="text-xs text-muted-foreground">
+              {loadingPairs
+                ? "Cargando pares disponibles desde Binance..."
+                : `${tradingPairs.length} pares ${pairsError ? "populares" : "disponibles"}`}
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+          <h2 className="text-xl font-semibold text-foreground">Tipo de mercado</h2>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Tipo de operación *</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, marketType: "spot", leverage: 1 })}
+                  className={`relative p-4 rounded-xl border-2 transition-all ${
+                    formData.marketType === "spot"
+                      ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
+                      : "border-border hover:border-accent/50"
+                  }`}
+                >
+                  {formData.marketType === "spot" && (
+                    <div className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
+                      <Check className="h-3 w-3 text-accent-foreground" />
+                    </div>
+                  )}
+                  <div className="font-semibold text-foreground">Spot</div>
+                  <div className="text-sm text-muted-foreground mt-1">Compra/venta directa</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, marketType: "futures" })}
+                  className={`relative p-4 rounded-xl border-2 transition-all ${
+                    formData.marketType === "futures"
+                      ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
+                      : "border-border hover:border-accent/50"
+                  }`}
+                >
+                  {formData.marketType === "futures" && (
+                    <div className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
+                      <Check className="h-3 w-3 text-accent-foreground" />
+                    </div>
+                  )}
+                  <div className="font-semibold text-foreground">Futuros</div>
+                  <div className="text-sm text-muted-foreground mt-1">Con apalancamiento</div>
+                </button>
+              </div>
+            </div>
+
+            {formData.marketType === "futures" && (
+              <div className="space-y-2">
+                <Label htmlFor="leverage">Apalancamiento *</Label>
+                <Select
+                  value={formData.leverage.toString()}
+                  onValueChange={(value) => setFormData({ ...formData, leverage: Number.parseInt(value) })}
+                >
+                  <SelectTrigger id="leverage">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="binance">Binance</SelectItem>
+                    {LEVERAGE_OPTIONS.map((lev) => (
+                      <SelectItem key={lev} value={lev.toString()}>
+                        {lev}x
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Descripción (opcional)</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Describe tu estrategia..."
-                  rows={3}
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <Button onClick={nextStep} className="bg-accent hover:bg-accent/90 text-accent-foreground">
-              Siguiente
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-          </div>
-        )}
-
-        {step === 2 && (
-          <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">Tipo de mercado</h2>
-
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Tipo de operación *</Label>
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, marketType: "spot", leverage: 1 })}
-                    className={`relative p-4 rounded-xl border-2 transition-all ${
-                      formData.marketType === "spot"
-                        ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
-                        : "border-border hover:border-accent/50"
-                    }`}
-                  >
-                    {formData.marketType === "spot" && (
-                      <div className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
-                        <Check className="h-3 w-3 text-accent-foreground" />
-                      </div>
-                    )}
-                    <div className="font-semibold text-foreground">Spot</div>
-                    <div className="text-sm text-muted-foreground mt-1">Compra/venta directa</div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, marketType: "futures" })}
-                    className={`relative p-4 rounded-xl border-2 transition-all ${
-                      formData.marketType === "futures"
-                        ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
-                        : "border-border hover:border-accent/50"
-                    }`}
-                  >
-                    {formData.marketType === "futures" && (
-                      <div className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
-                        <Check className="h-3 w-3 text-accent-foreground" />
-                      </div>
-                    )}
-                    <div className="font-semibold text-foreground">Futuros</div>
-                    <div className="text-sm text-muted-foreground mt-1">Con apalancamiento</div>
-                  </button>
-                </div>
-                {errors.marketType && <p className="text-xs text-destructive">{errors.marketType}</p>}
-              </div>
-
-              {formData.marketType === "futures" && (
-                <div className="space-y-2">
-                  <Label htmlFor="leverage">Apalancamiento *</Label>
-                  <Select
-                    value={formData.leverage.toString()}
-                    onValueChange={(value) => setFormData({ ...formData, leverage: Number.parseInt(value) })}
-                  >
-                    <SelectTrigger id="leverage">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {LEVERAGE_OPTIONS.map((lev) => (
-                        <SelectItem key={lev} value={lev.toString()}>
-                          {lev}x
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Mayor apalancamiento = mayor riesgo y potencial ganancia
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="flex gap-2">
-              <Button onClick={prevStep} variant="outline" className="bg-transparent">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Atrás
-              </Button>
-              <Button onClick={nextStep} className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                Siguiente
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">Par de trading</h2>
-
-            {pairsError && (
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="text-sm">{pairsError}</AlertDescription>
-              </Alert>
             )}
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+          <h2 className="text-xl font-semibold text-foreground">Gestión del riesgo</h2>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Tipo de gestión *</Label>
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, riskType: "fixed_quantity" })}
+                  className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+                    formData.riskType === "fixed_quantity"
+                      ? "border-accent bg-accent/5"
+                      : "border-border hover:border-accent/50"
+                  }`}
+                >
+                  <div className="font-semibold text-foreground">Cantidad fija ({getBaseCurrency()})</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, riskType: "fixed_amount" })}
+                  className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+                    formData.riskType === "fixed_amount"
+                      ? "border-accent bg-accent/5"
+                      : "border-border hover:border-accent/50"
+                  }`}
+                >
+                  <div className="font-semibold text-foreground">Monto fijo ({getQuoteCurrency()})</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, riskType: "percentage" })}
+                  className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+                    formData.riskType === "percentage"
+                      ? "border-accent bg-accent/5"
+                      : "border-border hover:border-accent/50"
+                  }`}
+                >
+                  <div className="font-semibold text-foreground">% del capital ({getQuoteCurrency()})</div>
+                </button>
+              </div>
+            </div>
 
             <div className="space-y-2">
-              <Label>Selecciona el par a operar *</Label>
-              <Popover open={openPairSelect} onOpenChange={setOpenPairSelect}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={openPairSelect}
-                    className={`w-full justify-between bg-transparent ${errors.pair ? "border-destructive" : ""}`}
-                    disabled={loadingPairs}
-                  >
-                    {loadingPairs ? "Cargando pares..." : formData.pair || "Buscar par..."}
-                    <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0" align="start">
-                  <Command>
-                    <CommandInput placeholder="Buscar par..." />
-                    <CommandList>
-                      <CommandEmpty>No se encontró el par.</CommandEmpty>
-                      <CommandGroup>
-                        {tradingPairs.map((pair) => (
-                          <CommandItem
-                            key={pair}
-                            value={pair}
-                            onSelect={(value) => {
-                              setFormData({ ...formData, pair: value.toUpperCase() })
-                              setOpenPairSelect(false)
-                            }}
-                          >
-                            {pair}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              {errors.pair && <p className="text-xs text-destructive">{errors.pair}</p>}
-              <p className="text-xs text-muted-foreground">
-                {loadingPairs
-                  ? "Cargando pares disponibles desde Binance..."
-                  : `${tradingPairs.length} pares ${pairsError ? "populares" : "disponibles"}`}
-              </p>
-            </div>
-
-            <div className="flex gap-2">
-              <Button onClick={prevStep} variant="outline" className="bg-transparent">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Atrás
-              </Button>
-              <Button onClick={nextStep} className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                Siguiente
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
+              <Label htmlFor="risk-amount">
+                {formData.riskType === "fixed_quantity" && `Cantidad (${getBaseCurrency()}) *`}
+                {formData.riskType === "fixed_amount" && `Monto (${getQuoteCurrency()}) *`}
+                {formData.riskType === "percentage" && "Porcentaje (%) *"}
+              </Label>
+              <Input
+                id="risk-amount"
+                type="number"
+                step={formData.riskType === "fixed_quantity" ? "0.00001" : "0.01"}
+                value={formData.riskAmount}
+                onChange={(e) => setFormData({ ...formData, riskAmount: e.target.value })}
+                className={errors.riskAmount ? "border-destructive" : ""}
+              />
+              {errors.riskAmount && <p className="text-xs text-destructive">{errors.riskAmount}</p>}
             </div>
           </div>
-        )}
+        </div>
 
-        {step === 4 && (
-          <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">Gestión del riesgo</h2>
+        <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+          <h2 className="text-xl font-semibold text-foreground">Webhook de TradingView</h2>
 
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Tipo de gestión *</Label>
-                <div className="space-y-2">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, riskType: "fixed_quantity" })}
-                    className={`relative w-full p-4 rounded-xl border-2 text-left transition-all ${
-                      formData.riskType === "fixed_quantity"
-                        ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
-                        : "border-border hover:border-accent/50"
-                    }`}
-                  >
-                    {formData.riskType === "fixed_quantity" && (
-                      <div className="absolute top-4 right-4 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
-                        <Check className="h-3 w-3 text-accent-foreground" />
-                      </div>
-                    )}
-                    <div className="font-semibold text-foreground">Cantidad fija ({getBaseCurrency() || "Cripto"})</div>
-                    <div className="text-sm text-muted-foreground mt-1">
-                      Operar siempre la misma cantidad de {getBaseCurrency() || "criptomoneda"}
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, riskType: "fixed_amount" })}
-                    className={`relative w-full p-4 rounded-xl border-2 text-left transition-all ${
-                      formData.riskType === "fixed_amount"
-                        ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
-                        : "border-border hover:border-accent/50"
-                    }`}
-                  >
-                    {formData.riskType === "fixed_amount" && (
-                      <div className="absolute top-4 right-4 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
-                        <Check className="h-3 w-3 text-accent-foreground" />
-                      </div>
-                    )}
-                    <div className="font-semibold text-foreground">Monto fijo ({getQuoteCurrency()})</div>
-                    <div className="text-sm text-muted-foreground mt-1">
-                      Operar siempre el mismo monto en {getQuoteCurrency()}
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, riskType: "percentage" })}
-                    className={`relative w-full p-4 rounded-xl border-2 text-left transition-all ${
-                      formData.riskType === "percentage"
-                        ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
-                        : "border-border hover:border-accent/50"
-                    }`}
-                  >
-                    {formData.riskType === "percentage" && (
-                      <div className="absolute top-4 right-4 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
-                        <Check className="h-3 w-3 text-accent-foreground" />
-                      </div>
-                    )}
-                    <div className="font-semibold text-foreground">% del capital ({getQuoteCurrency()})</div>
-                    <div className="text-sm text-muted-foreground mt-1">
-                      Operar un porcentaje de tu capital disponible
-                    </div>
-                  </button>
-                </div>
-                {errors.riskType && <p className="text-xs text-destructive">{errors.riskType}</p>}
-              </div>
-
-              {formData.riskType && (
-                <div className="space-y-2">
-                  <Label htmlFor="risk-amount">
-                    {formData.riskType === "fixed_quantity" && `Cantidad (${getBaseCurrency()}) *`}
-                    {formData.riskType === "fixed_amount" && `Monto (${getQuoteCurrency()}) *`}
-                    {formData.riskType === "percentage" && "Porcentaje (%) *"}
-                  </Label>
-                  <Input
-                    id="risk-amount"
-                    type="number"
-                    step={formData.riskType === "fixed_quantity" ? "0.00001" : "0.01"}
-                    placeholder={
-                      formData.riskType === "fixed_quantity"
-                        ? "Ej: 0.01"
-                        : formData.riskType === "fixed_amount"
-                          ? "Ej: 100"
-                          : "Ej: 5"
-                    }
-                    value={formData.riskAmount}
-                    onChange={(e) => setFormData({ ...formData, riskAmount: e.target.value })}
-                    className={errors.riskAmount ? "border-destructive" : ""}
-                  />
-                  {errors.riskAmount && <p className="text-xs text-destructive">{errors.riskAmount}</p>}
-                  {formData.riskType === "percentage" && (
-                    <p className="text-xs text-muted-foreground">Debe estar entre 0 y 100</p>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="flex gap-2">
-              <Button onClick={prevStep} variant="outline" className="bg-transparent">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Atrás
-              </Button>
-              <Button onClick={nextStep} className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                Siguiente
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </div>
+          <div className="flex gap-2">
+            <Input value={`https://biconnect.vercel.app/api/webhook`} readOnly className="font-mono text-sm" />
+            <Button onClick={copyWebhook} variant="outline" className="bg-transparent">
+              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            </Button>
           </div>
-        )}
+        </div>
 
-        {step === 5 && (
-          <div className="space-y-4">
-            <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-              <h2 className="text-xl font-semibold text-foreground">Webhook de TradingView</h2>
-              <p className="text-sm text-muted-foreground">
-                Usa esta URL en tus alertas de TradingView para ejecutar órdenes automáticamente
-              </p>
+        <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+          <h2 className="text-xl font-semibold text-foreground">Payload JSON</h2>
 
-              <div className="flex gap-2">
-                <Input value={`https://biconnect.vercel.app/api/webhook`} readOnly className="font-mono text-sm" />
-                <Button onClick={copyWebhook} variant="outline" className="bg-transparent">
-                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
+          <Textarea value={generatePayload()} readOnly className="font-mono text-sm" rows={12} />
+        </div>
 
-            <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-              <h2 className="text-xl font-semibold text-foreground">Payload JSON</h2>
-              <p className="text-sm text-muted-foreground">
-                Copia este payload en el mensaje de tu alerta de TradingView
-              </p>
-
-              <Textarea value={generatePayload()} readOnly className="font-mono text-sm" rows={12} />
-            </div>
-
-            <div className="flex gap-2">
-              <Button onClick={prevStep} variant="outline" className="bg-transparent">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Atrás
-              </Button>
-              <Button onClick={handleSave} className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                Guardar estrategia
-              </Button>
-            </div>
-          </div>
-        )}
+        <div className="flex gap-4">
+          <Button onClick={handleSave} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+            <Save className="h-4 w-4 mr-2" />
+            Guardar estrategia
+          </Button>
+          <Link href="/app/estrategias">
+            <Button variant="outline" className="bg-transparent">
+              Cancelar
+            </Button>
+          </Link>
+        </div>
       </div>
     </div>
   )
