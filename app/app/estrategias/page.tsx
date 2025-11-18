@@ -1,11 +1,11 @@
 "use client"
 
 import type React from "react"
-
-import { useState, useEffect, useMemo } from "react"
+import { useRouter } from 'next/navigation'
 import Link from "next/link"
+import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
-import { Plus, Power, PowerOff, Copy, MoreVertical, TrendingUp, ChevronDown, ChevronUp } from "lucide-react"
+import { Plus, Power, PowerOff, Copy, MoreVertical, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { createClient } from "@/lib/supabase/client"
 import { ApiKeyAlert } from "@/components/api-key-alert"
@@ -32,6 +32,7 @@ export default function StrategiesPage() {
   const [copiedPayload, setCopiedPayload] = useState<string | null>(null)
 
   const supabase = useMemo(() => createClient(), [])
+  const router = useRouter()
 
   useEffect(() => {
     loadStrategies()
@@ -78,6 +79,7 @@ export default function StrategiesPage() {
       }
 
       console.log("[v0] Loaded strategies from database:", strategiesData)
+      const hasExistingStrategies = strategiesData && strategiesData.length > 0
       setStrategies(strategiesData || [])
 
       let strategyData = null
@@ -178,6 +180,7 @@ export default function StrategiesPage() {
 
             // Reload strategies to show the new one
             loadStrategies()
+            return
           }
 
           // Clean up sessionStorage
@@ -190,6 +193,12 @@ export default function StrategiesPage() {
         }
       } else {
         console.log("[v0] No preview data to process")
+      }
+
+      if (!hasExistingStrategies) {
+        console.log("[v0] No strategies found, redirecting to nueva")
+        router.replace("/app/estrategias/nueva")
+        return
       }
 
       setLoading(false)
