@@ -51,7 +51,6 @@ export default function LoginPage() {
       const isEmail = emailRegex.test(formData.emailOrUsername)
 
       if (!isEmail) {
-        // Input is a username, look up the email
         console.log("[v0] Input is username, looking up email...")
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
@@ -73,7 +72,6 @@ export default function LoginPage() {
           return
         }
 
-        // Get the email from auth.users using the user ID
         const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profile.id)
 
         if (userError || !userData.user) {
@@ -108,66 +106,8 @@ export default function LoginPage() {
       }
 
       if (data.user) {
-        console.log("[v0] User logged in successfully, processing pending strategies...")
+        console.log("[v0] ✅ User logged in successfully:", data.user.email)
         
-        try {
-          // Verificar si hay estrategias pendientes en la base de datos
-          const { data: pendingStrategies, error: pendingError } = await supabase
-            .from("pending_strategies")
-            .select("*")
-            .eq("user_email", data.user.email?.toLowerCase())
-
-          console.log("[v0] Pending strategies found:", pendingStrategies?.length || 0)
-
-          if (pendingError) {
-            console.error("[v0] Error fetching pending strategies:", pendingError)
-          } else if (pendingStrategies && pendingStrategies.length > 0) {
-            // Procesar cada estrategia pendiente
-            for (const pending of pendingStrategies) {
-              console.log("[v0] Processing pending strategy:", pending.name)
-              
-              const strategyToCreate = {
-                user_id: data.user.id,
-                name: pending.name,
-                exchange: pending.exchange,
-                api_key: pending.api_key,
-                api_secret: pending.api_secret,
-                symbol: pending.symbol,
-                amount: pending.amount,
-                market_type: pending.market_type,
-                is_active: pending.is_active !== undefined ? pending.is_active : true,
-              }
-
-              // Intentar insertar la estrategia
-              const { data: insertedStrategy, error: insertError } = await supabase
-                .from("strategies")
-                .insert(strategyToCreate)
-                .select()
-                .single()
-
-              if (insertError) {
-                console.error("[v0] Error inserting strategy:", insertError)
-              } else {
-                console.log("[v0] Strategy inserted successfully:", insertedStrategy)
-                
-                // Eliminar de pending_strategies
-                const { error: deleteError } = await supabase
-                  .from("pending_strategies")
-                  .delete()
-                  .eq("id", pending.id)
-
-                if (deleteError) {
-                  console.error("[v0] Error deleting pending strategy:", deleteError)
-                } else {
-                  console.log("[v0] Pending strategy deleted successfully")
-                }
-              }
-            }
-          }
-        } catch (err) {
-          console.error("[v0] Error processing pending strategies:", err)
-        }
-
         const previewDataString = sessionStorage.getItem("previewStrategy")
         const fromPreviewString = sessionStorage.getItem("fromPreview")
 
@@ -176,7 +116,6 @@ export default function LoginPage() {
             const strategyData = JSON.parse(previewDataString)
             console.log("[v0] User logged in from preview, checking strategy name:", strategyData.name)
 
-            // Verificar si el nombre de la estrategia ya existe
             const { data: existingStrategies, error: checkError } = await supabase
               .from("strategies")
               .select("name")
@@ -188,7 +127,6 @@ export default function LoginPage() {
             } else if (existingStrategies && existingStrategies.length > 0) {
               console.log("[v0] Strategy name already exists, adding (copia) suffix")
 
-              // Encontrar un nombre único agregando (copia), (copia 2), etc.
               let newName = `${strategyData.name} (copia)`
               let counter = 2
 
@@ -209,8 +147,6 @@ export default function LoginPage() {
 
               console.log("[v0] New unique strategy name:", newName)
               strategyData.name = newName
-
-              // Actualizar el sessionStorage con el nuevo nombre
               sessionStorage.setItem("previewStrategy", JSON.stringify(strategyData))
             }
           } catch (error) {
@@ -219,7 +155,7 @@ export default function LoginPage() {
         }
 
         localStorage.setItem("login_timestamp", Date.now().toString())
-        console.log("[v0] Login successful, redirecting to /app/estrategias")
+        console.log("[v0] Redirecting to /app/estrategias")
         router.replace("/app/estrategias")
       }
     } catch (err) {
