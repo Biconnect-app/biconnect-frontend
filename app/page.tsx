@@ -13,7 +13,15 @@ export default function Home() {
       
       await new Promise(resolve => setTimeout(resolve, 300))
       
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user }, error } = await supabase.auth.getUser()
+
+      // Si hay un error de JWT corrupto, limpiar sesión
+      if (error && error.message?.includes('does not exist')) {
+        console.log("[v0] Corrupted session detected, signing out...")
+        await supabase.auth.signOut()
+        router.replace("/preview/estrategia")
+        return
+      }
 
       console.log("[v0] Home page - User check:", user?.email || "No user")
 

@@ -155,25 +155,23 @@ export default function RegisterPage() {
           try {
             const strategyData = JSON.parse(previewDataString)
             console.log("[v0] Parsed strategy data:", strategyData)
-            console.log("[v0] Saving pending strategy for user email:", formData.email)
+            console.log("[v0] Saving strategy to pending_strategies for email:", formData.email)
 
-            // Save to pending_strategies table with user's email
-            const { data: insertedData, error: pendingError } = await supabase
+            const { data: pendingData, error: strategyError } = await supabase
               .from("pending_strategies")
               .insert({
-                email: formData.email,
-                strategy_data: strategyData,
+                email: formData.email.toLowerCase(),
+                strategy_data: strategyData // Guardar todo el objeto en la columna JSONB
               })
               .select()
 
-            if (pendingError) {
-              console.error("[v0] Error saving pending strategy:", pendingError)
-              console.error("[v0] Error code:", pendingError.code)
-              console.error("[v0] Error message:", pendingError.message)
-              console.error("[v0] Error details:", pendingError.details)
+            if (strategyError) {
+              console.error("[v0] Error saving to pending_strategies:", strategyError.message)
+              console.error("[v0] Error code:", strategyError.code)
+              console.error("[v0] Error details:", strategyError.details)
             } else {
-              console.log("[v0] Pending strategy saved successfully!")
-              console.log("[v0] Inserted data:", insertedData)
+              console.log("[v0] ✅ Strategy saved to pending_strategies successfully!")
+              console.log("[v0] Pending strategy data:", pendingData)
               
               // Clear sessionStorage after successful save
               sessionStorage.removeItem("previewStrategy")
@@ -181,7 +179,7 @@ export default function RegisterPage() {
               console.log("[v0] SessionStorage cleared")
             }
           } catch (error) {
-            console.error("[v0] Error parsing or saving pending strategy:", error)
+            console.error("[v0] Error parsing or saving strategy:", error)
           }
         } else {
           console.log("[v0] No pending strategy found in sessionStorage")

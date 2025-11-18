@@ -46,7 +46,18 @@ export default function StrategiesPage() {
       
       const {
         data: { user },
+        error: userError
       } = await supabase.auth.getUser()
+
+      // Si hay un error de JWT corrupto, limpiar sesión
+      if (userError && userError.message?.includes('does not exist')) {
+        console.error("[v0] ❌ Corrupted session detected, signing out...")
+        await supabase.auth.signOut()
+        router.replace("/preview/estrategia")
+        setLoading(false)
+        setCheckingApiKeys(false)
+        return
+      }
 
       if (!user) {
         console.error("[v0] ❌ No user found, redirecting to preview")
