@@ -110,10 +110,6 @@ export default function PreviewStrategyPage() {
 
       if (user) {
         console.log("[v0] User is already logged in, redirecting to create strategy")
-        // Save current form data to sessionStorage before redirecting
-        if (formData.name || formData.pair) {
-          sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
-        }
         router.push("/app/estrategias/nueva")
       }
     }
@@ -205,83 +201,27 @@ export default function PreviewStrategyPage() {
     return JSON.stringify(payload, null, 2)
   }
 
-  const handleRegisterClick = async () => {
-    console.log("[v0] User clicked register from preview, saving strategy to database")
-
-    try {
-      const supabase = createClient()
-
-      // Save to pending_strategies table
-      const { error } = await supabase.from("pending_strategies").insert({
-        email: formData.email || "temp@preview.com", // Will be updated with actual email during registration
-        strategy_data: formData,
-      })
-
-      if (error) {
-        console.error("[v0] Error saving pending strategy:", error)
-        // Fallback to sessionStorage if database save fails
-        sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
-        sessionStorage.setItem("fromPreview", "true")
-      } else {
-        console.log("[v0] Pending strategy saved to database")
-        // Also save to sessionStorage as backup
-        sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
-        sessionStorage.setItem("fromPreview", "true")
-      }
-    } catch (error) {
-      console.error("[v0] Error in handleRegisterClick:", error)
-      // Fallback to sessionStorage
-      sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
-      sessionStorage.setItem("fromPreview", "true")
-    }
-  }
-
-  const handleLoginClick = async () => {
-    console.log("[v0] User clicked login from preview, saving strategy to database")
-
-    try {
-      const supabase = createClient()
-
-      // Save to pending_strategies table
-      const { error } = await supabase.from("pending_strategies").insert({
-        email: formData.email || "temp@preview.com",
-        strategy_data: formData,
-      })
-
-      if (error) {
-        console.error("[v0] Error saving pending strategy:", error)
-        // Fallback to sessionStorage if database save fails
-        sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
-        sessionStorage.setItem("fromPreview", "true")
-      } else {
-        console.log("[v0] Pending strategy saved to database")
-        // Also save to sessionStorage as backup
-        sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
-        sessionStorage.setItem("fromPreview", "true")
-      }
-    } catch (error) {
-      console.error("[v0] Error in handleLoginClick:", error)
-      // Fallback to sessionStorage
-      sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
-      sessionStorage.setItem("fromPreview", "true")
-    }
-  }
-
   return (
     <div className="min-h-screen bg-background">
-      <div className="bg-accent/10 border-b border-accent/20 py-3 px-4">
+      <div className="bg-card border-b border-border py-3 px-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-accent" />
-            <span className="text-sm font-medium text-foreground">
-              Modo Preview - Explora cómo funciona sin registrarte
-            </span>
-          </div>
           <Link href="/">
             <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
               Volver al inicio
             </Button>
           </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/login">
+              <Button variant="outline" size="sm">
+                Iniciar sesión
+              </Button>
+            </Link>
+            <Link href="/registro">
+              <Button size="sm" className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                Registrarse
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -585,7 +525,7 @@ export default function PreviewStrategyPage() {
             </div>
 
             <div className="space-y-3 pt-4">
-              <Link href="/registro?from=preview" className="block" onClick={handleRegisterClick}>
+              <Link href="/registro" className="block">
                 <Button
                   size="lg"
                   className="bg-accent hover:bg-accent/90 text-accent-foreground text-lg h-14 px-8 w-full max-w-md"
@@ -597,9 +537,8 @@ export default function PreviewStrategyPage() {
               <p className="text-sm text-muted-foreground">
                 ¿Ya tienes cuenta?{" "}
                 <Link
-                  href="/login?from=preview"
+                  href="/login"
                   className="text-accent hover:underline font-medium"
-                  onClick={handleLoginClick}
                 >
                   Inicia sesión aquí
                 </Link>
