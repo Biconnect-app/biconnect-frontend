@@ -4,12 +4,12 @@ import type React from "react"
 
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Eye, EyeOff, AlertCircle, Check, X } from "lucide-react"
+import { Eye, EyeOff, AlertCircle, Check, X } from 'lucide-react'
 import { createClient } from "@/lib/supabase/client"
 
 export default function RegisterPage() {
@@ -142,28 +142,49 @@ export default function RegisterPage() {
       }
 
       if (data.user) {
+        console.log("[v0] User created successfully:", data.user.id)
+        
         const previewDataString = sessionStorage.getItem("previewStrategy")
         const fromPreviewString = sessionStorage.getItem("fromPreview")
+        
+        console.log("[v0] Checking for pending strategy...")
+        console.log("[v0] previewStrategy from sessionStorage:", previewDataString)
+        console.log("[v0] fromPreview from sessionStorage:", fromPreviewString)
 
         if (previewDataString && fromPreviewString === "true") {
           try {
             const strategyData = JSON.parse(previewDataString)
-            console.log("[v0] Saving pending strategy for user:", formData.email)
+            console.log("[v0] Parsed strategy data:", strategyData)
+            console.log("[v0] Saving pending strategy for user email:", formData.email)
 
             // Save to pending_strategies table with user's email
-            const { error: pendingError } = await supabase.from("pending_strategies").insert({
-              email: formData.email,
-              strategy_data: strategyData,
-            })
+            const { data: insertedData, error: pendingError } = await supabase
+              .from("pending_strategies")
+              .insert({
+                email: formData.email,
+                strategy_data: strategyData,
+              })
+              .select()
 
             if (pendingError) {
               console.error("[v0] Error saving pending strategy:", pendingError)
+              console.error("[v0] Error code:", pendingError.code)
+              console.error("[v0] Error message:", pendingError.message)
+              console.error("[v0] Error details:", pendingError.details)
             } else {
-              console.log("[v0] Pending strategy saved successfully")
+              console.log("[v0] Pending strategy saved successfully!")
+              console.log("[v0] Inserted data:", insertedData)
+              
+              // Clear sessionStorage after successful save
+              sessionStorage.removeItem("previewStrategy")
+              sessionStorage.removeItem("fromPreview")
+              console.log("[v0] SessionStorage cleared")
             }
           } catch (error) {
-            console.error("[v0] Error saving pending strategy:", error)
+            console.error("[v0] Error parsing or saving pending strategy:", error)
           }
+        } else {
+          console.log("[v0] No pending strategy found in sessionStorage")
         }
 
         console.log("[v0] Registration successful, redirecting to success page")

@@ -202,12 +202,17 @@ export default function PreviewStrategyPage() {
   }
 
   const handleRegister = () => {
+    console.log("[v0] handleRegister called")
+    console.log("[v0] Current formData:", formData)
+    
     if (!validateForm()) {
+      console.log("[v0] Form validation failed")
       alert("Por favor completa todos los campos requeridos antes de registrarte")
       return
     }
 
-    // Save strategy data to sessionStorage for registration flow
+    console.log("[v0] Form validation passed")
+
     const strategyData = {
       name: formData.name,
       exchange: formData.exchange,
@@ -219,12 +224,18 @@ export default function PreviewStrategyPage() {
       risk_value: Number.parseFloat(formData.riskAmount),
     }
 
+    console.log("[v0] Strategy data to save:", strategyData)
+
     sessionStorage.setItem("previewStrategy", JSON.stringify(strategyData))
     sessionStorage.setItem("fromPreview", "true")
     
-    console.log("[v0] Strategy data saved to sessionStorage for registration")
+    console.log("[v0] Strategy data saved to sessionStorage")
+    console.log("[v0] Verifying sessionStorage:")
+    console.log("[v0] previewStrategy:", sessionStorage.getItem("previewStrategy"))
+    console.log("[v0] fromPreview:", sessionStorage.getItem("fromPreview"))
     
     // Redirect to registration
+    console.log("[v0] Redirecting to /registro")
     router.push("/registro")
   }
 
