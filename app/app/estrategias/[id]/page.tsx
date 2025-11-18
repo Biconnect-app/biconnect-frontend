@@ -1,12 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter, useParams } from "next/navigation"
+import { useRouter, useParams } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, Copy, Check, Save, Search, Trash2, AlertCircle } from "lucide-react"
+import { ArrowLeft, Copy, Check, Save, Search, Trash2, AlertCircle } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -324,63 +324,6 @@ export default function EditStrategyPage() {
         </div>
 
         <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-          <h2 className="text-xl font-semibold text-foreground">Par de trading</h2>
-
-          {pairsError && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="text-sm">{pairsError}</AlertDescription>
-            </Alert>
-          )}
-
-          <div className="space-y-2">
-            <Label>Par a operar *</Label>
-            <Popover open={openPairSelect} onOpenChange={setOpenPairSelect}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={openPairSelect}
-                  className={`w-full justify-between bg-transparent ${errors.pair ? "border-destructive" : ""}`}
-                  disabled={loadingPairs}
-                >
-                  {loadingPairs ? "Cargando pares..." : formData.pair || "Buscar par..."}
-                  <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-full p-0" align="start">
-                <Command>
-                  <CommandInput placeholder="Buscar par..." />
-                  <CommandList>
-                    <CommandEmpty>No se encontró el par.</CommandEmpty>
-                    <CommandGroup>
-                      {tradingPairs.map((pair) => (
-                        <CommandItem
-                          key={pair}
-                          value={pair}
-                          onSelect={(value) => {
-                            setFormData({ ...formData, pair: value.toUpperCase() })
-                            setOpenPairSelect(false)
-                          }}
-                        >
-                          {pair}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-            {errors.pair && <p className="text-xs text-destructive">{errors.pair}</p>}
-            <p className="text-xs text-muted-foreground">
-              {loadingPairs
-                ? "Cargando pares disponibles desde Binance..."
-                : `${tradingPairs.length} pares ${pairsError ? "populares" : "disponibles"}`}
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-card border border-border rounded-xl p-6 space-y-4">
           <h2 className="text-xl font-semibold text-foreground">Tipo de mercado</h2>
 
           <div className="space-y-4">
@@ -444,6 +387,63 @@ export default function EditStrategyPage() {
                 </Select>
               </div>
             )}
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+          <h2 className="text-xl font-semibold text-foreground">Par de trading</h2>
+
+          {pairsError && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-sm">{pairsError}</AlertDescription>
+            </Alert>
+          )}
+
+          <div className="space-y-2">
+            <Label>Par a operar *</Label>
+            <Popover open={openPairSelect} onOpenChange={setOpenPairSelect}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={openPairSelect}
+                  className={`w-full justify-between bg-transparent ${errors.pair ? "border-destructive" : ""}`}
+                  disabled={loadingPairs}
+                >
+                  {loadingPairs ? "Cargando pares..." : formData.pair || "Buscar par..."}
+                  <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Buscar par..." />
+                  <CommandList>
+                    <CommandEmpty>No se encontró el par.</CommandEmpty>
+                    <CommandGroup>
+                      {tradingPairs.map((pair) => (
+                        <CommandItem
+                          key={pair}
+                          value={pair}
+                          onSelect={(value) => {
+                            setFormData({ ...formData, pair: value.toUpperCase() })
+                            setOpenPairSelect(false)
+                          }}
+                        >
+                          {pair}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            {errors.pair && <p className="text-xs text-destructive">{errors.pair}</p>}
+            <p className="text-xs text-muted-foreground">
+              {loadingPairs
+                ? "Cargando pares disponibles desde Binance..."
+                : `${tradingPairs.length} pares ${pairsError ? "populares" : "disponibles"}`}
+            </p>
           </div>
         </div>
 

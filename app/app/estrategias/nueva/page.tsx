@@ -97,7 +97,7 @@ export default function NewStrategyPage() {
     exchange: "binance",
     description: "",
     pair: "",
-    marketType: "",
+    marketType: "futures", // Set futures as default market type
     leverage: 1,
     riskType: "",
     riskAmount: "",
@@ -133,7 +133,7 @@ export default function NewStrategyPage() {
           exchange: parsedData.exchange || "binance",
           description: parsedData.description || "",
           pair: parsedData.pair || "",
-          marketType: parsedData.marketType || "",
+          marketType: parsedData.marketType || "futures", // Load pairs immediately since marketType defaults to futures
           leverage: parsedData.leverage || 1,
           riskType: parsedData.riskType || "",
           riskAmount: parsedData.riskAmount || "",
@@ -150,7 +150,7 @@ export default function NewStrategyPage() {
   }, [])
 
   useEffect(() => {
-    if (formData.marketType && formData.exchange) {
+    if (formData.exchange) {
       fetchTradingPairs()
     }
   }, [formData.marketType, formData.exchange])
@@ -396,7 +396,88 @@ export default function NewStrategyPage() {
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+        <div 
+          className="bg-card border border-border rounded-xl p-6 space-y-4 transition-all duration-500 ease-out"
+          style={{
+            opacity: formData.name && formData.exchange ? 1 : 0.5,
+            transform: formData.name && formData.exchange ? 'translateY(0)' : 'translateY(-10px)'
+          }}
+        >
+          <h2 className="text-xl font-semibold text-foreground">Tipo de mercado</h2>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Tipo de operación *</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, marketType: "spot", leverage: 1 })}
+                  disabled={!formData.name || !formData.exchange}
+                  className={`relative p-4 rounded-xl border-2 transition-all ${
+                    formData.marketType === "spot"
+                      ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
+                      : "border-border hover:border-accent/50"
+                  } ${!formData.name || !formData.exchange ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {formData.marketType === "spot" && (
+                    <div className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
+                      <Check className="h-3 w-3 text-accent-foreground" />
+                    </div>
+                  )}
+                  <div className="font-semibold text-foreground">Spot</div>
+                  <div className="text-sm text-muted-foreground mt-1">Compra/venta directa</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, marketType: "futures" })}
+                  disabled={!formData.name || !formData.exchange}
+                  className={`relative p-4 rounded-xl border-2 transition-all ${
+                    formData.marketType === "futures"
+                      ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
+                      : "border-border hover:border-accent/50"
+                  } ${!formData.name || !formData.exchange ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {formData.marketType === "futures" && (
+                    <div className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
+                      <Check className="h-3 w-3 text-accent-foreground" />
+                    </div>
+                  )}
+                  <div className="font-semibold text-foreground">Futuros</div>
+                  <div className="text-sm text-muted-foreground mt-1">Con apalancamiento</div>
+                </button>
+              </div>
+            </div>
+
+            {formData.marketType === "futures" && (
+              <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                <Label htmlFor="leverage">Apalancamiento *</Label>
+                <Select
+                  value={formData.leverage.toString()}
+                  onValueChange={(value) => setFormData({ ...formData, leverage: Number.parseInt(value) })}
+                >
+                  <SelectTrigger id="leverage">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LEVERAGE_OPTIONS.map((lev) => (
+                      <SelectItem key={lev} value={lev.toString()}>
+                        {lev}x
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div 
+          className="bg-card border border-border rounded-xl p-6 space-y-4 transition-all duration-500 ease-out"
+          style={{
+            opacity: formData.marketType ? 1 : 0.5,
+            transform: formData.marketType ? 'translateY(0)' : 'translateY(-10px)'
+          }}
+        >
           <h2 className="text-xl font-semibold text-foreground">Par de trading</h2>
 
           {pairsError && (
@@ -415,7 +496,7 @@ export default function NewStrategyPage() {
                   role="combobox"
                   aria-expanded={openPairSelect}
                   className={`w-full justify-between bg-transparent ${errors.pair ? "border-destructive" : ""}`}
-                  disabled={loadingPairs}
+                  disabled={loadingPairs || !formData.marketType}
                 >
                   {loadingPairs ? "Cargando pares..." : formData.pair || "Buscar par..."}
                   <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -453,74 +534,13 @@ export default function NewStrategyPage() {
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-          <h2 className="text-xl font-semibold text-foreground">Tipo de mercado</h2>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Tipo de operación *</Label>
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, marketType: "spot", leverage: 1 })}
-                  className={`relative p-4 rounded-xl border-2 transition-all ${
-                    formData.marketType === "spot"
-                      ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
-                      : "border-border hover:border-accent/50"
-                  }`}
-                >
-                  {formData.marketType === "spot" && (
-                    <div className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
-                      <Check className="h-3 w-3 text-accent-foreground" />
-                    </div>
-                  )}
-                  <div className="font-semibold text-foreground">Spot</div>
-                  <div className="text-sm text-muted-foreground mt-1">Compra/venta directa</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, marketType: "futures" })}
-                  className={`relative p-4 rounded-xl border-2 transition-all ${
-                    formData.marketType === "futures"
-                      ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
-                      : "border-border hover:border-accent/50"
-                  }`}
-                >
-                  {formData.marketType === "futures" && (
-                    <div className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
-                      <Check className="h-3 w-3 text-accent-foreground" />
-                    </div>
-                  )}
-                  <div className="font-semibold text-foreground">Futuros</div>
-                  <div className="text-sm text-muted-foreground mt-1">Con apalancamiento</div>
-                </button>
-              </div>
-            </div>
-
-            {formData.marketType === "futures" && (
-              <div className="space-y-2">
-                <Label htmlFor="leverage">Apalancamiento *</Label>
-                <Select
-                  value={formData.leverage.toString()}
-                  onValueChange={(value) => setFormData({ ...formData, leverage: Number.parseInt(value) })}
-                >
-                  <SelectTrigger id="leverage">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {LEVERAGE_OPTIONS.map((lev) => (
-                      <SelectItem key={lev} value={lev.toString()}>
-                        {lev}x
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+        <div 
+          className="bg-card border border-border rounded-xl p-6 space-y-4 transition-all duration-500 ease-out"
+          style={{
+            opacity: formData.pair ? 1 : 0.5,
+            transform: formData.pair ? 'translateY(0)' : 'translateY(-10px)'
+          }}
+        >
           <h2 className="text-xl font-semibold text-foreground">Gestión del riesgo</h2>
 
           <div className="space-y-4">
@@ -582,7 +602,13 @@ export default function NewStrategyPage() {
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+        <div 
+          className="bg-card border border-border rounded-xl p-6 space-y-4 transition-all duration-500 ease-out"
+          style={{
+            opacity: formData.riskType && formData.riskAmount ? 1 : 0.5,
+            transform: formData.riskType && formData.riskAmount ? 'translateY(0)' : 'translateY(-10px)'
+          }}
+        >
           <h2 className="text-xl font-semibold text-foreground">Webhook de TradingView</h2>
 
           <div className="flex gap-2">
@@ -593,7 +619,13 @@ export default function NewStrategyPage() {
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+        <div 
+          className="bg-card border border-border rounded-xl p-6 space-y-4 transition-all duration-500 ease-out"
+          style={{
+            opacity: formData.riskType && formData.riskAmount ? 1 : 0.5,
+            transform: formData.riskType && formData.riskAmount ? 'translateY(0)' : 'translateY(-10px)'
+          }}
+        >
           <h2 className="text-xl font-semibold text-foreground">Payload JSON</h2>
 
           <Textarea value={generatePayload()} readOnly className="font-mono text-sm" rows={12} />
