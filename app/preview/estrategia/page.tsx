@@ -201,6 +201,33 @@ export default function PreviewStrategyPage() {
     return JSON.stringify(payload, null, 2)
   }
 
+  const handleRegister = () => {
+    if (!validateForm()) {
+      alert("Por favor completa todos los campos requeridos antes de registrarte")
+      return
+    }
+
+    // Save strategy data to sessionStorage for registration flow
+    const strategyData = {
+      name: formData.name,
+      exchange: formData.exchange,
+      description: formData.description,
+      pair: formData.pair,
+      market_type: formData.marketType,
+      leverage: formData.leverage,
+      risk_type: formData.riskType,
+      risk_value: Number.parseFloat(formData.riskAmount),
+    }
+
+    sessionStorage.setItem("previewStrategy", JSON.stringify(strategyData))
+    sessionStorage.setItem("fromPreview", "true")
+    
+    console.log("[v0] Strategy data saved to sessionStorage for registration")
+    
+    // Redirect to registration
+    router.push("/registro")
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="bg-card border-b border-border py-3 px-4">
@@ -525,15 +552,14 @@ export default function PreviewStrategyPage() {
             </div>
 
             <div className="space-y-3 pt-4">
-              <Link href="/registro" className="block">
-                <Button
-                  size="lg"
-                  className="bg-accent hover:bg-accent/90 text-accent-foreground text-lg h-14 px-8 w-full max-w-md"
-                >
-                  Crear cuenta gratis
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
+              <Button
+                size="lg"
+                onClick={handleRegister}
+                className="bg-accent hover:bg-accent/90 text-accent-foreground text-lg h-14 px-8 w-full max-w-md"
+              >
+                Crear cuenta gratis
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
               <p className="text-sm text-muted-foreground">
                 ¿Ya tienes cuenta?{" "}
                 <Link
