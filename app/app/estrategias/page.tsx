@@ -123,6 +123,31 @@ export default function StrategiesPage() {
         try {
           console.log("[v0] Creating strategy from preview:", strategyData)
 
+          if (!strategyData.name || !strategyData.pair || !strategyData.marketType || !strategyData.riskType || !strategyData.riskAmount) {
+            console.log("[v0] Preview strategy is incomplete, skipping creation:", {
+              hasName: !!strategyData.name,
+              hasPair: !!strategyData.pair,
+              hasMarketType: !!strategyData.marketType,
+              hasRiskType: !!strategyData.riskType,
+              hasRiskAmount: !!strategyData.riskAmount
+            })
+            
+            // Clean up
+            if (pendingStrategyId) {
+              await supabase.from("pending_strategies").delete().eq("id", pendingStrategyId)
+            }
+            sessionStorage.removeItem("previewStrategy")
+            sessionStorage.removeItem("fromPreview")
+            
+            // Redirect to nueva if no strategies exist
+            if (!strategiesData || strategiesData.length === 0) {
+              console.log("[v0] No strategies found, redirecting to /app/estrategias/nueva")
+              router.replace("/app/estrategias/nueva")
+            }
+            setLoading(false)
+            return
+          }
+
           const exchangeName = strategyData.exchange || "binance"
 
           console.log("[v0] Inserting strategy with data:", {
