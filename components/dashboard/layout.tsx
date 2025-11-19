@@ -4,9 +4,24 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { useRouter, usePathname } from 'next/navigation'
+import { useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { LayoutDashboard, Layers, Activity, FileText, ScrollText, Shield, Plug, Settings, LogOut, Menu, X, Moon, Sun, Lock } from 'lucide-react'
+import {
+  LayoutDashboard,
+  Layers,
+  Activity,
+  FileText,
+  ScrollText,
+  Shield,
+  Plug,
+  Settings,
+  LogOut,
+  Menu,
+  X,
+  Moon,
+  Sun,
+  Lock,
+} from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useTheme } from "next-themes"
 import { useUserPlan } from "@/hooks/use-user-plan"
@@ -39,20 +54,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
     const checkSessionExpiration = async () => {
       const supabase = createClient()
-      
       const {
         data: { session },
-        error: sessionError
       } = await supabase.auth.getSession()
-
-      // Si hay un error de JWT corrupto, limpiar sesión
-      if (sessionError && sessionError.message?.includes('does not exist')) {
-        console.log("[v0] Corrupted session in dashboard, signing out...")
-        localStorage.removeItem("login_timestamp")
-        await supabase.auth.signOut()
-        router.push("/login")
-        return
-      }
 
       if (session) {
         // Store login timestamp in localStorage when session is first detected

@@ -1,9 +1,10 @@
 "use client"
 
 import type React from "react"
-import { useRouter } from 'next/navigation'
-import Link from "next/link"
+
 import { useState, useEffect, useMemo } from "react"
+import Link from "next/link"
+import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Plus, Power, PowerOff, Copy, MoreVertical, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -21,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog"
 
 export default function StrategiesPage() {
+  const router = useRouter()
   const [strategies, setStrategies] = useState<any[]>([])
   const [hasApiKeys, setHasApiKeys] = useState(false)
   const [checkingApiKeys, setCheckingApiKeys] = useState(true)
@@ -32,7 +34,6 @@ export default function StrategiesPage() {
   const [copiedPayload, setCopiedPayload] = useState<string | null>(null)
 
   const supabase = useMemo(() => createClient(), [])
-  const router = useRouter()
 
   useEffect(() => {
     loadStrategies()
@@ -40,34 +41,18 @@ export default function StrategiesPage() {
 
   const loadStrategies = async () => {
     try {
-      setLoading(true)
-      
-      await new Promise(resolve => setTimeout(resolve, 300))
-      
       const {
         data: { user },
-        error: userError
       } = await supabase.auth.getUser()
 
-      // Si hay un error de JWT corrupto, limpiar sesión
-      if (userError && userError.message?.includes('does not exist')) {
-        console.error("[v0] ❌ Corrupted session detected, signing out...")
-        await supabase.auth.signOut()
-        router.replace("/preview/estrategia")
-        setLoading(false)
-        setCheckingApiKeys(false)
-        return
-      }
-
       if (!user) {
-        console.error("[v0] ❌ No user found, redirecting to preview")
-        router.replace("/preview/estrategia")
+        console.error("[v0] No user found")
         setLoading(false)
         setCheckingApiKeys(false)
         return
       }
 
-      console.log("[v0] ✅ User authenticated:", user.email)
+      console.log("[v0] Current user:", { id: user.id, email: user.email })
 
       const { data: exchanges, error: exchangesError } = await supabase
         .from("exchanges")
@@ -82,73 +67,6 @@ export default function StrategiesPage() {
       setHasApiKeys(exchanges && exchanges.length > 0)
       setCheckingApiKeys(false)
 
-      console.log("[v0] 🔍 Checking for pending strategies...")
-      const { data: pendingStrategies, error: pendingError } = await supabase
-        .from("pending_strategies")
-        .select("*")
-        .eq("email", user.email.toLowerCase())
-
-      if (pendingError) {
-        console.error("[v0] ❌ Error fetching pending strategies:", pendingError)
-      } else {
-        console.log("[v0] 📊 Pending strategies found:", pendingStrategies?.length || 0)
-        
-        if (pendingStrategies && pendingStrategies.length > 0) {
-          console.log("[v0] 🔄 Processing pending strategies...")
-          
-          for (const pending of pendingStrategies) {
-            try {
-              console.log("[v0] 📝 Processing:", pending.strategy_data?.name)
-              
-              const strategyData = pending.strategy_data
-              
-              const { data: newStrategy, error: insertError } = await supabase
-                .from("strategies")
-                .insert({
-                  user_id: user.id,
-                  exchange_id: null,
-                  exchange_name: strategyData.exchange || "binance",
-                  name: strategyData.name,
-                  description: strategyData.description || "",
-                  trading_pair: strategyData.pair,
-                  market_type: strategyData.marketType,
-                  leverage: strategyData.leverage || 1,
-                  risk_type: strategyData.riskType,
-                  risk_value: Number.parseFloat(strategyData.riskAmount),
-                  is_active: true
-                })
-                .select()
-                .single()
-
-              if (insertError) {
-                console.error("[v0] ❌ Error inserting strategy:", insertError)
-                continue
-              }
-
-              console.log("[v0] ✅ Strategy inserted:", newStrategy.name)
-
-              const { error: deleteError } = await supabase
-                .from("pending_strategies")
-                .delete()
-                .eq("id", pending.id)
-
-              if (deleteError) {
-                console.error("[v0] ❌ Error deleting pending:", deleteError)
-              } else {
-                console.log("[v0] ✅ Pending deleted")
-              }
-            } catch (err) {
-              console.error("[v0] ❌ Error processing pending strategy:", err)
-            }
-          }
-          
-          console.log("[v0] ✅ All pending strategies processed")
-          sessionStorage.removeItem("previewStrategy")
-          sessionStorage.removeItem("fromPreview")
-        }
-      }
-
-      console.log("[v0] 📊 Loading user strategies...")
       const { data: strategiesData, error: strategiesError } = await supabase
         .from("strategies")
         .select("*")
@@ -156,24 +74,135 @@ export default function StrategiesPage() {
         .order("created_at", { ascending: false })
 
       if (strategiesError) {
-        console.error("[v0] ❌ Error loading strategies:", strategiesError)
+        console.error("[v0] Error loading strategies:", strategiesError)
         setLoading(false)
         return
       }
 
-      console.log("[v0] ✅ Loaded strategies:", strategiesData?.length || 0)
+      console.log("[v0] Loaded strategies from database:", strategiesData)
       setStrategies(strategiesData || [])
 
-      if (!strategiesData || strategiesData.length === 0) {
-        console.log("[v0] 🔀 No strategies found, redirecting to new")
-        router.replace("/app/estrategias/nueva")
-        return
+      let strategyData = null
+      let fromPreview = false
+      let pendingStrategyId = null
+
+      console.log("[v0] Checking for pending strategies with email:", user.email)
+
+      const { data: pendingStrategies, error: pendingError } = await supabase
+        .from("pending_strategies")
+        .select("*")
+        .eq("email", user.email)
+        .order("created_at", { ascending: false })
+        .limit(1)
+
+      console.log("[v0] Pending strategies query result:", {
+        data: pendingStrategies,
+        error: pendingError,
+        found: pendingStrategies && pendingStrategies.length > 0,
+      })
+
+      if (!pendingError && pendingStrategies && pendingStrategies.length > 0) {
+        console.log("[v0] Found pending strategy in database:", pendingStrategies[0])
+        strategyData = pendingStrategies[0].strategy_data
+        fromPreview = true
+        pendingStrategyId = pendingStrategies[0].id
+      } else {
+        console.log("[v0] No pending strategies found in database, checking sessionStorage")
+        // Fallback to sessionStorage
+        const previewDataString = sessionStorage.getItem("previewStrategy")
+        const fromPreviewString = sessionStorage.getItem("fromPreview")
+
+        if (previewDataString && fromPreviewString === "true") {
+          console.log("[v0] Found preview strategy in sessionStorage")
+          strategyData = JSON.parse(previewDataString)
+          fromPreview = true
+        }
+      }
+
+      if (strategyData && fromPreview) {
+        try {
+          console.log("[v0] Creating strategy from preview:", strategyData)
+
+          const exchangeName = strategyData.exchange || "binance"
+
+          console.log("[v0] Inserting strategy with data:", {
+            user_id: user.id,
+            exchange_id: null,
+            exchange_name: exchangeName,
+            name: strategyData.name,
+            description: strategyData.description || "",
+            trading_pair: strategyData.pair,
+            market_type: strategyData.marketType,
+            leverage: strategyData.leverage || 1,
+            risk_type: strategyData.riskType,
+            risk_value: Number.parseFloat(strategyData.riskAmount),
+            is_active: true,
+            webhook_url: `https://biconnect.vercel.app/api/webhook`,
+          })
+
+          const { data: newStrategy, error: insertError } = await supabase
+            .from("strategies")
+            .insert({
+              user_id: user.id,
+              exchange_id: null,
+              exchange_name: exchangeName,
+              name: strategyData.name,
+              description: strategyData.description || "",
+              trading_pair: strategyData.pair,
+              market_type: strategyData.marketType,
+              leverage: strategyData.leverage || 1,
+              risk_type: strategyData.riskType,
+              risk_value: Number.parseFloat(strategyData.riskAmount),
+              is_active: true,
+              webhook_url: `https://biconnect.vercel.app/api/webhook`,
+            })
+            .select()
+            .single()
+
+          if (insertError) {
+            console.error("[v0] Error creating strategy from preview:", insertError)
+          } else {
+            console.log("[v0] Strategy created successfully:", newStrategy)
+
+            if (pendingStrategyId) {
+              console.log("[v0] Deleting pending strategy:", pendingStrategyId)
+              const { error: deleteError } = await supabase
+                .from("pending_strategies")
+                .delete()
+                .eq("id", pendingStrategyId)
+
+              if (deleteError) {
+                console.error("[v0] Error deleting pending strategy:", deleteError)
+              } else {
+                console.log("[v0] Pending strategy deleted successfully")
+              }
+            }
+
+            // Reload strategies to show the new one
+            loadStrategies()
+          }
+
+          // Clean up sessionStorage
+          sessionStorage.removeItem("previewStrategy")
+          sessionStorage.removeItem("fromPreview")
+        } catch (error) {
+          console.error("[v0] Error processing preview data:", error)
+          sessionStorage.removeItem("previewStrategy")
+          sessionStorage.removeItem("fromPreview")
+        }
+      } else {
+        console.log("[v0] No preview data to process")
+        
+        if (!strategiesData || strategiesData.length === 0) {
+          console.log("[v0] No strategies found, redirecting to /app/estrategias/nueva")
+          router.replace("/app/estrategias/nueva")
+          return
+        }
       }
 
       setLoading(false)
-      console.log("[v0] ========== LOAD COMPLETE ==========")
     } catch (error) {
-      console.error("[v0] ❌ Fatal error:", error)
+      console.error("[v0] Error in loadStrategies:", error)
       setLoading(false)
       setCheckingApiKeys(false)
     }

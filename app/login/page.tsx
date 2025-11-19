@@ -4,12 +4,12 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Eye, EyeOff, AlertCircle } from 'lucide-react'
+import { Eye, EyeOff, AlertCircle } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 
 export default function LoginPage() {
@@ -51,6 +51,7 @@ export default function LoginPage() {
       const isEmail = emailRegex.test(formData.emailOrUsername)
 
       if (!isEmail) {
+        // Input is a username, look up the email
         console.log("[v0] Input is username, looking up email...")
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
@@ -72,6 +73,7 @@ export default function LoginPage() {
           return
         }
 
+        // Get the email from auth.users using the user ID
         const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profile.id)
 
         if (userError || !userData.user) {
@@ -106,8 +108,6 @@ export default function LoginPage() {
       }
 
       if (data.user) {
-        console.log("[v0] ✅ User logged in successfully:", data.user.email)
-        
         const previewDataString = sessionStorage.getItem("previewStrategy")
         const fromPreviewString = sessionStorage.getItem("fromPreview")
 
@@ -116,6 +116,7 @@ export default function LoginPage() {
             const strategyData = JSON.parse(previewDataString)
             console.log("[v0] User logged in from preview, checking strategy name:", strategyData.name)
 
+            // Verificar si el nombre de la estrategia ya existe
             const { data: existingStrategies, error: checkError } = await supabase
               .from("strategies")
               .select("name")
@@ -127,6 +128,7 @@ export default function LoginPage() {
             } else if (existingStrategies && existingStrategies.length > 0) {
               console.log("[v0] Strategy name already exists, adding (copia) suffix")
 
+              // Encontrar un nombre único agregando (copia), (copia 2), etc.
               let newName = `${strategyData.name} (copia)`
               let counter = 2
 
@@ -147,6 +149,8 @@ export default function LoginPage() {
 
               console.log("[v0] New unique strategy name:", newName)
               strategyData.name = newName
+
+              // Actualizar el sessionStorage con el nuevo nombre
               sessionStorage.setItem("previewStrategy", JSON.stringify(strategyData))
             }
           } catch (error) {
@@ -155,7 +159,7 @@ export default function LoginPage() {
         }
 
         localStorage.setItem("login_timestamp", Date.now().toString())
-        console.log("[v0] Redirecting to /app/estrategias")
+        console.log("[v0] Login successful, redirecting to /app/estrategias")
         router.replace("/app/estrategias")
       }
     } catch (err) {

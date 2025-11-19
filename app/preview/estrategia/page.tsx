@@ -92,11 +92,11 @@ export default function PreviewStrategyPage() {
     exchange: "binance",
     description: "",
     pair: "",
-    marketType: "futures", // Set futures as default market type
+    marketType: "",
     leverage: 1,
     riskType: "",
     riskAmount: "",
-    email: "",
+    email: "", // Added email field
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -110,6 +110,10 @@ export default function PreviewStrategyPage() {
 
       if (user) {
         console.log("[v0] User is already logged in, redirecting to create strategy")
+        // Save current form data to sessionStorage before redirecting
+        if (formData.name || formData.pair) {
+          sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
+        }
         router.push("/app/estrategias/nueva")
       }
     }
@@ -117,7 +121,7 @@ export default function PreviewStrategyPage() {
   }, [])
 
   useEffect(() => {
-    if (formData.exchange) {
+    if (formData.marketType && formData.exchange) {
       fetchTradingPairs()
     }
   }, [formData.marketType, formData.exchange])
@@ -201,65 +205,83 @@ export default function PreviewStrategyPage() {
     return JSON.stringify(payload, null, 2)
   }
 
-  const handleRegister = () => {
-    console.log("[v0] handleRegister called")
-    console.log("[v0] Current formData:", formData)
-    
-    if (!validateForm()) {
-      console.log("[v0] Form validation failed")
-      alert("Por favor completa todos los campos requeridos antes de registrarte")
-      return
+  const handleRegisterClick = async () => {
+    console.log("[v0] User clicked register from preview, saving strategy to database")
+
+    try {
+      const supabase = createClient()
+
+      // Save to pending_strategies table
+      const { error } = await supabase.from("pending_strategies").insert({
+        email: formData.email || "temp@preview.com", // Will be updated with actual email during registration
+        strategy_data: formData,
+      })
+
+      if (error) {
+        console.error("[v0] Error saving pending strategy:", error)
+        // Fallback to sessionStorage if database save fails
+        sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
+        sessionStorage.setItem("fromPreview", "true")
+      } else {
+        console.log("[v0] Pending strategy saved to database")
+        // Also save to sessionStorage as backup
+        sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
+        sessionStorage.setItem("fromPreview", "true")
+      }
+    } catch (error) {
+      console.error("[v0] Error in handleRegisterClick:", error)
+      // Fallback to sessionStorage
+      sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
+      sessionStorage.setItem("fromPreview", "true")
     }
+  }
 
-    console.log("[v0] Form validation passed")
+  const handleLoginClick = async () => {
+    console.log("[v0] User clicked login from preview, saving strategy to database")
 
-    const strategyData = {
-      name: formData.name,
-      exchange: formData.exchange,
-      description: formData.description,
-      pair: formData.pair,
-      market_type: formData.marketType,
-      leverage: formData.leverage,
-      risk_type: formData.riskType,
-      risk_value: Number.parseFloat(formData.riskAmount),
+    try {
+      const supabase = createClient()
+
+      // Save to pending_strategies table
+      const { error } = await supabase.from("pending_strategies").insert({
+        email: formData.email || "temp@preview.com",
+        strategy_data: formData,
+      })
+
+      if (error) {
+        console.error("[v0] Error saving pending strategy:", error)
+        // Fallback to sessionStorage if database save fails
+        sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
+        sessionStorage.setItem("fromPreview", "true")
+      } else {
+        console.log("[v0] Pending strategy saved to database")
+        // Also save to sessionStorage as backup
+        sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
+        sessionStorage.setItem("fromPreview", "true")
+      }
+    } catch (error) {
+      console.error("[v0] Error in handleLoginClick:", error)
+      // Fallback to sessionStorage
+      sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
+      sessionStorage.setItem("fromPreview", "true")
     }
-
-    console.log("[v0] Strategy data to save:", strategyData)
-
-    sessionStorage.setItem("previewStrategy", JSON.stringify(strategyData))
-    sessionStorage.setItem("fromPreview", "true")
-    
-    console.log("[v0] Strategy data saved to sessionStorage")
-    console.log("[v0] Verifying sessionStorage:")
-    console.log("[v0] previewStrategy:", sessionStorage.getItem("previewStrategy"))
-    console.log("[v0] fromPreview:", sessionStorage.getItem("fromPreview"))
-    
-    // Redirect to registration
-    console.log("[v0] Redirecting to /registro")
-    router.push("/registro")
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="bg-card border-b border-border py-3 px-4">
+      <div className="bg-accent/10 border-b border-accent/20 py-3 px-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-accent" />
+            <span className="text-sm font-medium text-foreground">
+              Modo Preview - Explora cómo funciona sin registrarte
+            </span>
+          </div>
           <Link href="/">
             <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
               Volver al inicio
             </Button>
           </Link>
-          <div className="flex items-center gap-3">
-            <Link href="/login">
-              <Button variant="outline" size="sm">
-                Iniciar sesión
-              </Button>
-            </Link>
-            <Link href="/registro">
-              <Button size="sm" className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                Registrarse
-              </Button>
-            </Link>
-          </div>
         </div>
       </div>
 
@@ -312,80 +334,6 @@ export default function PreviewStrategyPage() {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 />
               </div>
-            </div>
-          </div>
-
-          {/* Tipo de mercado */}
-          <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">Tipo de mercado</h2>
-
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Tipo de operación *</Label>
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, marketType: "spot", leverage: 1 })}
-                    disabled={!formData.name || !formData.exchange}
-                    className={`relative p-4 rounded-xl border-2 transition-all ${
-                      formData.marketType === "spot"
-                        ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
-                        : "border-border hover:border-accent/50"
-                    } ${!formData.name || !formData.exchange ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    {formData.marketType === "spot" && (
-                      <div className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
-                        <Check className="h-3 w-3 text-accent-foreground" />
-                      </div>
-                    )}
-                    <div className="font-semibold text-foreground">Spot</div>
-                    <div className="text-sm text-muted-foreground mt-1">Compra/venta directa</div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, marketType: "futures" })}
-                    disabled={!formData.name || !formData.exchange}
-                    className={`relative p-4 rounded-xl border-2 transition-all ${
-                      formData.marketType === "futures"
-                        ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
-                        : "border-border hover:border-accent/50"
-                    } ${!formData.name || !formData.exchange ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    {formData.marketType === "futures" && (
-                      <div className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
-                        <Check className="h-3 w-3 text-accent-foreground" />
-                      </div>
-                    )}
-                    <div className="font-semibold text-foreground">Futuros</div>
-                    <div className="text-sm text-muted-foreground mt-1">Con apalancamiento</div>
-                  </button>
-                </div>
-                {errors.marketType && <p className="text-xs text-destructive">{errors.marketType}</p>}
-              </div>
-
-              {formData.marketType === "futures" && (
-                <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <Label htmlFor="leverage">Apalancamiento *</Label>
-                  <Select
-                    value={formData.leverage.toString()}
-                    onValueChange={(value) => setFormData({ ...formData, leverage: Number.parseInt(value) })}
-                  >
-                    <SelectTrigger id="leverage">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {LEVERAGE_OPTIONS.map((lev) => (
-                        <SelectItem key={lev} value={lev.toString()}>
-                          {lev}x
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Mayor apalancamiento = mayor riesgo y potencial ganancia
-                  </p>
-                </div>
-              )}
             </div>
           </div>
 
@@ -444,6 +392,78 @@ export default function PreviewStrategyPage() {
                   ? "Cargando pares disponibles desde Binance..."
                   : `${tradingPairs.length} pares ${pairsError ? "populares" : "disponibles"}`}
               </p>
+            </div>
+          </div>
+
+          {/* Tipo de mercado */}
+          <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+            <h2 className="text-xl font-semibold text-foreground">Tipo de mercado</h2>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Tipo de operación *</Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, marketType: "spot", leverage: 1 })}
+                    className={`relative p-4 rounded-xl border-2 transition-all ${
+                      formData.marketType === "spot"
+                        ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
+                        : "border-border hover:border-accent/50"
+                    }`}
+                  >
+                    {formData.marketType === "spot" && (
+                      <div className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
+                        <Check className="h-3 w-3 text-accent-foreground" />
+                      </div>
+                    )}
+                    <div className="font-semibold text-foreground">Spot</div>
+                    <div className="text-sm text-muted-foreground mt-1">Compra/venta directa</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, marketType: "futures" })}
+                    className={`relative p-4 rounded-xl border-2 transition-all ${
+                      formData.marketType === "futures"
+                        ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
+                        : "border-border hover:border-accent/50"
+                    }`}
+                  >
+                    {formData.marketType === "futures" && (
+                      <div className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
+                        <Check className="h-3 w-3 text-accent-foreground" />
+                      </div>
+                    )}
+                    <div className="font-semibold text-foreground">Futuros</div>
+                    <div className="text-sm text-muted-foreground mt-1">Con apalancamiento</div>
+                  </button>
+                </div>
+                {errors.marketType && <p className="text-xs text-destructive">{errors.marketType}</p>}
+              </div>
+
+              {formData.marketType === "futures" && (
+                <div className="space-y-2">
+                  <Label htmlFor="leverage">Apalancamiento *</Label>
+                  <Select
+                    value={formData.leverage.toString()}
+                    onValueChange={(value) => setFormData({ ...formData, leverage: Number.parseInt(value) })}
+                  >
+                    <SelectTrigger id="leverage">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LEVERAGE_OPTIONS.map((lev) => (
+                        <SelectItem key={lev} value={lev.toString()}>
+                          {lev}x
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Mayor apalancamiento = mayor riesgo y potencial ganancia
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -563,19 +583,21 @@ export default function PreviewStrategyPage() {
             </div>
 
             <div className="space-y-3 pt-4">
-              <Button
-                size="lg"
-                onClick={handleRegister}
-                className="bg-accent hover:bg-accent/90 text-accent-foreground text-lg h-14 px-8 w-full max-w-md"
-              >
-                Crear cuenta gratis
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
+              <Link href="/registro?from=preview" className="block" onClick={handleRegisterClick}>
+                <Button
+                  size="lg"
+                  className="bg-accent hover:bg-accent/90 text-accent-foreground text-lg h-14 px-8 w-full max-w-md"
+                >
+                  Crear cuenta gratis
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
               <p className="text-sm text-muted-foreground">
                 ¿Ya tienes cuenta?{" "}
                 <Link
-                  href="/login"
+                  href="/login?from=preview"
                   className="text-accent hover:underline font-medium"
+                  onClick={handleLoginClick}
                 >
                   Inicia sesión aquí
                 </Link>

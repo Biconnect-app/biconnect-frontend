@@ -1,49 +1,56 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from 'next/navigation'
 import { createClient } from "@/lib/supabase/client"
 
 export default function Home() {
+  const [loading, setLoading] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
-    async function checkAuthAndRedirect() {
+    async function checkAuthAndStrategies() {
       const supabase = createClient()
       
-      await new Promise(resolve => setTimeout(resolve, 300))
-      
-      const { data: { user }, error } = await supabase.auth.getUser()
-
-      // Si hay un error de JWT corrupto, limpiar sesión
-      if (error && error.message?.includes('does not exist')) {
-        console.log("[v0] Corrupted session detected, signing out...")
-        await supabase.auth.signOut()
-        router.replace("/preview/estrategia")
-        return
-      }
-
-      console.log("[v0] Home page - User check:", user?.email || "No user")
+      const { data: { user } } = await supabase.auth.getUser()
 
       if (!user) {
-        // No autenticado -> preview
-        console.log("[v0] Not authenticated, redirecting to preview")
+        // Usuario no logueado → redirigir a preview/estrategia
         router.replace("/preview/estrategia")
         return
       }
 
-      // Autenticado -> siempre ir a estrategias
-      // La página de estrategias se encargará del resto
-      console.log("[v0] Authenticated, redirecting to strategies")
-      router.replace("/app/estrategias")
+      // Usuario logueado → verificar si tiene estrategias
+      const { data: strategies, error } = await supabase
+        .from("strategies")
+        .select("id")
+        .eq("user_id", user.id)
+
+      if (error) {
+        console.error("Error fetching strategies:", error)
+        router.replace("/app/estrategias/nueva")
+        return
+      }
+
+      if (!strategies || strategies.length === 0) {
+        // Usuario logueado pero sin estrategias → crear estrategia
+        router.replace("/app/estrategias/nueva")
+      } else {
+        // Usuario logueado con estrategias → mostrar lista
+        router.replace("/app/estrategias")
+      }
     }
 
-    checkAuthAndRedirect()
+    checkAuthAndStrategies()
   }, [router])
 
+  // Mostrar loading mientras se verifica
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+        <p className="text-muted-foreground">Cargando...</p>
+      </div>
     </div>
   )
 }
