@@ -1,16 +1,15 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from 'next/navigation'
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowRight, ArrowLeft, Check, Search, Sparkles, AlertCircle } from 'lucide-react'
+import { ArrowRight, Check, Search, Sparkles } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 
@@ -78,6 +77,7 @@ const FALLBACK_TRADING_PAIRS = [
 ]
 
 const LEVERAGE_OPTIONS = [1, 2, 3, 5, 10, 20, 25, 50, 75, 100, 125]
+const QUICK_LEVERAGE_OPTIONS = [1, 2, 5, 10, 20, 50, 100, 125]
 
 export default function PreviewStrategyPage() {
   const router = useRouter()
@@ -288,7 +288,7 @@ export default function PreviewStrategyPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="space-y-6 max-w-3xl mx-auto">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Nueva estrategia</h1>
+            <h1 className="text-3xl font-bold text-foreground">Crea tu primera estrategia</h1>
             <p className="text-muted-foreground mt-1">Configura una nueva estrategia de trading automatizado</p>
           </div>
 
@@ -310,6 +310,25 @@ export default function PreviewStrategyPage() {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="description">Descripción (opcional)</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Describe tu estrategia..."
+                  rows={3}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Mercado y activo */}
+          <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+            <h2 className="text-xl font-semibold text-foreground">Mercado y activo</h2>
+
+            <div className="space-y-4">
+              {/* Exchange selector */}
+              <div className="space-y-2">
                 <Label htmlFor="exchange">Exchange *</Label>
                 <Select
                   value={formData.exchange}
@@ -324,82 +343,7 @@ export default function PreviewStrategyPage() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="description">Descripción (opcional)</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Describe tu estrategia..."
-                  rows={3}
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Par de trading */}
-          <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">Par de trading</h2>
-
-            {pairsError && (
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="text-sm">{pairsError}</AlertDescription>
-              </Alert>
-            )}
-
-            <div className="space-y-2">
-              <Label>Selecciona el par a operar *</Label>
-              <Popover open={openPairSelect} onOpenChange={setOpenPairSelect}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={openPairSelect}
-                    className={`w-full justify-between bg-transparent ${errors.pair ? "border-destructive" : ""}`}
-                    disabled={loadingPairs}
-                  >
-                    {loadingPairs ? "Cargando pares..." : formData.pair || "Buscar par..."}
-                    <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0" align="start">
-                  <Command>
-                    <CommandInput placeholder="Buscar par..." />
-                    <CommandList>
-                      <CommandEmpty>No se encontró el par.</CommandEmpty>
-                      <CommandGroup>
-                        {tradingPairs.map((pair) => (
-                          <CommandItem
-                            key={pair}
-                            value={pair}
-                            onSelect={(value) => {
-                              setFormData({ ...formData, pair: value.toUpperCase() })
-                              setOpenPairSelect(false)
-                            }}
-                          >
-                            {pair}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              {errors.pair && <p className="text-xs text-destructive">{errors.pair}</p>}
-              <p className="text-xs text-muted-foreground">
-                {loadingPairs
-                  ? "Cargando pares disponibles desde Binance..."
-                  : `${tradingPairs.length} pares ${pairsError ? "populares" : "disponibles"}`}
-              </p>
-            </div>
-          </div>
-
-          {/* Tipo de mercado */}
-          <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">Tipo de mercado</h2>
-
-            <div className="space-y-4">
+              {/* Tipo de operación */}
               <div className="space-y-2">
                 <Label>Tipo de operación *</Label>
                 <div className="grid grid-cols-2 gap-4">
@@ -441,29 +385,90 @@ export default function PreviewStrategyPage() {
                 {errors.marketType && <p className="text-xs text-destructive">{errors.marketType}</p>}
               </div>
 
+              {/* Apalancamiento (solo para futuros) */}
               {formData.marketType === "futures" && (
-                <div className="space-y-2">
-                  <Label htmlFor="leverage">Apalancamiento *</Label>
-                  <Select
-                    value={formData.leverage.toString()}
-                    onValueChange={(value) => setFormData({ ...formData, leverage: Number.parseInt(value) })}
-                  >
-                    <SelectTrigger id="leverage">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {LEVERAGE_OPTIONS.map((lev) => (
-                        <SelectItem key={lev} value={lev.toString()}>
-                          {lev}x
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Mayor apalancamiento = mayor riesgo y potencial ganancia
-                  </p>
+                <div className="space-y-3">
+                  <Label>Apalancamiento</Label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {QUICK_LEVERAGE_OPTIONS.map((lev) => (
+                      <button
+                        key={lev}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, leverage: lev })}
+                        className={`px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
+                          formData.leverage === lev
+                            ? "border-accent bg-accent/10 text-accent shadow-sm"
+                            : "border-border hover:border-accent/50 text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {lev}x
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min={1}
+                      max={125}
+                      value={formData.leverage}
+                      onChange={(e) => {
+                        const val = Number.parseInt(e.target.value) || 1
+                        setFormData({ ...formData, leverage: Math.min(Math.max(val, 1), 125) })
+                      }}
+                      className="w-24"
+                    />
+                    <span className="text-sm text-muted-foreground">Personalizado (1-125x)</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Multiplica tus ganancias (y pérdidas) potenciales</p>
                 </div>
               )}
+
+              {/* Par de trading */}
+              <div className="space-y-2">
+                <Label>Selecciona el par a operar *</Label>
+                <Popover open={openPairSelect} onOpenChange={setOpenPairSelect}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openPairSelect}
+                      className={`w-full justify-between bg-transparent ${errors.pair ? "border-destructive" : ""}`}
+                      disabled={loadingPairs}
+                    >
+                      {loadingPairs ? "Cargando pares..." : formData.pair || "Buscar par..."}
+                      <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Buscar par..." />
+                      <CommandList>
+                        <CommandEmpty>No se encontró el par.</CommandEmpty>
+                        <CommandGroup>
+                          {tradingPairs.map((pair) => (
+                            <CommandItem
+                              key={pair}
+                              value={pair}
+                              onSelect={(value) => {
+                                setFormData({ ...formData, pair: value.toUpperCase() })
+                                setOpenPairSelect(false)
+                              }}
+                            >
+                              {pair}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                {errors.pair && <p className="text-xs text-destructive">{errors.pair}</p>}
+                <p className="text-xs text-muted-foreground">
+                  {loadingPairs
+                    ? "Cargando pares disponibles desde Binance..."
+                    : `${tradingPairs.length} pares ${pairsError ? "populares" : "disponibles"}`}
+                </p>
+              </div>
             </div>
           </div>
 
@@ -489,12 +494,7 @@ export default function PreviewStrategyPage() {
                         <Check className="h-3 w-3 text-accent-foreground" />
                       </div>
                     )}
-                    <div className="font-semibold text-foreground">
-                      Cantidad fija ({getBaseCurrency() || "Cripto"})
-                    </div>
-                    <div className="text-sm text-muted-foreground mt-1">
-                      Operar siempre la misma cantidad de {getBaseCurrency() || "criptomoneda"}
-                    </div>
+                    <div className="font-semibold text-foreground">Cantidad de contratos</div>
                   </button>
                   <button
                     type="button"
@@ -510,10 +510,7 @@ export default function PreviewStrategyPage() {
                         <Check className="h-3 w-3 text-accent-foreground" />
                       </div>
                     )}
-                    <div className="font-semibold text-foreground">Monto fijo ({getQuoteCurrency()})</div>
-                    <div className="text-sm text-muted-foreground mt-1">
-                      Operar siempre el mismo monto en {getQuoteCurrency()}
-                    </div>
+                    <div className="font-semibold text-foreground">Monto fijo</div>
                   </button>
                   <button
                     type="button"
@@ -529,10 +526,7 @@ export default function PreviewStrategyPage() {
                         <Check className="h-3 w-3 text-accent-foreground" />
                       </div>
                     )}
-                    <div className="font-semibold text-foreground">% del capital ({getQuoteCurrency()})</div>
-                    <div className="text-sm text-muted-foreground mt-1">
-                      Operar un porcentaje de tu capital disponible
-                    </div>
+                    <div className="font-semibold text-foreground">Porcentaje de capital</div>
                   </button>
                 </div>
                 {errors.riskType && <p className="text-xs text-destructive">{errors.riskType}</p>}
@@ -541,9 +535,9 @@ export default function PreviewStrategyPage() {
               {formData.riskType && (
                 <div className="space-y-2">
                   <Label htmlFor="risk-amount">
-                    {formData.riskType === "fixed_quantity" && `Cantidad (${getBaseCurrency()}) *`}
-                    {formData.riskType === "fixed_amount" && `Monto (${getQuoteCurrency()}) *`}
-                    {formData.riskType === "percentage" && "Porcentaje (%) *"}
+                    {formData.riskType === "fixed_quantity" && "Cantidad *"}
+                    {formData.riskType === "fixed_amount" && "Monto *"}
+                    {formData.riskType === "percentage" && "Porcentaje *"}
                   </Label>
                   <Input
                     id="risk-amount"
@@ -563,6 +557,39 @@ export default function PreviewStrategyPage() {
                   {errors.riskAmount && <p className="text-xs text-destructive">{errors.riskAmount}</p>}
                   {formData.riskType === "percentage" && (
                     <p className="text-xs text-muted-foreground">Debe estar entre 0 y 100</p>
+                  )}
+                </div>
+              )}
+
+              {formData.riskType && (
+                <div className="mt-4 p-4 bg-muted/30 border border-border/50 rounded-lg">
+                  <h3 className="text-sm font-semibold text-foreground mb-2">Ejemplo:</h3>
+                  {formData.riskType === "fixed_quantity" && (
+                    <div className="space-y-1 text-sm text-muted-foreground">
+                      <p>
+                        Si ingresas <span className="font-semibold text-foreground">0.5</span> contratos de BTC/USDT:
+                      </p>
+                      <p>• Cada orden comprará o venderá exactamente 0.5 BTC</p>
+                      <p>• Si el precio de BTC es $50,000, el tamaño de la orden será $25,000</p>
+                    </div>
+                  )}
+                  {formData.riskType === "fixed_amount" && (
+                    <div className="space-y-1 text-sm text-muted-foreground">
+                      <p>
+                        Si ingresas <span className="font-semibold text-foreground">$1,000</span> como monto fijo:
+                      </p>
+                      <p>• Cada orden usará exactamente $1,000 USDT</p>
+                      <p>• Si el precio de BTC es $50,000, comprará 0.02 BTC</p>
+                    </div>
+                  )}
+                  {formData.riskType === "percentage" && (
+                    <div className="space-y-1 text-sm text-muted-foreground">
+                      <p>
+                        Si ingresas <span className="font-semibold text-foreground">5%</span> de tu capital:
+                      </p>
+                      <p>• Con un balance de $10,000, cada orden usará $500</p>
+                      <p>• El tamaño de la orden se ajusta automáticamente según tu balance</p>
+                    </div>
                   )}
                 </div>
               )}
