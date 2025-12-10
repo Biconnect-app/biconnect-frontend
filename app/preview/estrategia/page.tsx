@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowRight, Check, Search, Sparkles } from "lucide-react"
+import { Check, Search } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -333,19 +333,25 @@ export default function PreviewStrategyPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="bg-accent/10 border-b border-accent/20 py-3 px-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-accent" />
-            <span className="text-sm font-medium text-foreground">
-              Modo Preview - Explora cómo funciona sin registrarte
-            </span>
-          </div>
+      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link href="/">
             <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
               Volver al inicio
             </Button>
           </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/login?from=preview" onClick={handleLoginClick}>
+              <Button variant="ghost" size="sm">
+                Iniciar sesión
+              </Button>
+            </Link>
+            <Link href="/registro?from=preview" onClick={handleRegisterClick}>
+              <Button size="sm" className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                Registrarse
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -659,42 +665,6 @@ export default function PreviewStrategyPage() {
                   )}
                 </div>
               )}
-            </div>
-          </div>
-
-          {/* Registration CTA at bottom */}
-          <div className="bg-gradient-to-br from-accent/10 via-accent/5 to-background border-2 border-accent/20 rounded-xl p-8 text-center space-y-6">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-accent/20 rounded-full mb-2">
-              <Sparkles className="h-8 w-8 text-accent" />
-            </div>
-
-            <div className="space-y-3">
-              <h2 className="text-3xl font-bold text-foreground">¡Completa tu configuración!</h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Para guardar tu estrategia y comenzar a ejecutar operaciones automáticas, necesitas crear una cuenta.
-              </p>
-            </div>
-
-            <div className="space-y-3 pt-4">
-              <Link href="/registro?from=preview" className="block" onClick={handleRegisterClick}>
-                <Button
-                  size="lg"
-                  className="bg-accent hover:bg-accent/90 text-accent-foreground text-lg h-14 px-8 w-full max-w-md"
-                >
-                  Crear cuenta gratis
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-              <p className="text-sm text-muted-foreground">
-                ¿Ya tienes cuenta?{" "}
-                <Link
-                  href="/login?from=preview"
-                  className="text-accent hover:underline font-medium"
-                  onClick={handleLoginClick}
-                >
-                  Inicia sesión aquí
-                </Link>
-              </p>
             </div>
           </div>
         </div>
