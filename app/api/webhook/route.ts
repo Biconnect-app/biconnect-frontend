@@ -12,7 +12,8 @@ import { createClient } from "@supabase/supabase-js"
  * El payload debe contener:
  * - user_id: ID del usuario
  * - strategy_id: ID de la estrategia
- * - action: "buy" | "sell" | "long" | "short"
+ * - action: "Buy" | "Sell"
+ * - market_position: string (opcional, para referencia futura)
  * - close_position: boolean (opcional, solo para futures)
  */
 export async function POST(request: NextRequest) {
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
 
     logger.info({ payload: data }, "[WEBHOOK] 📥 Webhook recibido")
 
-    const { user_id, strategy_id, action, close_position } = data
+    const { user_id, strategy_id, action, market_position, close_position } = data
 
     if (!user_id || !strategy_id || !action) {
       logger.warn("[WEBHOOK] ❌ Faltan campos requeridos en el payload")
@@ -35,13 +36,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const validActions = ["buy", "sell", "long", "short"]
-    if (!validActions.includes(action.toLowerCase())) {
+    const normalizedAction = action.toLowerCase()
+    const validActions = ["buy", "sell"]
+    if (!validActions.includes(normalizedAction)) {
       logger.warn("[WEBHOOK] ❌ Action inválido")
       return NextResponse.json(
         {
           status: "error",
-          message: `Action debe ser uno de: ${validActions.join(", ")}`,
+          message: `Action debe ser 'Buy' o 'Sell'. Recibido: '${action}'`,
           log_summary: `Action inválido: ${action}`,
         },
         { status: 400 },
@@ -96,31 +98,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const normalizedAction = action.toLowerCase()
+    let internalAction: string
     if (strategy.market_type === "spot") {
-      if (normalizedAction !== "buy" && normalizedAction !== "sell") {
-        logger.warn("[WEBHOOK] ❌ Action incompatible con estrategia SPOT")
-        return NextResponse.json(
-          {
-            status: "error",
-            message: `Para estrategias SPOT solo se permiten acciones 'buy' o 'sell'. Recibido: '${action}'`,
-            log_summary: `Action '${action}' incompatible con estrategia SPOT`,
-          },
-          { status: 400 },
-        )
-      }
+      // Para SPOT: Buy -> buy, Sell -> sell
+      internalAction = normalizedAction
     } else if (strategy.market_type === "futures") {
-      if (normalizedAction !== "long" && normalizedAction !== "short") {
-        logger.warn("[WEBHOOK] ❌ Action incompatible con estrategia FUTURES")
-        return NextResponse.json(
-          {
-            status: "error",
-            message: `Para estrategias FUTURES solo se permiten acciones 'long' o 'short'. Recibido: '${action}'`,
-            log_summary: `Action '${action}' incompatible con estrategia FUTURES`,
-          },
-          { status: 400 },
-        )
-      }
+      // Para FUTURES: Buy -> long, Sell -> short
+      internalAction = normalizedAction === "buy" ? "long" : "short"
+    } else {
+      logger.warn("[WEBHOOK] ❌ Tipo de mercado no reconocido")
+      return NextResponse.json(
+        {
+          status: "error",
+          message: `Tipo de mercado no reconocido: ${strategy.market_type}`,
+          log_summary: `Tipo de mercado no reconocido: ${strategy.market_type}`,
+        },
+        { status: 400 },
+      )
     }
 
     const { data: exchange, error: exchangeError } = await supabase
@@ -165,7 +159,7 @@ export async function POST(request: NextRequest) {
 
     const completePayload: any = {
       symbol: binanceSymbol,
-      action: action.toLowerCase(),
+      action: internalAction,
     }
 
     if (strategy.risk_type === "fixed_amount") {
@@ -189,6 +183,8 @@ export async function POST(request: NextRequest) {
           risk_type: strategy.risk_type,
           risk_value: strategy.risk_value,
         },
+        originalAction: action,
+        internalAction: internalAction,
         completePayload,
       },
       "[WEBHOOK] 📦 Payload construido desde estrategia",
@@ -296,8 +292,8 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json(
       {
         status: "success",
-        message: `✅ Orden de tipo '${tradeAction.toUpperCase()}' ejecutada con éxito: acción=${tradeAction}, símbolo=${symbol}, cantidad=${quantity}.`,
-        log_summary: `Orden ejecutada con éxito: acción=${tradeAction}, símbolo=${symbol}, cantidad=${quantity}. ${JSON.stringify(
+        message: `✅ Orden de tipo '${action.toUpperCase()}' ejecutada con éxito: acción=${internalAction}, símbolo=${symbol}, cantidad=${quantity}.`,
+        log_summary: `Orden ejecutada con éxito: acción=${internalAction}, símbolo=${symbol}, cantidad=${quantity}. ${JSON.stringify(
           order,
         )}`,
       },
