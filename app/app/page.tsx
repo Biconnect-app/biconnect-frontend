@@ -169,26 +169,28 @@ export default function DashboardPage() {
         <ApiKeyAlert />
 
         {!hasApiKeys && (
-          <div className="bg-destructive/10 border-2 border-destructive rounded-xl p-6">
+          <div className="bg-amber-50 dark:bg-amber-950/30 border-2 border-amber-500 dark:border-amber-600 rounded-xl p-6">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0">
-                <AlertCircle className="h-6 w-6 text-destructive" />
+                <AlertCircle className="h-6 w-6 text-amber-600 dark:text-amber-500" />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold text-destructive mb-2">Completa tu configuración</h3>
-                <p className="text-sm text-foreground mb-4">
+                <h3 className="text-lg font-semibold text-amber-900 dark:text-amber-400 mb-2">
+                  Completa tu configuración
+                </h3>
+                <p className="text-sm text-amber-800 dark:text-amber-300 mb-4">
                   Para comenzar a ejecutar órdenes automáticamente, necesitas configurar las API keys de tu exchange.
                   Este es el último paso para completar tu registro.
                 </p>
                 <Link href="/app/configuracion/api-inicial">
-                  <Button className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+                  <Button className="bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white">
                     Configurar API Keys ahora
                   </Button>
                 </Link>
               </div>
               <button
                 onClick={() => setHasApiKeys(true)}
-                className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                className="flex-shrink-0 text-amber-600 dark:text-amber-500 hover:text-amber-700 dark:hover:text-amber-400 transition-colors"
                 aria-label="Cerrar advertencia"
               >
                 <AlertCircle className="h-5 w-5" />
