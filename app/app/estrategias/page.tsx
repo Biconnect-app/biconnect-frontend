@@ -4,9 +4,9 @@ import type React from "react"
 
 import { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
-import { useRouter } from 'next/navigation'
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Plus, Power, PowerOff, Copy, MoreVertical, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, Power, PowerOff, Copy, MoreVertical, TrendingUp, ChevronDown, ChevronUp } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { createClient } from "@/lib/supabase/client"
 import { ApiKeyAlert } from "@/components/api-key-alert"
@@ -123,22 +123,28 @@ export default function StrategiesPage() {
         try {
           console.log("[v0] Creating strategy from preview:", strategyData)
 
-          if (!strategyData.name || !strategyData.pair || !strategyData.marketType || !strategyData.riskType || !strategyData.riskAmount) {
+          if (
+            !strategyData.name ||
+            !strategyData.pair ||
+            !strategyData.marketType ||
+            !strategyData.riskType ||
+            !strategyData.riskAmount
+          ) {
             console.log("[v0] Preview strategy is incomplete, skipping creation:", {
               hasName: !!strategyData.name,
               hasPair: !!strategyData.pair,
               hasMarketType: !!strategyData.marketType,
               hasRiskType: !!strategyData.riskType,
-              hasRiskAmount: !!strategyData.riskAmount
+              hasRiskAmount: !!strategyData.riskAmount,
             })
-            
+
             // Clean up
             if (pendingStrategyId) {
               await supabase.from("pending_strategies").delete().eq("id", pendingStrategyId)
             }
             sessionStorage.removeItem("previewStrategy")
             sessionStorage.removeItem("fromPreview")
-            
+
             // Redirect to nueva if no strategies exist
             if (!strategiesData || strategiesData.length === 0) {
               console.log("[v0] No strategies found, redirecting to /app/estrategias/nueva")
@@ -217,7 +223,7 @@ export default function StrategiesPage() {
         }
       } else {
         console.log("[v0] No preview data to process")
-        
+
         if (!strategiesData || strategiesData.length === 0) {
           console.log("[v0] No strategies found, redirecting to /app/estrategias/nueva")
           router.replace("/app/estrategias/nueva")
@@ -346,6 +352,8 @@ export default function StrategiesPage() {
     return {
       user_id: strategy.user_id,
       strategy_id: strategy.id,
+      action: "{{strategy.order.action}}",
+      market_position: "{{strategy.market_position}}",
     }
   }
 

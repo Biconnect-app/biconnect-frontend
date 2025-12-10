@@ -151,6 +151,8 @@ export default function EditStrategyPage() {
         riskType: strategy.risk_type,
         riskAmount: strategy.risk_value?.toString() || "",
         webhookUrl: strategy.webhook_url,
+        order: strategy.order || { action: "" },
+        market_position: strategy.market_position || "",
       })
     } catch (error) {
       console.error("[v0] Error in loadStrategy:", error)
@@ -235,6 +237,8 @@ export default function EditStrategyPage() {
             risk_type: formData.riskType,
             risk_value: Number.parseFloat(formData.riskAmount),
             updated_at: new Date().toISOString(),
+            order: formData.order,
+            market_position: formData.market_position,
           })
           .eq("id", params.id)
 
@@ -293,6 +297,8 @@ export default function EditStrategyPage() {
     const payload = {
       user_id: userId || "{{user_id}}",
       strategy_id: params.id || "{{strategy_id}}",
+      action: formData.order.action || "{{strategy.order.action}}",
+      market_position: formData.market_position || "{{strategy.market_position}}",
     }
 
     return JSON.stringify(payload, null, 2)
