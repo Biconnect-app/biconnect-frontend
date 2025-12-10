@@ -667,6 +667,22 @@ export default function PreviewStrategyPage() {
               )}
             </div>
           </div>
+
+          {/* Botones de acción finales */}
+          <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+            <Link href="/registro" onClick={handleRegisterClick}>
+              <Button className="w-full h-12 text-base bg-accent hover:bg-accent/90 text-accent-foreground">
+                Crear cuenta gratis
+              </Button>
+            </Link>
+
+            <p className="text-center text-sm text-muted-foreground">
+              ¿Ya tienes una cuenta?{" "}
+              <Link href="/login" onClick={handleLoginClick} className="text-accent hover:underline font-medium">
+                Inicia sesión aquí
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>
