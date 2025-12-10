@@ -58,7 +58,7 @@ const FALLBACK_TRADING_PAIRS = [
   "CHZ/USDT",
 ]
 
-const LEVERAGE_OPTIONS = [1, 2, 3, 5, 10, 20, 25, 50, 75, 100, 125]
+const LEVERAGE_OPTIONS = [1, 2, 5, 10, 20, 50, 100, 125]
 
 export default function EditStrategyPage() {
   const router = useRouter()
@@ -337,6 +337,29 @@ export default function EditStrategyPage() {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="description">Descripción (opcional)</Label>
+              <Textarea
+                id="description"
+                rows={3}
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+          <h2 className="text-xl font-semibold text-foreground">Mercado y activo</h2>
+
+          {pairsError && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-sm">{pairsError}</AlertDescription>
+            </Alert>
+          )}
+
+          <div className="space-y-4">
+            <div className="space-y-2">
               <Label htmlFor="exchange">Exchange *</Label>
               <Select
                 value={formData.exchange}
@@ -351,79 +374,6 @@ export default function EditStrategyPage() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Descripción (opcional)</Label>
-              <Textarea
-                id="description"
-                rows={3}
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-          <h2 className="text-xl font-semibold text-foreground">Par de trading</h2>
-
-          {pairsError && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="text-sm">{pairsError}</AlertDescription>
-            </Alert>
-          )}
-
-          <div className="space-y-2">
-            <Label>Par a operar *</Label>
-            <Popover open={openPairSelect} onOpenChange={setOpenPairSelect}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={openPairSelect}
-                  className={`w-full justify-between bg-transparent ${errors.pair ? "border-destructive" : ""}`}
-                  disabled={loadingPairs}
-                >
-                  {loadingPairs ? "Cargando pares..." : formData.pair || "Buscar par..."}
-                  <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-full p-0" align="start">
-                <Command>
-                  <CommandInput placeholder="Buscar par..." />
-                  <CommandList>
-                    <CommandEmpty>No se encontró el par.</CommandEmpty>
-                    <CommandGroup>
-                      {tradingPairs.map((pair) => (
-                        <CommandItem
-                          key={pair}
-                          value={pair}
-                          onSelect={(value) => {
-                            setFormData({ ...formData, pair: value.toUpperCase() })
-                            setOpenPairSelect(false)
-                          }}
-                        >
-                          {pair}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-            {errors.pair && <p className="text-xs text-destructive">{errors.pair}</p>}
-            <p className="text-xs text-muted-foreground">
-              {loadingPairs
-                ? "Cargando pares disponibles desde Binance..."
-                : `${tradingPairs.length} pares ${pairsError ? "populares" : "disponibles"}`}
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-          <h2 className="text-xl font-semibold text-foreground">Tipo de mercado</h2>
-
-          <div className="space-y-4">
             <div className="space-y-2">
               <Label>Tipo de operación *</Label>
               <div className="grid grid-cols-2 gap-4">
@@ -462,29 +412,97 @@ export default function EditStrategyPage() {
                   <div className="text-sm text-muted-foreground mt-1">Con apalancamiento</div>
                 </button>
               </div>
+              {errors.marketType && <p className="text-xs text-destructive">{errors.marketType}</p>}
             </div>
 
             {formData.marketType === "futures" && (
               <div className="space-y-2">
-                <Label htmlFor="leverage">Apalancamiento *</Label>
-                <Select
-                  value={formData.leverage.toString()}
-                  onValueChange={(value) => setFormData({ ...formData, leverage: Number.parseInt(value) })}
-                >
-                  <SelectTrigger id="leverage">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {LEVERAGE_OPTIONS.map((lev) => (
-                      <SelectItem key={lev} value={lev.toString()}>
-                        {lev}x
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Apalancamiento *</Label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[1, 2, 5, 10, 20, 50, 100, 125].map((lev) => (
+                    <button
+                      key={lev}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, leverage: lev })}
+                      className={`p-2 rounded-lg border-2 text-sm font-medium transition-all ${
+                        formData.leverage === lev
+                          ? "border-accent bg-accent/10 text-accent"
+                          : "border-border hover:border-accent/50"
+                      }`}
+                    >
+                      {lev}x
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <Label htmlFor="custom-leverage" className="text-xs text-muted-foreground whitespace-nowrap">
+                    Personalizado:
+                  </Label>
+                  <Input
+                    id="custom-leverage"
+                    type="number"
+                    min="1"
+                    max="125"
+                    value={formData.leverage}
+                    onChange={(e) => {
+                      const val = Number(e.target.value)
+                      if (val >= 1 && val <= 125) {
+                        setFormData({ ...formData, leverage: val })
+                      }
+                    }}
+                    className="h-8 text-sm"
+                  />
+                  <span className="text-xs text-muted-foreground">x</span>
+                </div>
                 {errors.leverage && <p className="text-xs text-destructive">{errors.leverage}</p>}
               </div>
             )}
+
+            <div className="space-y-2">
+              <Label>Par a operar *</Label>
+              <Popover open={openPairSelect} onOpenChange={setOpenPairSelect}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={openPairSelect}
+                    className={`w-full justify-between bg-transparent ${errors.pair ? "border-destructive" : ""}`}
+                    disabled={loadingPairs}
+                  >
+                    {loadingPairs ? "Cargando pares..." : formData.pair || "Buscar par..."}
+                    <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Buscar par..." />
+                    <CommandList>
+                      <CommandEmpty>No se encontró el par.</CommandEmpty>
+                      <CommandGroup>
+                        {tradingPairs.map((pair) => (
+                          <CommandItem
+                            key={pair}
+                            value={pair}
+                            onSelect={(value) => {
+                              setFormData({ ...formData, pair: value.toUpperCase() })
+                              setOpenPairSelect(false)
+                            }}
+                          >
+                            {pair}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {errors.pair && <p className="text-xs text-destructive">{errors.pair}</p>}
+              <p className="text-xs text-muted-foreground">
+                {loadingPairs
+                  ? "Cargando pares disponibles desde Binance..."
+                  : `${tradingPairs.length} pares ${pairsError ? "populares" : "disponibles"}`}
+              </p>
+            </div>
           </div>
         </div>
 
@@ -504,7 +522,7 @@ export default function EditStrategyPage() {
                       : "border-border hover:border-accent/50"
                   }`}
                 >
-                  <div className="font-semibold text-foreground">Cantidad fija ({getBaseCurrency()})</div>
+                  <div className="font-semibold text-foreground">Cantidad de contratos</div>
                 </button>
                 <button
                   type="button"
@@ -515,7 +533,7 @@ export default function EditStrategyPage() {
                       : "border-border hover:border-accent/50"
                   }`}
                 >
-                  <div className="font-semibold text-foreground">Monto fijo ({getQuoteCurrency()})</div>
+                  <div className="font-semibold text-foreground">Monto fijo</div>
                 </button>
                 <button
                   type="button"
@@ -526,16 +544,17 @@ export default function EditStrategyPage() {
                       : "border-border hover:border-accent/50"
                   }`}
                 >
-                  <div className="font-semibold text-foreground">% del capital ({getQuoteCurrency()})</div>
+                  <div className="font-semibold text-foreground">Porcentaje de capital</div>
                 </button>
               </div>
+              {errors.riskType && <p className="text-xs text-destructive">{errors.riskType}</p>}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="risk-amount">
-                {formData.riskType === "fixed_quantity" && `Cantidad (${getBaseCurrency()}) *`}
-                {formData.riskType === "fixed_amount" && `Monto (${getQuoteCurrency()}) *`}
-                {formData.riskType === "percentage" && "Porcentaje (%) *"}
+                {formData.riskType === "fixed_quantity" && "Cantidad *"}
+                {formData.riskType === "fixed_amount" && "Monto *"}
+                {formData.riskType === "percentage" && "Porcentaje *"}
               </Label>
               <Input
                 id="risk-amount"
@@ -548,6 +567,35 @@ export default function EditStrategyPage() {
               />
               {errors.riskAmount && <p className="text-xs text-destructive">{errors.riskAmount}</p>}
             </div>
+
+            {formData.riskType && (
+              <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+                <h3 className="text-sm font-semibold text-foreground mb-2">Ejemplo:</h3>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  {formData.riskType === "fixed_quantity" && (
+                    <>
+                      <li>• Si ingresas 0.1, comprarás exactamente 0.1 {getBaseCurrency()} en cada operación</li>
+                      <li>• Ideal para mantener un tamaño de posición constante</li>
+                      <li>• El monto en USDT variará según el precio del activo</li>
+                    </>
+                  )}
+                  {formData.riskType === "fixed_amount" && (
+                    <>
+                      <li>• Si ingresas 100, invertirás 100 USDT en cada operación</li>
+                      <li>• La cantidad de {getBaseCurrency()} variará según el precio del mercado</li>
+                      <li>• Perfecto para gestionar un presupuesto fijo por operación</li>
+                    </>
+                  )}
+                  {formData.riskType === "percentage" && (
+                    <>
+                      <li>• Si ingresas 5% con 1000 USDT de capital, invertirás 50 USDT por operación</li>
+                      <li>• El monto se ajusta automáticamente según tu balance disponible</li>
+                      <li>• Recomendado para gestión de riesgo proporcional a tu capital</li>
+                    </>
+                  )}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
 
