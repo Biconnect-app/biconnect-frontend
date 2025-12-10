@@ -160,18 +160,58 @@ export default function EditStrategyPage() {
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
 
-    if (!formData.name.trim()) newErrors.name = "El nombre es requerido"
-    if (!formData.pair) newErrors.pair = "Debes seleccionar un par"
-    if (!formData.marketType) newErrors.marketType = "Debes seleccionar el tipo de mercado"
-    if (!formData.riskType) newErrors.riskType = "Debes seleccionar un tipo de gestión"
+    if (!formData.name.trim()) {
+      newErrors.name = "El nombre es requerido"
+    } else if (formData.name.trim().length < 3) {
+      newErrors.name = "El nombre debe tener al menos 3 caracteres"
+    } else if (formData.name.trim().length > 50) {
+      newErrors.name = "El nombre no puede exceder 50 caracteres"
+    }
+
+    if (!formData.pair) {
+      newErrors.pair = "Debes seleccionar un par"
+    }
+
+    if (!formData.marketType) {
+      newErrors.marketType = "Debes seleccionar el tipo de mercado"
+    }
+
+    if (formData.marketType === "futures") {
+      const leverage = Number(formData.leverage)
+      if (isNaN(leverage) || leverage < 1 || leverage > 125) {
+        newErrors.leverage = "El apalancamiento debe estar entre 1x y 125x"
+      }
+    }
+
+    if (!formData.riskType) {
+      newErrors.riskType = "Debes seleccionar un tipo de gestión"
+    }
+
     if (!formData.riskAmount) {
       newErrors.riskAmount = "Debes ingresar una cantidad"
     } else {
       const amount = Number.parseFloat(formData.riskAmount)
-      if (isNaN(amount) || amount <= 0) {
+
+      if (isNaN(amount)) {
+        newErrors.riskAmount = "Debes ingresar un número válido"
+      } else if (amount < 0) {
+        newErrors.riskAmount = "La cantidad no puede ser negativa"
+      } else if (amount === 0) {
         newErrors.riskAmount = "La cantidad debe ser mayor a 0"
-      } else if (formData.riskType === "percentage" && (amount < 0 || amount > 100)) {
-        newErrors.riskAmount = "El porcentaje debe estar entre 0 y 100"
+      } else if (formData.riskType === "percentage") {
+        if (amount > 100) {
+          newErrors.riskAmount = "El porcentaje no puede ser mayor a 100"
+        } else if (amount < 0.01) {
+          newErrors.riskAmount = "El porcentaje debe ser al menos 0.01"
+        }
+      } else if (formData.riskType === "fixed_quantity") {
+        if (amount < 0.00001) {
+          newErrors.riskAmount = "La cantidad debe ser al menos 0.00001"
+        }
+      } else if (formData.riskType === "fixed_amount") {
+        if (amount < 1) {
+          newErrors.riskAmount = "El monto debe ser al menos 1"
+        }
       }
     }
 
@@ -442,6 +482,7 @@ export default function EditStrategyPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.leverage && <p className="text-xs text-destructive">{errors.leverage}</p>}
               </div>
             )}
           </div>

@@ -194,18 +194,62 @@ export default function NuevaEstrategiaPage() {
   const validateForm = () => {
     const newErrors: string[] = []
 
-    if (!formData.name.trim()) newErrors.push("El nombre es requerido")
-    if (!formData.pair) newErrors.push("Debes seleccionar un par")
-    if (!formData.marketType) newErrors.push("Debes seleccionar el tipo de mercado")
-    if (!formData.riskType) newErrors.push("Debes seleccionar un tipo de gestión")
+    if (!formData.name.trim()) {
+      newErrors.push("El nombre es requerido")
+    } else if (formData.name.trim().length < 3) {
+      newErrors.push("El nombre debe tener al menos 3 caracteres")
+    } else if (formData.name.trim().length > 50) {
+      newErrors.push("El nombre no puede exceder 50 caracteres")
+    }
+
+    if (!formData.exchange) {
+      newErrors.push("Debes seleccionar un exchange")
+    }
+
+    if (!formData.pair) {
+      newErrors.push("Debes seleccionar un par")
+    }
+
+    if (!formData.marketType) {
+      newErrors.push("Debes seleccionar el tipo de mercado")
+    }
+
+    if (formData.marketType === "futures") {
+      const leverage = Number(formData.leverage)
+      if (isNaN(leverage) || leverage < 1 || leverage > 125) {
+        newErrors.push("El apalancamiento debe estar entre 1x y 125x")
+      }
+    }
+
+    if (!formData.riskType) {
+      newErrors.push("Debes seleccionar un tipo de gestión")
+    }
+
     if (!formData.riskAmount) {
       newErrors.push("Debes ingresar una cantidad")
     } else {
       const amount = Number.parseFloat(formData.riskAmount)
-      if (isNaN(amount) || amount <= 0) {
+
+      if (isNaN(amount)) {
+        newErrors.push("Debes ingresar un número válido")
+      } else if (amount < 0) {
+        newErrors.push("La cantidad no puede ser negativa")
+      } else if (amount === 0) {
         newErrors.push("La cantidad debe ser mayor a 0")
-      } else if (formData.riskType === "percentage" && (amount < 0 || amount > 100)) {
-        newErrors.push("El porcentaje debe estar entre 0 y 100")
+      } else if (formData.riskType === "percentage") {
+        if (amount > 100) {
+          newErrors.push("El porcentaje no puede ser mayor a 100")
+        } else if (amount < 0.01) {
+          newErrors.push("El porcentaje debe ser al menos 0.01")
+        }
+      } else if (formData.riskType === "fixed_quantity") {
+        if (amount < 0.00001) {
+          newErrors.push("La cantidad debe ser al menos 0.00001")
+        }
+      } else if (formData.riskType === "fixed_amount") {
+        if (amount < 1) {
+          newErrors.push("El monto debe ser al menos 1")
+        }
       }
     }
 
@@ -321,6 +365,8 @@ export default function NuevaEstrategiaPage() {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className={
                   errors.includes("El nombre es requerido") ||
+                  errors.includes("El nombre debe tener al menos 3 caracteres") ||
+                  errors.includes("El nombre no puede exceder 50 caracteres") ||
                   errors.includes("Ya existe una estrategia con este nombre")
                     ? "border-destructive"
                     : ""
@@ -328,6 +374,12 @@ export default function NuevaEstrategiaPage() {
               />
               {errors.includes("El nombre es requerido") && (
                 <p className="text-xs text-destructive">El nombre es requerido</p>
+              )}
+              {errors.includes("El nombre debe tener al menos 3 caracteres") && (
+                <p className="text-xs text-destructive">El nombre debe tener al menos 3 caracteres</p>
+              )}
+              {errors.includes("El nombre no puede exceder 50 caracteres") && (
+                <p className="text-xs text-destructive">El nombre no puede exceder 50 caracteres</p>
               )}
               {errors.includes("Ya existe una estrategia con este nombre") && (
                 <p className="text-xs text-destructive">Ya existe una estrategia con este nombre</p>
@@ -378,6 +430,9 @@ export default function NuevaEstrategiaPage() {
                   <SelectItem value="binance">Binance</SelectItem>
                 </SelectContent>
               </Select>
+              {errors.includes("Debes seleccionar un exchange") && (
+                <p className="text-xs text-destructive">Debes seleccionar un exchange</p>
+              )}
             </div>
 
             {/* Tipo de operación */}
@@ -419,6 +474,9 @@ export default function NuevaEstrategiaPage() {
                   <div className="text-sm text-muted-foreground mt-1">Con apalancamiento</div>
                 </button>
               </div>
+              {errors.includes("Debes seleccionar el tipo de mercado") && (
+                <p className="text-xs text-destructive">Debes seleccionar el tipo de mercado</p>
+              )}
             </div>
 
             {/* Apalancamiento (solo para futuros) */}
@@ -553,6 +611,9 @@ export default function NuevaEstrategiaPage() {
                   <div className="font-semibold text-foreground">Porcentaje de capital</div>
                 </button>
               </div>
+              {errors.includes("Debes seleccionar un tipo de gestión") && (
+                <p className="text-xs text-destructive">Debes seleccionar un tipo de gestión</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -569,8 +630,13 @@ export default function NuevaEstrategiaPage() {
                 onChange={(e) => setFormData({ ...formData, riskAmount: e.target.value })}
                 className={
                   errors.includes("Debes ingresar una cantidad") ||
+                  errors.includes("Debes ingresar un número válido") ||
+                  errors.includes("La cantidad no puede ser negativa") ||
                   errors.includes("La cantidad debe ser mayor a 0") ||
-                  errors.includes("El porcentaje debe estar entre 0 y 100")
+                  errors.includes("El porcentaje no puede ser mayor a 100") ||
+                  errors.includes("El porcentaje debe ser al menos 0.01") ||
+                  errors.includes("La cantidad debe ser al menos 0.00001") ||
+                  errors.includes("El monto debe ser al menos 1")
                     ? "border-destructive"
                     : ""
                 }
@@ -578,11 +644,26 @@ export default function NuevaEstrategiaPage() {
               {errors.includes("Debes ingresar una cantidad") && (
                 <p className="text-xs text-destructive">Debes ingresar una cantidad</p>
               )}
+              {errors.includes("Debes ingresar un número válido") && (
+                <p className="text-xs text-destructive">Debes ingresar un número válido</p>
+              )}
+              {errors.includes("La cantidad no puede ser negativa") && (
+                <p className="text-xs text-destructive">La cantidad no puede ser negativa</p>
+              )}
               {errors.includes("La cantidad debe ser mayor a 0") && (
                 <p className="text-xs text-destructive">La cantidad debe ser mayor a 0</p>
               )}
-              {errors.includes("El porcentaje debe estar entre 0 y 100") && (
-                <p className="text-xs text-destructive">El porcentaje debe estar entre 0 y 100</p>
+              {errors.includes("El porcentaje no puede ser mayor a 100") && (
+                <p className="text-xs text-destructive">El porcentaje no puede ser mayor a 100</p>
+              )}
+              {errors.includes("El porcentaje debe ser al menos 0.01") && (
+                <p className="text-xs text-destructive">El porcentaje debe ser al menos 0.01</p>
+              )}
+              {errors.includes("La cantidad debe ser al menos 0.00001") && (
+                <p className="text-xs text-destructive">La cantidad debe ser al menos 0.00001</p>
+              )}
+              {errors.includes("El monto debe ser al menos 1") && (
+                <p className="text-xs text-destructive">El monto debe ser al menos 1</p>
               )}
             </div>
 
