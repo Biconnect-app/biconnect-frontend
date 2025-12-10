@@ -151,10 +151,16 @@ export default function RegisterPage() {
             console.log("[v0] Saving pending strategy for user:", formData.email)
 
             // Save to pending_strategies table with user's email
-            const { error: pendingError } = await supabase.from("pending_strategies").insert({
-              email: formData.email,
-              strategy_data: strategyData,
-            })
+            const { error: pendingError } = await supabase.from("pending_strategies").upsert(
+              {
+                email: formData.email.toLowerCase(),
+                strategy_data: strategyData,
+              },
+              {
+                onConflict: "email",
+                ignoreDuplicates: false, // Replace existing strategy
+              },
+            )
 
             if (pendingError) {
               console.error("[v0] Error saving pending strategy:", pendingError)
