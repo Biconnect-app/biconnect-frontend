@@ -102,6 +102,7 @@ export default function NuevaEstrategiaPage() {
   const [copied, setCopied] = useState(false)
   const [preGeneratedId, setPreGeneratedId] = useState<string>("")
   const [userId, setUserId] = useState<string>("")
+  const [pairPopoverOpen, setPairPopoverOpen] = useState(false)
 
   useEffect(() => {
     const strategyId = crypto.randomUUID()
@@ -519,16 +520,13 @@ export default function NuevaEstrategiaPage() {
 
             {/* Par de trading */}
             <div className="space-y-2">
-              <Label>Par a operar *</Label>
-              <Popover
-                open={formData.pair !== ""}
-                onOpenChange={(open) => setFormData({ ...formData, pair: open ? "" : formData.pair })}
-              >
+              <Label htmlFor="pair">Par de trading *</Label>
+              <Popover open={pairPopoverOpen} onOpenChange={setPairPopoverOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     role="combobox"
-                    aria-expanded={formData.pair !== ""}
+                    aria-expanded={pairPopoverOpen}
                     className={`w-full justify-between bg-transparent ${errors.includes("Debes seleccionar un par") ? "border-destructive" : ""}`}
                     disabled={loadingPairs}
                   >
@@ -536,7 +534,7 @@ export default function NuevaEstrategiaPage() {
                     <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-full p-0" align="start">
+                <PopoverContent className="w-[400px] p-0" align="start" sideOffset={5}>
                   <Command>
                     <CommandInput placeholder="Buscar par..." />
                     <CommandList>
@@ -548,6 +546,7 @@ export default function NuevaEstrategiaPage() {
                             value={pair}
                             onSelect={(value) => {
                               setFormData({ ...formData, pair: value.toUpperCase() })
+                              setPairPopoverOpen(false)
                             }}
                           >
                             {pair}
