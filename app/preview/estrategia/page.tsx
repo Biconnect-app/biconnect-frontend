@@ -596,7 +596,8 @@ export default function PreviewStrategyPage() {
                   <Input
                     id="risk-amount"
                     type="number"
-                    step={formData.riskType === "fixed_quantity" ? "0.00001" : "0.01"}
+                    step="any"
+                    min="0"
                     placeholder={
                       formData.riskType === "fixed_quantity"
                         ? "Ej: 0.01"

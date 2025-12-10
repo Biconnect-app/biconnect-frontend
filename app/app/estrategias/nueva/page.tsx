@@ -625,7 +625,8 @@ export default function NuevaEstrategiaPage() {
               <Input
                 id="risk-amount"
                 type="number"
-                step={formData.riskType === "fixed_quantity" ? "0.00001" : "0.01"}
+                step="any"
+                min="0"
                 value={formData.riskAmount}
                 onChange={(e) => setFormData({ ...formData, riskAmount: e.target.value })}
                 className={
