@@ -289,7 +289,14 @@ export default function PreviewStrategyPage() {
     }
   }
 
-  const handleLoginClick = async () => {
+  const handleLoginClick = async (e: React.MouseEvent) => {
+    // Validar el formulario antes de continuar
+    if (!validateForm()) {
+      e.preventDefault()
+      console.log("[v0] Form validation failed, preventing navigation to login")
+      return
+    }
+
     console.log("[v0] User clicked login from preview, saving strategy to database")
 
     try {
