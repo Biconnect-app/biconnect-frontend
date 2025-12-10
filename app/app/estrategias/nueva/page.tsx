@@ -333,6 +333,8 @@ export default function NuevaEstrategiaPage() {
     const payload = {
       user_id: userId || "{{user_id}}",
       strategy_id: preGeneratedId || "{{strategy_id}}",
+      action: "{{strategy.order.action}}",
+      market_position: "{{strategy.market_position}}",
     }
 
     return JSON.stringify(payload, null, 2)

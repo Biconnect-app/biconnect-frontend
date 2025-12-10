@@ -99,6 +99,8 @@ export default function PreviewStrategyPage() {
     riskType: "",
     riskAmount: "",
     email: "", // Added email field
+    action: "", // Added action field
+    market_position: "", // Added market_position field
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -246,6 +248,8 @@ export default function PreviewStrategyPage() {
     const payload = {
       user_id: "{{user_id}}",
       strategy_id: "{{strategy_id}}",
+      action: "{{strategy.order.action}}",
+      market_position: "{{strategy.market_position}}",
     }
 
     return JSON.stringify(payload, null, 2)
