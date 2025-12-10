@@ -341,12 +341,12 @@ export default function PreviewStrategyPage() {
             </Button>
           </Link>
           <div className="flex items-center gap-2">
-            <Link href="/login?from=preview" onClick={handleLoginClick}>
+            <Link href="/login">
               <Button variant="ghost" size="sm">
                 Iniciar sesión
               </Button>
             </Link>
-            <Link href="/registro?from=preview" onClick={handleRegisterClick}>
+            <Link href="/registro">
               <Button size="sm" className="bg-accent hover:bg-accent/90 text-accent-foreground">
                 Registrarse
               </Button>
