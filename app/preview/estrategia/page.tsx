@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -249,7 +251,14 @@ export default function PreviewStrategyPage() {
     return JSON.stringify(payload, null, 2)
   }
 
-  const handleRegisterClick = async () => {
+  const handleRegisterClick = async (e: React.MouseEvent) => {
+    // Validar el formulario antes de continuar
+    if (!validateForm()) {
+      e.preventDefault()
+      console.log("[v0] Form validation failed, preventing navigation")
+      return
+    }
+
     console.log("[v0] User clicked register from preview, saving strategy to database")
 
     try {
