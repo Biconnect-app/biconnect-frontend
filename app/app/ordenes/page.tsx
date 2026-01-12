@@ -128,6 +128,24 @@ const calculateWinningTrades = (operaciones: Operacion[]) => {
   return { winningCount, totalPairs }
 }
 
+const parseErrorMessage = (message: string, stage: string): { displayStage: string; displayMessage: string } => {
+  try {
+    const parsed = JSON.parse(message)
+    if (parsed.status === "error" && parsed.message) {
+      return {
+        displayStage: "Error",
+        displayMessage: parsed.message,
+      }
+    }
+  } catch {
+    // Si no es JSON válido, usar los valores originales
+  }
+  return {
+    displayStage: stage,
+    displayMessage: message,
+  }
+}
+
 export default function OrdersPage() {
   const [operaciones, setOperaciones] = useState<Operacion[]>([])
   const [strategies, setStrategies] = useState<Strategy[]>([])
@@ -244,22 +262,25 @@ export default function OrdersPage() {
       "Cantidad",
       "Precio",
       "Estado",
+      "Tipo",
       "Mensaje",
-      "Apalancamiento",
     ]
 
-    const rows = filteredOperaciones.map((op) => [
-      new Date(op.created_at).toLocaleString("es-AR"),
-      op.exchange_name || "-",
-      op.symbol || op.trading_pair || "-",
-      op.market_type || "-",
-      op.side || op.action_internal || "-",
-      op.quantity || op.quantity_requested || "-",
-      op.price || "-",
-      op.status,
-      op.message,
-      op.leverage || "-",
-    ])
+    const rows = filteredOperaciones.map((op) => {
+      const { displayStage, displayMessage } = parseErrorMessage(op.message, op.stage)
+      return [
+        new Date(op.created_at).toLocaleString("es-AR"),
+        op.exchange_name || "-",
+        op.symbol || op.trading_pair || "-",
+        op.market_type || "-",
+        op.side || op.action_internal || op.position_side || "-",
+        op.quantity || op.quantity_requested || "-",
+        op.price ? `$${op.price.toLocaleString()}` : "-",
+        op.status,
+        displayStage,
+        displayMessage,
+      ]
+    })
 
     const csvContent = [headers.join(","), ...rows.map((row) => row.map((cell) => `"${cell}"`).join(","))].join("\n")
 
@@ -340,10 +361,12 @@ export default function OrdersPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Tasa de Éxito</CardTitle>
-              <TrendingUp className="h-4 w-4 text-accent" />
+              <TrendingUp className={`h-4 w-4 ${Number(winRate) > 0 ? "text-green-500" : "text-muted-foreground"}`} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-accent">{winRate}%</div>
+              <div className={`text-2xl font-bold ${Number(winRate) > 0 ? "text-green-500" : "text-foreground"}`}>
+                {winRate}%
+              </div>
               <p className="text-xs text-muted-foreground">
                 {kpis.ganadoras} de {kpis.totalPares} operaciones ganadoras
               </p>
@@ -353,10 +376,12 @@ export default function OrdersPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Operaciones Exitosas</CardTitle>
-              <TrendingUp className="h-4 w-4 text-accent" />
+              <TrendingUp className={`h-4 w-4 ${kpis.ganadoras > 0 ? "text-green-500" : "text-muted-foreground"}`} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-accent">{kpis.ganadoras}</div>
+              <div className={`text-2xl font-bold ${kpis.ganadoras > 0 ? "text-green-500" : "text-foreground"}`}>
+                {kpis.ganadoras}
+              </div>
               <p className="text-xs text-muted-foreground">Operaciones con ganancia</p>
             </CardContent>
           </Card>
@@ -467,57 +492,63 @@ export default function OrdersPage() {
                     <th className="text-left p-4 text-sm font-semibold text-foreground">Cantidad</th>
                     <th className="text-left p-4 text-sm font-semibold text-foreground">Precio</th>
                     <th className="text-left p-4 text-sm font-semibold text-foreground">Estado</th>
+                    <th className="text-left p-4 text-sm font-semibold text-foreground">Tipo</th>
                     <th className="text-left p-4 text-sm font-semibold text-foreground">Mensaje</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {filteredOperaciones.map((operacion) => (
-                    <tr key={operacion.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="p-4 text-sm font-mono text-muted-foreground">
-                        {new Date(operacion.created_at).toLocaleString("es-AR")}
-                      </td>
-                      <td className="p-4 text-sm text-foreground">{operacion.exchange_name || "-"}</td>
-                      <td className="p-4 text-sm font-medium text-foreground">
-                        {operacion.symbol || operacion.trading_pair || "-"}
-                      </td>
-                      <td className="p-4 text-sm text-muted-foreground">{operacion.market_type || "-"}</td>
-                      <td className="p-4">
-                        <span
-                          className={`inline-flex px-2 py-1 rounded text-xs font-medium ${
-                            operacion.side?.toLowerCase() === "buy" ||
-                            operacion.action_internal?.toLowerCase() === "long" ||
-                            operacion.position_side?.toLowerCase() === "long"
-                              ? "bg-accent/10 text-accent"
-                              : "bg-destructive/10 text-destructive"
-                          }`}
-                        >
-                          {operacion.side || operacion.action_internal || operacion.position_side || "-"}
-                        </span>
-                      </td>
-                      <td className="p-4 text-sm text-foreground">
-                        {operacion.quantity || operacion.quantity_requested || "-"}
-                      </td>
-                      <td className="p-4 text-sm text-foreground">
-                        {operacion.price ? `$${operacion.price.toLocaleString()}` : "-"}
-                      </td>
-                      <td className="p-4">
-                        <span
-                          className={`inline-flex px-2 py-1 rounded text-xs font-medium ${
-                            operacion.status.toLowerCase() === "success"
-                              ? "bg-accent/10 text-accent"
-                              : operacion.status.toLowerCase() === "error"
-                                ? "bg-destructive/10 text-destructive"
-                                : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {operacion.status}
-                        </span>
-                      </td>
-                      <td className="p-4 text-sm text-muted-foreground max-w-xs truncate" title={operacion.message}>
-                        {operacion.message}
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredOperaciones.map((operacion) => {
+                    const { displayStage, displayMessage } = parseErrorMessage(operacion.message, operacion.stage)
+
+                    return (
+                      <tr key={operacion.id} className="hover:bg-muted/30 transition-colors">
+                        <td className="p-4 text-sm font-mono text-muted-foreground">
+                          {new Date(operacion.created_at).toLocaleString("es-AR")}
+                        </td>
+                        <td className="p-4 text-sm text-foreground">{operacion.exchange_name || "-"}</td>
+                        <td className="p-4 text-sm font-medium text-foreground">
+                          {operacion.symbol || operacion.trading_pair || "-"}
+                        </td>
+                        <td className="p-4 text-sm text-muted-foreground">{operacion.market_type || "-"}</td>
+                        <td className="p-4">
+                          <span
+                            className={`inline-flex px-2 py-1 rounded text-xs font-medium ${
+                              operacion.side?.toLowerCase() === "buy" ||
+                              operacion.action_internal?.toLowerCase() === "long" ||
+                              operacion.position_side?.toLowerCase() === "long"
+                                ? "bg-accent/10 text-accent"
+                                : "bg-destructive/10 text-destructive"
+                            }`}
+                          >
+                            {operacion.side || operacion.action_internal || operacion.position_side || "-"}
+                          </span>
+                        </td>
+                        <td className="p-4 text-sm text-foreground">
+                          {operacion.quantity || operacion.quantity_requested || "-"}
+                        </td>
+                        <td className="p-4 text-sm text-foreground">
+                          {operacion.price ? `$${operacion.price.toLocaleString()}` : "-"}
+                        </td>
+                        <td className="p-4">
+                          <span
+                            className={`inline-flex px-2 py-1 rounded text-xs font-medium ${
+                              operacion.status.toLowerCase() === "success"
+                                ? "bg-green-500/10 text-green-500"
+                                : operacion.status.toLowerCase() === "error"
+                                  ? "bg-red-500/10 text-red-500"
+                                  : "bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            {operacion.status}
+                          </span>
+                        </td>
+                        <td className="p-4 text-sm text-muted-foreground">{displayStage}</td>
+                        <td className="p-4 text-sm text-muted-foreground max-w-xs truncate" title={displayMessage}>
+                          {displayMessage}
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             )}
