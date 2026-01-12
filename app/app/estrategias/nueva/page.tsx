@@ -103,6 +103,7 @@ export default function NuevaEstrategiaPage() {
   const [preGeneratedId, setPreGeneratedId] = useState<string>("")
   const [userId, setUserId] = useState<string>("")
   const [pairPopoverOpen, setPairPopoverOpen] = useState(false)
+  const [strategySaved, setStrategySaved] = useState(false)
 
   useEffect(() => {
     const strategyId = crypto.randomUUID()
@@ -306,7 +307,7 @@ export default function NuevaEstrategiaPage() {
         }
 
         console.log("[v0] ✅ Strategy saved successfully")
-        router.push("/app/estrategias")
+        setStrategySaved(true)
       } catch (error) {
         console.error("[v0] ❌ Exception in handleSave:", error)
         if (error instanceof Error) {
@@ -357,446 +358,515 @@ export default function NuevaEstrategiaPage() {
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-          <h2 className="text-xl font-semibold text-foreground">Información básica</h2>
+        {!strategySaved ? (
+          <>
+            <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+              <h2 className="text-xl font-semibold text-foreground">Información básica</h2>
 
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nombre de la estrategia *</Label>
-              <Input
-                id="name"
-                placeholder="Ej: BTC Scalping 5m"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className={
-                  errors.includes("El nombre es requerido") ||
-                  errors.includes("El nombre debe tener al menos 3 caracteres") ||
-                  errors.includes("El nombre no puede exceder 50 caracteres") ||
-                  errors.includes("Ya existe una estrategia con este nombre")
-                    ? "border-destructive"
-                    : ""
-                }
-              />
-              {errors.includes("El nombre es requerido") && (
-                <p className="text-xs text-destructive">El nombre es requerido</p>
-              )}
-              {errors.includes("El nombre debe tener al menos 3 caracteres") && (
-                <p className="text-xs text-destructive">El nombre debe tener al menos 3 caracteres</p>
-              )}
-              {errors.includes("El nombre no puede exceder 50 caracteres") && (
-                <p className="text-xs text-destructive">El nombre no puede exceder 50 caracteres</p>
-              )}
-              {errors.includes("Ya existe una estrategia con este nombre") && (
-                <p className="text-xs text-destructive">Ya existe una estrategia con este nombre</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Descripción (opcional)</Label>
-              <Textarea
-                id="description"
-                placeholder="Describe tu estrategia..."
-                rows={3}
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Mercado y activo */}
-        <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-          <h2 className="text-xl font-semibold text-foreground">Mercado y activo</h2>
-
-          {errors.includes(
-            "Mostrando lista limitada de pares populares. Conecta tu exchange en Integraciones para ver todos los pares disponibles.",
-          ) && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="text-sm">
-                Mostrando lista limitada de pares populares. Conecta tu exchange en Integraciones para ver todos los
-                pares disponibles.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          <div className="space-y-4">
-            {/* Exchange selector */}
-            <div className="space-y-2">
-              <Label htmlFor="exchange">Exchange *</Label>
-              <Select
-                value={formData.exchange}
-                onValueChange={(value) => setFormData({ ...formData, exchange: value })}
-              >
-                <SelectTrigger id="exchange">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="binance">Binance</SelectItem>
-                </SelectContent>
-              </Select>
-              {errors.includes("Debes seleccionar un exchange") && (
-                <p className="text-xs text-destructive">Debes seleccionar un exchange</p>
-              )}
-            </div>
-
-            {/* Tipo de operación */}
-            <div className="space-y-2">
-              <Label>Tipo de operación *</Label>
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, marketType: "spot", leverage: 1 })}
-                  className={`relative p-4 rounded-xl border-2 transition-all ${
-                    formData.marketType === "spot"
-                      ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
-                      : "border-border hover:border-accent/50"
-                  }`}
-                >
-                  {formData.marketType === "spot" && (
-                    <div className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
-                      <Check className="h-3 w-3 text-accent-foreground" />
-                    </div>
-                  )}
-                  <div className="font-semibold text-foreground">Spot</div>
-                  <div className="text-sm text-muted-foreground mt-1">Compra/venta directa</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, marketType: "futures" })}
-                  className={`relative p-4 rounded-xl border-2 transition-all ${
-                    formData.marketType === "futures"
-                      ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
-                      : "border-border hover:border-accent/50"
-                  }`}
-                >
-                  {formData.marketType === "futures" && (
-                    <div className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
-                      <Check className="h-3 w-3 text-accent-foreground" />
-                    </div>
-                  )}
-                  <div className="font-semibold text-foreground">Futuros</div>
-                  <div className="text-sm text-muted-foreground mt-1">Con apalancamiento</div>
-                </button>
-              </div>
-              {errors.includes("Debes seleccionar el tipo de mercado") && (
-                <p className="text-xs text-destructive">Debes seleccionar el tipo de mercado</p>
-              )}
-            </div>
-
-            {/* Apalancamiento (solo para futuros) */}
-            {formData.marketType === "futures" && (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Dirección *</Label>
+                  <Label htmlFor="name">Nombre de la estrategia *</Label>
+                  <Input
+                    id="name"
+                    placeholder="Ej: BTC Scalping 5m"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className={
+                      errors.includes("El nombre es requerido") ||
+                      errors.includes("El nombre debe tener al menos 3 caracteres") ||
+                      errors.includes("El nombre no puede exceder 50 caracteres") ||
+                      errors.includes("Ya existe una estrategia con este nombre")
+                        ? "border-destructive"
+                        : ""
+                    }
+                  />
+                  {errors.includes("El nombre es requerido") && (
+                    <p className="text-xs text-destructive">El nombre es requerido</p>
+                  )}
+                  {errors.includes("El nombre debe tener al menos 3 caracteres") && (
+                    <p className="text-xs text-destructive">El nombre debe tener al menos 3 caracteres</p>
+                  )}
+                  {errors.includes("El nombre no puede exceder 50 caracteres") && (
+                    <p className="text-xs text-destructive">El nombre no puede exceder 50 caracteres</p>
+                  )}
+                  {errors.includes("Ya existe una estrategia con este nombre") && (
+                    <p className="text-xs text-destructive">Ya existe una estrategia con este nombre</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description">Descripción (opcional)</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Describe tu estrategia..."
+                    rows={3}
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Mercado y activo */}
+            <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+              <h2 className="text-xl font-semibold text-foreground">Mercado y activo</h2>
+
+              {errors.includes(
+                "Mostrando lista limitada de pares populares. Conecta tu exchange en Integraciones para ver todos los pares disponibles.",
+              ) && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription className="text-sm">
+                    Mostrando lista limitada de pares populares. Conecta tu exchange en Integraciones para ver todos los
+                    pares disponibles.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <div className="space-y-4">
+                {/* Exchange selector */}
+                <div className="space-y-2">
+                  <Label htmlFor="exchange">Exchange *</Label>
+                  <Select
+                    value={formData.exchange}
+                    onValueChange={(value) => setFormData({ ...formData, exchange: value })}
+                  >
+                    <SelectTrigger id="exchange">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="binance">Binance</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {errors.includes("Debes seleccionar un exchange") && (
+                    <p className="text-xs text-destructive">Debes seleccionar un exchange</p>
+                  )}
+                </div>
+
+                {/* Tipo de operación */}
+                <div className="space-y-2">
+                  <Label>Tipo de operación *</Label>
                   <div className="grid grid-cols-2 gap-4">
                     <button
                       type="button"
-                      onClick={() => setFormData({ ...formData, positionSide: "long" })}
+                      onClick={() => setFormData({ ...formData, marketType: "spot", leverage: 1 })}
                       className={`relative p-4 rounded-xl border-2 transition-all ${
-                        formData.positionSide === "long"
+                        formData.marketType === "spot"
                           ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
                           : "border-border hover:border-accent/50"
                       }`}
                     >
-                      {formData.positionSide === "long" && (
+                      {formData.marketType === "spot" && (
                         <div className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
                           <Check className="h-3 w-3 text-accent-foreground" />
                         </div>
                       )}
-                      <div className="font-semibold text-foreground">Long</div>
-                      <div className="text-sm text-muted-foreground mt-1">Compra (alcista)</div>
+                      <div className="font-semibold text-foreground">Spot</div>
+                      <div className="text-sm text-muted-foreground mt-1">Compra/venta directa</div>
                     </button>
                     <button
                       type="button"
-                      onClick={() => setFormData({ ...formData, positionSide: "short" })}
+                      onClick={() => setFormData({ ...formData, marketType: "futures" })}
                       className={`relative p-4 rounded-xl border-2 transition-all ${
-                        formData.positionSide === "short"
+                        formData.marketType === "futures"
                           ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
                           : "border-border hover:border-accent/50"
                       }`}
                     >
-                      {formData.positionSide === "short" && (
+                      {formData.marketType === "futures" && (
                         <div className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
                           <Check className="h-3 w-3 text-accent-foreground" />
                         </div>
                       )}
-                      <div className="font-semibold text-foreground">Short</div>
-                      <div className="text-sm text-muted-foreground mt-1">Venta (bajista)</div>
+                      <div className="font-semibold text-foreground">Futuros</div>
+                      <div className="text-sm text-muted-foreground mt-1">Con apalancamiento</div>
                     </button>
                   </div>
+                  {errors.includes("Debes seleccionar el tipo de mercado") && (
+                    <p className="text-xs text-destructive">Debes seleccionar el tipo de mercado</p>
+                  )}
                 </div>
 
-                <Label>Apalancamiento</Label>
-                <div className="grid grid-cols-4 gap-2">
-                  {QUICK_LEVERAGE_OPTIONS.map((lev) => (
+                {/* Apalancamiento (solo para futuros) */}
+                {formData.marketType === "futures" && (
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label>Dirección *</Label>
+                      <div className="grid grid-cols-2 gap-4">
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, positionSide: "long" })}
+                          className={`relative p-4 rounded-xl border-2 transition-all ${
+                            formData.positionSide === "long"
+                              ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
+                              : "border-border hover:border-accent/50"
+                          }`}
+                        >
+                          {formData.positionSide === "long" && (
+                            <div className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
+                              <Check className="h-3 w-3 text-accent-foreground" />
+                            </div>
+                          )}
+                          <div className="font-semibold text-foreground">Long</div>
+                          <div className="text-sm text-muted-foreground mt-1">Compra (alcista)</div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, positionSide: "short" })}
+                          className={`relative p-4 rounded-xl border-2 transition-all ${
+                            formData.positionSide === "short"
+                              ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
+                              : "border-border hover:border-accent/50"
+                          }`}
+                        >
+                          {formData.positionSide === "short" && (
+                            <div className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
+                              <Check className="h-3 w-3 text-accent-foreground" />
+                            </div>
+                          )}
+                          <div className="font-semibold text-foreground">Short</div>
+                          <div className="text-sm text-muted-foreground mt-1">Venta (bajista)</div>
+                        </button>
+                      </div>
+                    </div>
+
+                    <Label>Apalancamiento</Label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {QUICK_LEVERAGE_OPTIONS.map((lev) => (
+                        <button
+                          key={lev}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, leverage: lev })}
+                          className={`px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
+                            formData.leverage === lev
+                              ? "border-accent bg-accent/10 text-accent shadow-sm"
+                              : "border-border hover:border-accent/50 text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          {lev}x
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min={1}
+                        max={125}
+                        value={formData.leverage}
+                        onChange={(e) => {
+                          const val = Number.parseInt(e.target.value) || 1
+                          setFormData({ ...formData, leverage: Math.min(Math.max(val, 1), 125) })
+                        }}
+                        className="w-24"
+                      />
+                      <span className="text-sm text-muted-foreground">Personalizado (1-125x)</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Multiplica tus ganancias (y pérdidas) potenciales</p>
+                  </div>
+                )}
+
+                {/* Par de trading */}
+                <div className="space-y-2">
+                  <Label htmlFor="pair">Par de trading *</Label>
+                  <Popover open={pairPopoverOpen} onOpenChange={setPairPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={pairPopoverOpen}
+                        className={`w-full justify-between bg-transparent ${errors.includes("Debes seleccionar un par") ? "border-destructive" : ""}`}
+                        disabled={loadingPairs}
+                      >
+                        {loadingPairs ? "Cargando pares..." : formData.pair || "Buscar par..."}
+                        <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[400px] p-0" align="start" sideOffset={5}>
+                      <Command>
+                        <CommandInput placeholder="Buscar par..." />
+                        <CommandList>
+                          <CommandEmpty>No se encontró el par.</CommandEmpty>
+                          <CommandGroup>
+                            {availablePairs.map((pair) => (
+                              <CommandItem
+                                key={pair}
+                                value={pair}
+                                onSelect={(value) => {
+                                  setFormData({ ...formData, pair: value.toUpperCase() })
+                                  setPairPopoverOpen(false)
+                                }}
+                              >
+                                {pair}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  {errors.includes("Debes seleccionar un par") && (
+                    <p className="text-xs text-destructive">Debes seleccionar un par</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    {loadingPairs
+                      ? "Cargando pares disponibles desde Binance..."
+                      : `${availablePairs.length} pares ${errors.includes("Mostrando lista limitada de pares populares. Conecta tu exchange en Integraciones para ver todos los pares disponibles.") ? "populares" : "disponibles"}`}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+              <h2 className="text-xl font-semibold text-foreground">Gestión del riesgo</h2>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Tipo de gestión *</Label>
+                  <div className="space-y-2">
                     <button
-                      key={lev}
                       type="button"
-                      onClick={() => setFormData({ ...formData, leverage: lev })}
-                      className={`px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
-                        formData.leverage === lev
-                          ? "border-accent bg-accent/10 text-accent shadow-sm"
-                          : "border-border hover:border-accent/50 text-muted-foreground hover:text-foreground"
+                      onClick={() => setFormData({ ...formData, riskType: "fixed_quantity" })}
+                      className={`relative w-full p-4 rounded-xl border-2 text-left transition-all ${
+                        formData.riskType === "fixed_quantity"
+                          ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
+                          : "border-border hover:border-accent/50"
                       }`}
                     >
-                      {lev}x
+                      {formData.riskType === "fixed_quantity" && (
+                        <div className="absolute top-4 right-4 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
+                          <Check className="h-3 w-3 text-accent-foreground" />
+                        </div>
+                      )}
+                      <div className="font-semibold text-foreground">Cantidad de contratos</div>
                     </button>
-                  ))}
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, riskType: "fixed_amount" })}
+                      className={`relative w-full p-4 rounded-xl border-2 text-left transition-all ${
+                        formData.riskType === "fixed_amount"
+                          ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
+                          : "border-border hover:border-accent/50"
+                      }`}
+                    >
+                      {formData.riskType === "fixed_amount" && (
+                        <div className="absolute top-4 right-4 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
+                          <Check className="h-3 w-3 text-accent-foreground" />
+                        </div>
+                      )}
+                      <div className="font-semibold text-foreground">Monto fijo</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, riskType: "percentage" })}
+                      className={`relative w-full p-4 rounded-xl border-2 text-left transition-all ${
+                        formData.riskType === "percentage"
+                          ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
+                          : "border-border hover:border-accent/50"
+                      }`}
+                    >
+                      {formData.riskType === "percentage" && (
+                        <div className="absolute top-4 right-4 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
+                          <Check className="h-3 w-3 text-accent-foreground" />
+                        </div>
+                      )}
+                      <div className="font-semibold text-foreground">Porcentaje de capital</div>
+                    </button>
+                  </div>
+                  {errors.includes("Debes seleccionar un tipo de gestión") && (
+                    <p className="text-xs text-destructive">Debes seleccionar un tipo de gestión</p>
+                  )}
                 </div>
-                <div className="flex items-center gap-2">
+
+                <div className="space-y-2">
+                  <Label htmlFor="risk-amount">
+                    {formData.riskType === "fixed_quantity" && "Cantidad *"}
+                    {formData.riskType === "fixed_amount" && "Monto *"}
+                    {formData.riskType === "percentage" && "Porcentaje *"}
+                  </Label>
                   <Input
+                    id="risk-amount"
                     type="number"
-                    min={1}
-                    max={125}
-                    value={formData.leverage}
-                    onChange={(e) => {
-                      const val = Number.parseInt(e.target.value) || 1
-                      setFormData({ ...formData, leverage: Math.min(Math.max(val, 1), 125) })
-                    }}
-                    className="w-24"
+                    step="any"
+                    min="0"
+                    value={formData.riskAmount}
+                    onChange={(e) => setFormData({ ...formData, riskAmount: e.target.value })}
+                    className={
+                      errors.includes("Debes ingresar una cantidad") ||
+                      errors.includes("Debes ingresar un número válido") ||
+                      errors.includes("La cantidad no puede ser negativa") ||
+                      errors.includes("La cantidad debe ser mayor a 0") ||
+                      errors.includes("El porcentaje no puede ser mayor a 100") ||
+                      errors.includes("El porcentaje debe ser al menos 0.01") ||
+                      errors.includes("La cantidad debe ser al menos 0.00001") ||
+                      errors.includes("El monto debe ser al menos 1")
+                        ? "border-destructive"
+                        : ""
+                    }
                   />
-                  <span className="text-sm text-muted-foreground">Personalizado (1-125x)</span>
+                  {errors.includes("Debes ingresar una cantidad") && (
+                    <p className="text-xs text-destructive">Debes ingresar una cantidad</p>
+                  )}
+                  {errors.includes("Debes ingresar un número válido") && (
+                    <p className="text-xs text-destructive">Debes ingresar un número válido</p>
+                  )}
+                  {errors.includes("La cantidad no puede ser negativa") && (
+                    <p className="text-xs text-destructive">La cantidad no puede ser negativa</p>
+                  )}
+                  {errors.includes("La cantidad debe ser mayor a 0") && (
+                    <p className="text-xs text-destructive">La cantidad debe ser mayor a 0</p>
+                  )}
+                  {errors.includes("El porcentaje no puede ser mayor a 100") && (
+                    <p className="text-xs text-destructive">El porcentaje no puede ser mayor a 100</p>
+                  )}
+                  {errors.includes("El porcentaje debe ser al menos 0.01") && (
+                    <p className="text-xs text-destructive">El porcentaje debe ser al menos 0.01</p>
+                  )}
+                  {errors.includes("La cantidad debe ser al menos 0.00001") && (
+                    <p className="text-xs text-destructive">La cantidad debe ser al menos 0.00001</p>
+                  )}
+                  {errors.includes("El monto debe ser al menos 1") && (
+                    <p className="text-xs text-destructive">El monto debe ser al menos 1</p>
+                  )}
                 </div>
-                <p className="text-xs text-muted-foreground">Multiplica tus ganancias (y pérdidas) potenciales</p>
-              </div>
-            )}
 
-            {/* Par de trading */}
-            <div className="space-y-2">
-              <Label htmlFor="pair">Par de trading *</Label>
-              <Popover open={pairPopoverOpen} onOpenChange={setPairPopoverOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={pairPopoverOpen}
-                    className={`w-full justify-between bg-transparent ${errors.includes("Debes seleccionar un par") ? "border-destructive" : ""}`}
-                    disabled={loadingPairs}
-                  >
-                    {loadingPairs ? "Cargando pares..." : formData.pair || "Buscar par..."}
-                    <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[400px] p-0" align="start" sideOffset={5}>
-                  <Command>
-                    <CommandInput placeholder="Buscar par..." />
-                    <CommandList>
-                      <CommandEmpty>No se encontró el par.</CommandEmpty>
-                      <CommandGroup>
-                        {availablePairs.map((pair) => (
-                          <CommandItem
-                            key={pair}
-                            value={pair}
-                            onSelect={(value) => {
-                              setFormData({ ...formData, pair: value.toUpperCase() })
-                              setPairPopoverOpen(false)
-                            }}
-                          >
-                            {pair}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              {errors.includes("Debes seleccionar un par") && (
-                <p className="text-xs text-destructive">Debes seleccionar un par</p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                {loadingPairs
-                  ? "Cargando pares disponibles desde Binance..."
-                  : `${availablePairs.length} pares ${errors.includes("Mostrando lista limitada de pares populares. Conecta tu exchange en Integraciones para ver todos los pares disponibles.") ? "populares" : "disponibles"}`}
+                {formData.riskType && (
+                  <div className="p-4 bg-muted/30 border border-border/50 rounded-lg">
+                    <h3 className="text-sm font-semibold text-foreground mb-2">Ejemplo:</h3>
+                    {formData.riskType === "fixed_quantity" && (
+                      <div className="space-y-1 text-sm text-muted-foreground">
+                        <p>
+                          Si ingresas <span className="font-semibold text-foreground">0.5</span> contratos de BTC/USDT:
+                        </p>
+                        <p>• Cada orden comprará o venderá exactamente 0.5 BTC</p>
+                        <p>• Si el precio de BTC es $50,000, el tamaño de la orden será $25,000</p>
+                      </div>
+                    )}
+                    {formData.riskType === "fixed_amount" && (
+                      <div className="space-y-1 text-sm text-muted-foreground">
+                        <p>
+                          Si ingresas <span className="font-semibold text-foreground">$1,000</span> como monto fijo:
+                        </p>
+                        <p>• Cada orden usará exactamente $1,000 USDT</p>
+                        <p>• Si el precio de BTC es $50,000, comprará 0.02 BTC</p>
+                      </div>
+                    )}
+                    {formData.riskType === "percentage" && (
+                      <div className="space-y-1 text-sm text-muted-foreground">
+                        <p>
+                          Si ingresas <span className="font-semibold text-foreground">5%</span> de tu capital:
+                        </p>
+                        <p>• Con un balance de $10,000, cada orden usará $500</p>
+                        <p>• El tamaño de la orden se ajusta automáticamente según tu balance</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <Button
+                onClick={handleSave}
+                className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                disabled={isSubmitting}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Guardar estrategia
+              </Button>
+              <Link href="/app/estrategias">
+                <Button variant="outline" className="bg-transparent">
+                  Cancelar
+                </Button>
+              </Link>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="bg-accent/10 border border-accent/30 rounded-xl p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-accent rounded-full flex items-center justify-center">
+                  <Check className="h-6 w-6 text-accent-foreground" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-foreground">¡Estrategia guardada exitosamente!</h2>
+                  <p className="text-muted-foreground">Ahora configura el webhook en TradingView</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+              <h2 className="text-xl font-semibold text-foreground">Webhook de TradingView</h2>
+
+              <div className="flex gap-2">
+                <Input
+                  value={`https://api-92000983434.southamerica-east1.run.app/api/webhook`}
+                  readOnly
+                  className="font-mono text-sm"
+                />
+                <Button onClick={copyWebhook} variant="outline" className="bg-transparent">
+                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+
+            <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+              <h2 className="text-xl font-semibold text-foreground">Payload JSON</h2>
+
+              <Textarea value={generatePayload()} readOnly className="font-mono text-sm" rows={12} />
+            </div>
+
+            <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+              <h2 className="text-xl font-semibold text-foreground">Tutorial de configuración</h2>
+              <p className="text-muted-foreground">
+                Aprende cómo configurar el webhook en TradingView con este video tutorial:
               </p>
-            </div>
-          </div>
-        </div>
 
-        <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-          <h2 className="text-xl font-semibold text-foreground">Gestión del riesgo</h2>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Tipo de gestión *</Label>
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, riskType: "fixed_quantity" })}
-                  className={`relative w-full p-4 rounded-xl border-2 text-left transition-all ${
-                    formData.riskType === "fixed_quantity"
-                      ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
-                      : "border-border hover:border-accent/50"
-                  }`}
-                >
-                  {formData.riskType === "fixed_quantity" && (
-                    <div className="absolute top-4 right-4 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
-                      <Check className="h-3 w-3 text-accent-foreground" />
-                    </div>
-                  )}
-                  <div className="font-semibold text-foreground">Cantidad de contratos</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, riskType: "fixed_amount" })}
-                  className={`relative w-full p-4 rounded-xl border-2 text-left transition-all ${
-                    formData.riskType === "fixed_amount"
-                      ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
-                      : "border-border hover:border-accent/50"
-                  }`}
-                >
-                  {formData.riskType === "fixed_amount" && (
-                    <div className="absolute top-4 right-4 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
-                      <Check className="h-3 w-3 text-accent-foreground" />
-                    </div>
-                  )}
-                  <div className="font-semibold text-foreground">Monto fijo</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, riskType: "percentage" })}
-                  className={`relative w-full p-4 rounded-xl border-2 text-left transition-all ${
-                    formData.riskType === "percentage"
-                      ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
-                      : "border-border hover:border-accent/50"
-                  }`}
-                >
-                  {formData.riskType === "percentage" && (
-                    <div className="absolute top-4 right-4 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
-                      <Check className="h-3 w-3 text-accent-foreground" />
-                    </div>
-                  )}
-                  <div className="font-semibold text-foreground">Porcentaje de capital</div>
-                </button>
+              <div className="aspect-video w-full rounded-lg overflow-hidden">
+                <iframe
+                  width="100%"
+                  height="100%"
+                  src="https://www.youtube.com/embed/fRBXgPI8Mco"
+                  title="Tutorial de configuración de Webhook"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="w-full h-full"
+                />
               </div>
-              {errors.includes("Debes seleccionar un tipo de gestión") && (
-                <p className="text-xs text-destructive">Debes seleccionar un tipo de gestión</p>
-              )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="risk-amount">
-                {formData.riskType === "fixed_quantity" && "Cantidad *"}
-                {formData.riskType === "fixed_amount" && "Monto *"}
-                {formData.riskType === "percentage" && "Porcentaje *"}
-              </Label>
-              <Input
-                id="risk-amount"
-                type="number"
-                step="any"
-                min="0"
-                value={formData.riskAmount}
-                onChange={(e) => setFormData({ ...formData, riskAmount: e.target.value })}
-                className={
-                  errors.includes("Debes ingresar una cantidad") ||
-                  errors.includes("Debes ingresar un número válido") ||
-                  errors.includes("La cantidad no puede ser negativa") ||
-                  errors.includes("La cantidad debe ser mayor a 0") ||
-                  errors.includes("El porcentaje no puede ser mayor a 100") ||
-                  errors.includes("El porcentaje debe ser al menos 0.01") ||
-                  errors.includes("La cantidad debe ser al menos 0.00001") ||
-                  errors.includes("El monto debe ser al menos 1")
-                    ? "border-destructive"
-                    : ""
-                }
-              />
-              {errors.includes("Debes ingresar una cantidad") && (
-                <p className="text-xs text-destructive">Debes ingresar una cantidad</p>
-              )}
-              {errors.includes("Debes ingresar un número válido") && (
-                <p className="text-xs text-destructive">Debes ingresar un número válido</p>
-              )}
-              {errors.includes("La cantidad no puede ser negativa") && (
-                <p className="text-xs text-destructive">La cantidad no puede ser negativa</p>
-              )}
-              {errors.includes("La cantidad debe ser mayor a 0") && (
-                <p className="text-xs text-destructive">La cantidad debe ser mayor a 0</p>
-              )}
-              {errors.includes("El porcentaje no puede ser mayor a 100") && (
-                <p className="text-xs text-destructive">El porcentaje no puede ser mayor a 100</p>
-              )}
-              {errors.includes("El porcentaje debe ser al menos 0.01") && (
-                <p className="text-xs text-destructive">El porcentaje debe ser al menos 0.01</p>
-              )}
-              {errors.includes("La cantidad debe ser al menos 0.00001") && (
-                <p className="text-xs text-destructive">La cantidad debe ser al menos 0.00001</p>
-              )}
-              {errors.includes("El monto debe ser al menos 1") && (
-                <p className="text-xs text-destructive">El monto debe ser al menos 1</p>
-              )}
+            <div className="flex gap-4">
+              <Button
+                onClick={() => router.push("/app/estrategias")}
+                className="bg-accent hover:bg-accent/90 text-accent-foreground"
+              >
+                Ir a mis estrategias
+              </Button>
+              <Button
+                onClick={() => {
+                  setStrategySaved(false)
+                  setFormData({
+                    name: "",
+                    exchange: "binance",
+                    description: "",
+                    pair: "",
+                    marketType: "",
+                    leverage: 1,
+                    positionSide: "long",
+                    riskType: "",
+                    riskAmount: "",
+                  })
+                  setErrors([])
+                  setPreGeneratedId(crypto.randomUUID())
+                }}
+                variant="outline"
+                className="bg-transparent"
+              >
+                Crear otra estrategia
+              </Button>
             </div>
-
-            {formData.riskType && (
-              <div className="p-4 bg-muted/30 border border-border/50 rounded-lg">
-                <h3 className="text-sm font-semibold text-foreground mb-2">Ejemplo:</h3>
-                {formData.riskType === "fixed_quantity" && (
-                  <div className="space-y-1 text-sm text-muted-foreground">
-                    <p>
-                      Si ingresas <span className="font-semibold text-foreground">0.5</span> contratos de BTC/USDT:
-                    </p>
-                    <p>• Cada orden comprará o venderá exactamente 0.5 BTC</p>
-                    <p>• Si el precio de BTC es $50,000, el tamaño de la orden será $25,000</p>
-                  </div>
-                )}
-                {formData.riskType === "fixed_amount" && (
-                  <div className="space-y-1 text-sm text-muted-foreground">
-                    <p>
-                      Si ingresas <span className="font-semibold text-foreground">$1,000</span> como monto fijo:
-                    </p>
-                    <p>• Cada orden usará exactamente $1,000 USDT</p>
-                    <p>• Si el precio de BTC es $50,000, comprará 0.02 BTC</p>
-                  </div>
-                )}
-                {formData.riskType === "percentage" && (
-                  <div className="space-y-1 text-sm text-muted-foreground">
-                    <p>
-                      Si ingresas <span className="font-semibold text-foreground">5%</span> de tu capital:
-                    </p>
-                    <p>• Con un balance de $10,000, cada orden usará $500</p>
-                    <p>• El tamaño de la orden se ajusta automáticamente según tu balance</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-          <h2 className="text-xl font-semibold text-foreground">Webhook de TradingView</h2>
-
-          <div className="flex gap-2">
-            <Input
-              value={`https://api-92000983434.southamerica-east1.run.app/api/webhook`}
-              readOnly
-              className="font-mono text-sm"
-            />
-            <Button onClick={copyWebhook} variant="outline" className="bg-transparent">
-              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            </Button>
-          </div>
-        </div>
-
-        <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-          <h2 className="text-xl font-semibold text-foreground">Payload JSON</h2>
-
-          <Textarea value={generatePayload()} readOnly className="font-mono text-sm" rows={12} />
-        </div>
-
-        <div className="flex gap-4">
-          <Button
-            onClick={handleSave}
-            className="bg-accent hover:bg-accent/90 text-accent-foreground"
-            disabled={isSubmitting}
-          >
-            <Save className="h-4 w-4 mr-2" />
-            Guardar estrategia
-          </Button>
-          <Link href="/app/estrategias">
-            <Button variant="outline" className="bg-transparent">
-              Cancelar
-            </Button>
-          </Link>
-        </div>
+          </>
+        )}
       </div>
     </DashboardLayout>
   )
