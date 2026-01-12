@@ -148,6 +148,7 @@ export default function EditStrategyPage() {
         pair: strategy.trading_pair,
         marketType: strategy.market_type,
         leverage: strategy.leverage || 1,
+        positionSide: strategy.position_side || "long",
         riskType: strategy.risk_type,
         riskAmount: strategy.risk_value?.toString() || "",
         webhookUrl: strategy.webhook_url,
@@ -234,6 +235,7 @@ export default function EditStrategyPage() {
             trading_pair: formData.pair,
             market_type: formData.marketType,
             leverage: formData.leverage || 1,
+            position_side: formData.marketType === "futures" ? formData.positionSide : null,
             risk_type: formData.riskType,
             risk_value: Number.parseFloat(formData.riskAmount),
             updated_at: new Date().toISOString(),
@@ -422,46 +424,88 @@ export default function EditStrategyPage() {
             </div>
 
             {formData.marketType === "futures" && (
-              <div className="space-y-2">
-                <Label>Apalancamiento *</Label>
-                <div className="grid grid-cols-4 gap-2">
-                  {[1, 2, 5, 10, 20, 50, 100, 125].map((lev) => (
+              <>
+                <div className="space-y-2">
+                  <Label>Dirección *</Label>
+                  <div className="grid grid-cols-2 gap-4">
                     <button
-                      key={lev}
                       type="button"
-                      onClick={() => setFormData({ ...formData, leverage: lev })}
-                      className={`p-2 rounded-lg border-2 text-sm font-medium transition-all ${
-                        formData.leverage === lev
-                          ? "border-accent bg-accent/10 text-accent"
+                      onClick={() => setFormData({ ...formData, positionSide: "long" })}
+                      className={`relative p-4 rounded-xl border-2 transition-all ${
+                        formData.positionSide === "long"
+                          ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
                           : "border-border hover:border-accent/50"
                       }`}
                     >
-                      {lev}x
+                      {formData.positionSide === "long" && (
+                        <div className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
+                          <Check className="h-3 w-3 text-accent-foreground" />
+                        </div>
+                      )}
+                      <div className="font-semibold text-foreground">Long</div>
+                      <div className="text-sm text-muted-foreground mt-1">Compra (alcista)</div>
                     </button>
-                  ))}
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, positionSide: "short" })}
+                      className={`relative p-4 rounded-xl border-2 transition-all ${
+                        formData.positionSide === "short"
+                          ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
+                          : "border-border hover:border-accent/50"
+                      }`}
+                    >
+                      {formData.positionSide === "short" && (
+                        <div className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
+                          <Check className="h-3 w-3 text-accent-foreground" />
+                        </div>
+                      )}
+                      <div className="font-semibold text-foreground">Short</div>
+                      <div className="text-sm text-muted-foreground mt-1">Venta (bajista)</div>
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <Label htmlFor="custom-leverage" className="text-xs text-muted-foreground whitespace-nowrap">
-                    Personalizado:
-                  </Label>
-                  <Input
-                    id="custom-leverage"
-                    type="number"
-                    min="1"
-                    max="125"
-                    value={formData.leverage}
-                    onChange={(e) => {
-                      const val = Number(e.target.value)
-                      if (val >= 1 && val <= 125) {
-                        setFormData({ ...formData, leverage: val })
-                      }
-                    }}
-                    className="h-8 text-sm"
-                  />
-                  <span className="text-xs text-muted-foreground">x</span>
+
+                <div className="space-y-2">
+                  <Label>Apalancamiento *</Label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[1, 2, 5, 10, 20, 50, 100, 125].map((lev) => (
+                      <button
+                        key={lev}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, leverage: lev })}
+                        className={`p-2 rounded-lg border-2 text-sm font-medium transition-all ${
+                          formData.leverage === lev
+                            ? "border-accent bg-accent/10 text-accent"
+                            : "border-border hover:border-accent/50"
+                        }`}
+                      >
+                        {lev}x
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Label htmlFor="custom-leverage" className="text-xs text-muted-foreground whitespace-nowrap">
+                      Personalizado:
+                    </Label>
+                    <Input
+                      id="custom-leverage"
+                      type="number"
+                      min="1"
+                      max="125"
+                      value={formData.leverage}
+                      onChange={(e) => {
+                        const val = Number(e.target.value)
+                        if (val >= 1 && val <= 125) {
+                          setFormData({ ...formData, leverage: val })
+                        }
+                      }}
+                      className="h-8 text-sm"
+                    />
+                    <span className="text-xs text-muted-foreground">x</span>
+                  </div>
+                  {errors.leverage && <p className="text-xs text-destructive">{errors.leverage}</p>}
                 </div>
-                {errors.leverage && <p className="text-xs text-destructive">{errors.leverage}</p>}
-              </div>
+              </>
             )}
 
             <div className="space-y-2">

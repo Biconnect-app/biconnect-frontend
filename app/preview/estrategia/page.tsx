@@ -96,6 +96,7 @@ export default function PreviewStrategyPage() {
     pair: "",
     marketType: "",
     leverage: 1,
+    positionSide: "long",
     riskType: "",
     riskAmount: "",
     email: "", // Added email field
@@ -411,6 +412,46 @@ export default function PreviewStrategyPage() {
               {/* Apalancamiento (solo para futuros) */}
               {formData.marketType === "futures" && (
                 <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label>Dirección *</Label>
+                    <div className="grid grid-cols-2 gap-4">
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, positionSide: "long" })}
+                        className={`relative p-4 rounded-xl border-2 transition-all ${
+                          formData.positionSide === "long"
+                            ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
+                            : "border-border hover:border-accent/50"
+                        }`}
+                      >
+                        {formData.positionSide === "long" && (
+                          <div className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
+                            <Check className="h-3 w-3 text-accent-foreground" />
+                          </div>
+                        )}
+                        <div className="font-semibold text-foreground">Long</div>
+                        <div className="text-sm text-muted-foreground mt-1">Compra (alcista)</div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, positionSide: "short" })}
+                        className={`relative p-4 rounded-xl border-2 transition-all ${
+                          formData.positionSide === "short"
+                            ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
+                            : "border-border hover:border-accent/50"
+                        }`}
+                      >
+                        {formData.positionSide === "short" && (
+                          <div className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
+                            <Check className="h-3 w-3 text-accent-foreground" />
+                          </div>
+                        )}
+                        <div className="font-semibold text-foreground">Short</div>
+                        <div className="text-sm text-muted-foreground mt-1">Venta (bajista)</div>
+                      </button>
+                    </div>
+                  </div>
+
                   <Label>Apalancamiento</Label>
                   <div className="grid grid-cols-4 gap-2">
                     {QUICK_LEVERAGE_OPTIONS.map((lev) => (
