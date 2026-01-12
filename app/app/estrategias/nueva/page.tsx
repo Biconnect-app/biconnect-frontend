@@ -624,34 +624,49 @@ export default function NuevaEstrategiaPage() {
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, riskType: "fixed_quantity" })}
-                  className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+                  className={`relative w-full p-4 rounded-xl border-2 text-left transition-all ${
                     formData.riskType === "fixed_quantity"
-                      ? "border-accent bg-accent/5"
+                      ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
                       : "border-border hover:border-accent/50"
                   }`}
                 >
+                  {formData.riskType === "fixed_quantity" && (
+                    <div className="absolute top-4 right-4 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
+                      <Check className="h-3 w-3 text-accent-foreground" />
+                    </div>
+                  )}
                   <div className="font-semibold text-foreground">Cantidad de contratos</div>
                 </button>
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, riskType: "fixed_amount" })}
-                  className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+                  className={`relative w-full p-4 rounded-xl border-2 text-left transition-all ${
                     formData.riskType === "fixed_amount"
-                      ? "border-accent bg-accent/5"
+                      ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
                       : "border-border hover:border-accent/50"
                   }`}
                 >
+                  {formData.riskType === "fixed_amount" && (
+                    <div className="absolute top-4 right-4 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
+                      <Check className="h-3 w-3 text-accent-foreground" />
+                    </div>
+                  )}
                   <div className="font-semibold text-foreground">Monto fijo</div>
                 </button>
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, riskType: "percentage" })}
-                  className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+                  className={`relative w-full p-4 rounded-xl border-2 text-left transition-all ${
                     formData.riskType === "percentage"
-                      ? "border-accent bg-accent/5"
+                      ? "border-accent bg-accent/10 shadow-lg ring-2 ring-accent/20"
                       : "border-border hover:border-accent/50"
                   }`}
                 >
+                  {formData.riskType === "percentage" && (
+                    <div className="absolute top-4 right-4 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
+                      <Check className="h-3 w-3 text-accent-foreground" />
+                    </div>
+                  )}
                   <div className="font-semibold text-foreground">Porcentaje de capital</div>
                 </button>
               </div>
