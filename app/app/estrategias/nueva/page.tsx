@@ -99,7 +99,6 @@ export default function NuevaEstrategiaPage() {
   const [errors, setErrors] = useState<string[]>([])
   const [availablePairs, setAvailablePairs] = useState<string[]>([])
   const [loadingPairs, setLoadingPairs] = useState(false)
-  const [webhookUrl, setWebhookUrl] = useState<string>("")
   const [copied, setCopied] = useState(false)
   const [preGeneratedId, setPreGeneratedId] = useState<string>("")
   const [userId, setUserId] = useState<string>("")
@@ -295,7 +294,7 @@ export default function NuevaEstrategiaPage() {
           risk_type: formData.riskType,
           risk_value: Number.parseFloat(formData.riskAmount),
           is_active: true,
-          webhook_url: `https://biconnect.vercel.app/api/webhook`,
+          webhook_url: `https://api-92000983434.southamerica-east1.run.app/api/webhook`,
         }
 
         const { data: newStrategy, error } = await supabase.from("strategies").insert(strategyData).select().single()
@@ -323,7 +322,7 @@ export default function NuevaEstrategiaPage() {
   }
 
   const copyWebhook = () => {
-    const webhookUrl = `https://biconnect.vercel.app/api/webhook`
+    const webhookUrl = `https://api-92000983434.southamerica-east1.run.app/api/webhook`
     navigator.clipboard.writeText(webhookUrl)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
@@ -766,7 +765,11 @@ export default function NuevaEstrategiaPage() {
           <h2 className="text-xl font-semibold text-foreground">Webhook de TradingView</h2>
 
           <div className="flex gap-2">
-            <Input value={`https://biconnect.vercel.app/api/webhook`} readOnly className="font-mono text-sm" />
+            <Input
+              value={`https://api-92000983434.southamerica-east1.run.app/api/webhook`}
+              readOnly
+              className="font-mono text-sm"
+            />
             <Button onClick={copyWebhook} variant="outline" className="bg-transparent">
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             </Button>

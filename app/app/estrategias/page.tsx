@@ -168,7 +168,7 @@ export default function StrategiesPage() {
             risk_type: strategyData.riskType,
             risk_value: Number.parseFloat(strategyData.riskAmount),
             is_active: true,
-            webhook_url: `https://biconnect.vercel.app/api/webhook`,
+            webhook_url: `https://api-92000983434.southamerica-east1.run.app/api/webhook`,
           })
 
           const { data: newStrategy, error: insertError } = await supabase
@@ -185,7 +185,7 @@ export default function StrategiesPage() {
               risk_type: strategyData.riskType,
               risk_value: Number.parseFloat(strategyData.riskAmount),
               is_active: true,
-              webhook_url: `https://biconnect.vercel.app/api/webhook`,
+              webhook_url: `https://api-92000983434.southamerica-east1.run.app/api/webhook`,
             })
             .select()
             .single()
@@ -282,7 +282,7 @@ export default function StrategiesPage() {
           risk_type: strategy.risk_type,
           risk_value: strategy.risk_value,
           is_active: true,
-          webhook_url: `https://biconnect.vercel.app/api/webhook`,
+          webhook_url: `https://api-92000983434.southamerica-east1.run.app/api/webhook`,
         })
         .select()
         .single()
@@ -363,7 +363,7 @@ export default function StrategiesPage() {
 
   const handleCopyUrl = async (e: React.MouseEvent, strategyId: string) => {
     e.stopPropagation()
-    await copyToClipboard("https://biconnect.vercel.app/api/webhook")
+    await copyToClipboard("https://api-92000983434.southamerica-east1.run.app/api/webhook")
     setCopiedUrl(strategyId)
     setTimeout(() => setCopiedUrl(null), 2000)
   }
@@ -552,7 +552,7 @@ export default function StrategiesPage() {
                           </Button>
                         </div>
                         <div className="bg-background border border-border rounded-lg p-3 font-mono text-sm text-foreground break-all">
-                          https://biconnect.vercel.app/api/webhook
+                          https://api-92000983434.southamerica-east1.run.app/api/webhook
                         </div>
                       </div>
 

@@ -236,7 +236,7 @@ export default function PreviewStrategyPage() {
   }
 
   const copyWebhook = () => {
-    const webhookUrl = `https://biconnect.vercel.app/api/webhook`
+    const webhookUrl = `https://api-92000983434.southamerica-east1.run.app/api/webhook`
     navigator.clipboard.writeText(webhookUrl)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)

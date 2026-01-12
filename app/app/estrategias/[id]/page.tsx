@@ -284,7 +284,7 @@ export default function EditStrategyPage() {
   }
 
   const copyWebhook = () => {
-    const webhookUrl = formData.webhookUrl || `https://biconnect.vercel.app/api/webhook`
+    const webhookUrl = formData.webhookUrl || `https://api-92000983434.southamerica-east1.run.app/api/webhook`
     navigator.clipboard.writeText(webhookUrl)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
@@ -668,7 +668,11 @@ export default function EditStrategyPage() {
           <h2 className="text-xl font-semibold text-foreground">Webhook de TradingView</h2>
 
           <div className="flex gap-2">
-            <Input value={`https://biconnect.vercel.app/api/webhook`} readOnly className="font-mono text-sm" />
+            <Input
+              value={`https://api-92000983434.southamerica-east1.run.app/api/webhook`}
+              readOnly
+              className="font-mono text-sm"
+            />
             <Button onClick={copyWebhook} variant="outline" className="bg-transparent">
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             </Button>
