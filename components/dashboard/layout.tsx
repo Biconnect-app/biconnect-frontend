@@ -6,22 +6,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import {
-  LayoutDashboard,
-  Layers,
-  Activity,
-  FileText,
-  ScrollText,
-  Shield,
-  Plug,
-  Settings,
-  LogOut,
-  Menu,
-  X,
-  Moon,
-  Sun,
-  Lock,
-} from "lucide-react"
+import { Layers, FileText, Plug, Settings, LogOut, Menu, X, Moon, Sun, Lock } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useTheme } from "next-themes"
 import { useUserPlan } from "@/hooks/use-user-plan"
@@ -120,12 +105,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const menuItems = [
     { icon: Layers, label: "Estrategias", href: "/app/estrategias", locked: false },
-    { icon: Plug, label: "Integraciones", href: "/app/integraciones", locked: false },
-    { icon: LayoutDashboard, label: "Dashboard", href: "/app", locked: true },
-    { icon: Activity, label: "Ejecución", href: "/app/ejecucion", locked: true },
     { icon: FileText, label: "Órdenes", href: "/app/ordenes", locked: false },
-    { icon: ScrollText, label: "Logs", href: "/app/logs", locked: true },
-    { icon: Shield, label: "Riesgo", href: "/app/riesgo", locked: true },
+    { icon: Plug, label: "Integraciones", href: "/app/integraciones", locked: false },
     { icon: Settings, label: "Configuración", href: "/app/configuracion", locked: false },
   ]
 

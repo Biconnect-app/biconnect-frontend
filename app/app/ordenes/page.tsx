@@ -7,8 +7,6 @@ import { Label } from "@/components/ui/label"
 import { Download, Search, TrendingUp, TrendingDown, Activity } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ApiKeyAlert } from "@/components/api-key-alert"
-import { Paywall } from "@/components/paywall"
-import { useUserPlan } from "@/hooks/use-user-plan"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -45,7 +43,6 @@ interface Strategy {
 }
 
 export default function OrdersPage() {
-  const { isFree, loading: planLoading } = useUserPlan()
   const [operaciones, setOperaciones] = useState<Operacion[]>([])
   const [strategies, setStrategies] = useState<Strategy[]>([])
   const [loading, setLoading] = useState(true)
@@ -196,22 +193,13 @@ export default function OrdersPage() {
 
   const winRate = kpis.total > 0 ? ((kpis.exitosas / kpis.total) * 100).toFixed(1) : "0.0"
 
-  if (planLoading || loading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Cargando...</p>
         </div>
-      </div>
-    )
-  }
-
-  if (isFree) {
-    return (
-      <div>
-        <ApiKeyAlert />
-        <Paywall feature="El historial completo de órdenes" />
       </div>
     )
   }
