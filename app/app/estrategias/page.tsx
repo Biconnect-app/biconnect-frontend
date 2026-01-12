@@ -408,11 +408,11 @@ export default function StrategiesPage() {
           </div>
           <div className="bg-card border border-border rounded-xl p-4">
             <div className="text-sm text-muted-foreground mb-1">Activas</div>
-            <div className="text-2xl font-bold text-foreground">{strategies.filter((s) => s.is_active).length}</div>
+            <div className="text-2xl font-bold text-green-500">{strategies.filter((s) => s.is_active).length}</div>
           </div>
           <div className="bg-card border border-border rounded-xl p-4">
             <div className="text-sm text-muted-foreground mb-1">Inactivas</div>
-            <div className="text-2xl font-bold text-green-500">{strategies.filter((s) => !s.is_active).length}</div>
+            <div className="text-2xl font-bold text-foreground">{strategies.filter((s) => !s.is_active).length}</div>
           </div>
           <div className="bg-card border border-border rounded-xl p-4">
             <div className="text-sm text-muted-foreground mb-1">Exchange</div>
@@ -448,11 +448,11 @@ export default function StrategiesPage() {
                     <div className="flex items-start gap-4 flex-1">
                       <div
                         className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                          strategy.is_active ? "bg-muted" : "bg-green-500/10"
+                          strategy.is_active ? "bg-green-500/10" : "bg-muted"
                         }`}
                       >
                         <TrendingUp
-                          className={`h-6 w-6 ${strategy.is_active ? "text-muted-foreground" : "text-green-500"}`}
+                          className={`h-6 w-6 ${strategy.is_active ? "text-green-500" : "text-muted-foreground"}`}
                         />
                       </div>
 
@@ -461,7 +461,7 @@ export default function StrategiesPage() {
                           <h3 className="text-xl font-semibold text-foreground">{strategy.name}</h3>
                           <span
                             className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                              strategy.is_active ? "bg-muted text-muted-foreground" : "bg-green-500/10 text-green-500"
+                              strategy.is_active ? "bg-green-500/10 text-green-500" : "bg-muted text-muted-foreground"
                             }`}
                           >
                             {strategy.is_active ? (
