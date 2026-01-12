@@ -42,6 +42,92 @@ interface Strategy {
   name: string
 }
 
+const calculateWinningTrades = (operaciones: Operacion[]) => {
+  const successfulOps = operaciones.filter((op) => op.status.toLowerCase() === "success" && op.price && op.price > 0)
+
+  const groups: Record<string, Operacion[]> = {}
+  successfulOps.forEach((op) => {
+    const key = `${op.strategy_id}_${op.symbol || op.trading_pair}`
+    if (!groups[key]) groups[key] = []
+    groups[key].push(op)
+  })
+
+  let winningCount = 0
+  let totalPairs = 0
+
+  Object.values(groups).forEach((groupOps) => {
+    groupOps.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+
+    const marketType = groupOps[0].market_type?.toLowerCase()
+
+    if (marketType === "spot") {
+      for (let i = 0; i < groupOps.length - 1; i++) {
+        const current = groupOps[i]
+        const next = groupOps[i + 1]
+
+        const currentSide = (current.side || current.action_internal)?.toLowerCase()
+        const nextSide = (next.side || next.action_internal)?.toLowerCase()
+
+        if (currentSide === "buy" && nextSide === "sell" && current.price && next.price) {
+          totalPairs++
+          if (next.price > current.price) {
+            winningCount++
+          }
+        } else if (currentSide === "sell" && nextSide === "buy" && current.price && next.price) {
+          totalPairs++
+          if (next.price < current.price) {
+            winningCount++
+          }
+        }
+      }
+    } else if (marketType === "futures") {
+      for (let i = 0; i < groupOps.length - 1; i++) {
+        const current = groupOps[i]
+        const next = groupOps[i + 1]
+
+        const currentSide = (
+          current.position_side ||
+          current.order_position_side ||
+          current.action_internal ||
+          current.side
+        )?.toLowerCase()
+        const nextSide = (
+          next.position_side ||
+          next.order_position_side ||
+          next.action_internal ||
+          next.side
+        )?.toLowerCase()
+
+        if (
+          (currentSide === "long" || currentSide === "buy") &&
+          current.close_position === false &&
+          next.close_position === true &&
+          current.price &&
+          next.price
+        ) {
+          totalPairs++
+          if (next.price > current.price) {
+            winningCount++
+          }
+        } else if (
+          (currentSide === "short" || currentSide === "sell") &&
+          current.close_position === false &&
+          next.close_position === true &&
+          current.price &&
+          next.price
+        ) {
+          totalPairs++
+          if (next.price < current.price) {
+            winningCount++
+          }
+        }
+      }
+    }
+  })
+
+  return { winningCount, totalPairs }
+}
+
 export default function OrdersPage() {
   const [operaciones, setOperaciones] = useState<Operacion[]>([])
   const [strategies, setStrategies] = useState<Strategy[]>([])
@@ -70,10 +156,15 @@ export default function OrdersPage() {
         data: { user },
       } = await supabase.auth.getUser()
 
+      console.log("[v0] User ID:", user?.id)
+
       if (!user) {
+        console.log("[v0] No user found")
         setLoading(false)
         return
       }
+
+      console.log("[v0] Fetching operaciones for user:", user.id)
 
       const { data: operacionesData, error: operacionesError } = await supabase
         .from("operaciones")
@@ -81,8 +172,12 @@ export default function OrdersPage() {
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
 
+      console.log("[v0] Operaciones data:", operacionesData)
+      console.log("[v0] Operaciones error:", operacionesError)
+      console.log("[v0] Operaciones count:", operacionesData?.length || 0)
+
       if (operacionesError) {
-        console.error("Error loading operaciones:", operacionesError)
+        console.error("[v0] Error loading operaciones:", operacionesError)
       } else {
         setOperaciones(operacionesData || [])
       }
@@ -92,15 +187,18 @@ export default function OrdersPage() {
         .select("id, name")
         .eq("user_id", user.id)
 
+      console.log("[v0] Strategies data:", strategiesData)
+      console.log("[v0] Strategies error:", strategiesError)
+
       if (strategiesError) {
-        console.error("Error loading strategies:", strategiesError)
+        console.error("[v0] Error loading strategies:", strategiesError)
       } else {
         setStrategies(strategiesData || [])
       }
 
       setLoading(false)
     } catch (error) {
-      console.error("Error in loadData:", error)
+      console.error("[v0] Error in loadData:", error)
       setLoading(false)
     }
   }
@@ -108,7 +206,6 @@ export default function OrdersPage() {
   const applyFilters = () => {
     let filtered = [...operaciones]
 
-    // Filter by date range
     if (dateFrom) {
       filtered = filtered.filter((op) => new Date(op.created_at) >= new Date(dateFrom))
     }
@@ -118,7 +215,6 @@ export default function OrdersPage() {
       filtered = filtered.filter((op) => new Date(op.created_at) <= endDate)
     }
 
-    // Filter by symbol
     if (symbolFilter) {
       filtered = filtered.filter(
         (op) =>
@@ -127,12 +223,10 @@ export default function OrdersPage() {
       )
     }
 
-    // Filter by strategy
     if (strategyFilter !== "all") {
       filtered = filtered.filter((op) => op.strategy_id === strategyFilter)
     }
 
-    // Filter by status
     if (statusFilter !== "all") {
       filtered = filtered.filter((op) => op.status.toLowerCase() === statusFilter.toLowerCase())
     }
@@ -180,6 +274,8 @@ export default function OrdersPage() {
     document.body.removeChild(link)
   }
 
+  const { winningCount, totalPairs } = calculateWinningTrades(filteredOperaciones)
+
   const kpis = {
     total: filteredOperaciones.length,
     exitosas: filteredOperaciones.filter((op) => op.status.toLowerCase() === "success").length,
@@ -189,9 +285,11 @@ export default function OrdersPage() {
       const price = op.price || 0
       return sum + qty * price
     }, 0),
+    ganadoras: winningCount,
+    totalPares: totalPairs,
   }
 
-  const winRate = kpis.total > 0 ? ((kpis.exitosas / kpis.total) * 100).toFixed(1) : "0.0"
+  const winRate = kpis.totalPares > 0 ? ((kpis.ganadoras / kpis.totalPares) * 100).toFixed(1) : "0.0"
 
   if (loading) {
     return (
@@ -247,7 +345,7 @@ export default function OrdersPage() {
             <CardContent>
               <div className="text-2xl font-bold text-accent">{winRate}%</div>
               <p className="text-xs text-muted-foreground">
-                {kpis.exitosas} de {kpis.total} operaciones
+                {kpis.ganadoras} de {kpis.totalPares} operaciones ganadoras
               </p>
             </CardContent>
           </Card>
@@ -258,19 +356,19 @@ export default function OrdersPage() {
               <TrendingUp className="h-4 w-4 text-accent" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-accent">{kpis.exitosas}</div>
-              <p className="text-xs text-muted-foreground">Completadas correctamente</p>
+              <div className="text-2xl font-bold text-accent">{kpis.ganadoras}</div>
+              <p className="text-xs text-muted-foreground">Operaciones con ganancia</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Operaciones Fallidas</CardTitle>
+              <CardTitle className="text-sm font-medium">Operaciones Perdedoras</CardTitle>
               <TrendingDown className="h-4 w-4 text-destructive" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-destructive">{kpis.fallidas}</div>
-              <p className="text-xs text-muted-foreground">Con errores</p>
+              <div className="text-2xl font-bold text-destructive">{kpis.totalPares - kpis.ganadoras}</div>
+              <p className="text-xs text-muted-foreground">Operaciones con pérdida</p>
             </CardContent>
           </Card>
         </div>
