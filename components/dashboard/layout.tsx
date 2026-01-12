@@ -123,7 +123,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { icon: Plug, label: "Integraciones", href: "/app/integraciones", locked: false },
     { icon: LayoutDashboard, label: "Dashboard", href: "/app", locked: true },
     { icon: Activity, label: "Ejecución", href: "/app/ejecucion", locked: true },
-    { icon: FileText, label: "Órdenes", href: "/app/ordenes", locked: true },
+    { icon: FileText, label: "Órdenes", href: "/app/ordenes", locked: false },
     { icon: ScrollText, label: "Logs", href: "/app/logs", locked: true },
     { icon: Shield, label: "Riesgo", href: "/app/riesgo", locked: true },
     { icon: Settings, label: "Configuración", href: "/app/configuracion", locked: false },
