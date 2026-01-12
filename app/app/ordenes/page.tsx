@@ -130,9 +130,9 @@ const calculateWinningTrades = (operaciones: Operacion[]) => {
 
 const parseErrorMessage = (message: string, stage: string): { displayStage: string; displayMessage: string } => {
   try {
+    // Intentar parsear como JSON directo primero
     const parsed = JSON.parse(message)
-    if (parsed.status === "error") {
-      // Intentar obtener el mensaje del campo 'message' primero, luego 'log_summary'
+    if (parsed.status === "error" || parsed.status === "warning") {
       const errorMessage = parsed.message || parsed.log_summary || message
       return {
         displayStage: "Error",
@@ -140,8 +140,28 @@ const parseErrorMessage = (message: string, stage: string): { displayStage: stri
       }
     }
   } catch {
-    // Si no es JSON válido, usar los valores originales
+    // Si falla, intentar reemplazar comillas simples por dobles
+    try {
+      const normalized = message.replace(/'/g, '"')
+      const parsed = JSON.parse(normalized)
+      if (parsed.status === "error" || parsed.status === "warning") {
+        const errorMessage = parsed.message || parsed.log_summary || message
+        return {
+          displayStage: "Error",
+          displayMessage: errorMessage,
+        }
+      }
+    } catch {
+      // Si tampoco funciona, verificar si es un error por el stage
+      if (stage && stage.toLowerCase().includes("exception")) {
+        return {
+          displayStage: "Error",
+          displayMessage: message,
+        }
+      }
+    }
   }
+
   return {
     displayStage: stage,
     displayMessage: message,
@@ -545,8 +565,10 @@ export default function OrdersPage() {
                           </span>
                         </td>
                         <td className="p-4 text-sm text-muted-foreground">{displayStage}</td>
-                        <td className="p-4 text-sm text-muted-foreground max-w-xs truncate" title={displayMessage}>
-                          {displayMessage}
+                        <td className="p-4 text-sm text-muted-foreground">
+                          <div className="max-w-xs truncate" title={displayMessage}>
+                            {displayMessage}
+                          </div>
                         </td>
                       </tr>
                     )
