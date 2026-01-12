@@ -523,7 +523,12 @@ export default function StrategiesPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => toggleStatus(strategy.id)}>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              toggleStatus(strategy.id)
+                            }}
+                          >
                             {strategy.is_active ? "Desactivar" : "Activar"}
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>

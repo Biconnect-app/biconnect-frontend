@@ -59,12 +59,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         const quote = symbol.quoteAsset
         return `${base}/${quote}`
       })
-      .sort()
 
-    console.log("[v0] Successfully processed pairs, count:", pairs.length)
-    console.log("[v0] Sample pairs:", pairs.slice(0, 5))
+    const uniquePairs = [...new Set(pairs)].sort()
 
-    return NextResponse.json({ pairs, count: pairs.length })
+    console.log("[v0] Successfully processed pairs, count:", uniquePairs.length)
+    console.log("[v0] Sample pairs:", uniquePairs.slice(0, 5))
+
+    return NextResponse.json({ pairs: uniquePairs, count: uniquePairs.length })
   } catch (error) {
     console.error("[v0] Error in API route:", error)
 
