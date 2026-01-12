@@ -131,10 +131,12 @@ const calculateWinningTrades = (operaciones: Operacion[]) => {
 const parseErrorMessage = (message: string, stage: string): { displayStage: string; displayMessage: string } => {
   try {
     const parsed = JSON.parse(message)
-    if (parsed.status === "error" && parsed.message) {
+    if (parsed.status === "error") {
+      // Intentar obtener el mensaje del campo 'message' primero, luego 'log_summary'
+      const errorMessage = parsed.message || parsed.log_summary || message
       return {
         displayStage: "Error",
-        displayMessage: parsed.message,
+        displayMessage: errorMessage,
       }
     }
   } catch {
