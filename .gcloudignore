@@ -1,0 +1,12 @@
+# This file specifies files that are *not* uploaded to Google Cloud Build.
+# See `gcloud topic gcloudignore` for more details.
+
+# Node.js dependencies
+node_modules/
+
+# Python artifacts
+__pycache__/
+*.pyc
+
+# Don't ignore the Dockerfile
+!Dockerfile
