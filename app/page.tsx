@@ -28,16 +28,16 @@ export default function Home() {
 
       if (error) {
         console.error("Error fetching strategies:", error)
-        router.replace("/app/estrategias/nueva")
+        router.replace("/dashboard/estrategias/nueva")
         return
       }
 
       if (!strategies || strategies.length === 0) {
         // Usuario logueado pero sin estrategias → crear estrategia
-        router.replace("/app/estrategias/nueva")
+        router.replace("/dashboard/estrategias/nueva")
       } else {
         // Usuario logueado con estrategias → mostrar lista
-        router.replace("/app/estrategias")
+        router.replace("/dashboard/estrategias")
       }
     }
 

@@ -48,7 +48,7 @@ export default function SignUpSuccessPage() {
       })
 
       if (error) {
-        console.error("[v0] Error resending verification email:", error)
+        console.error("Error resending verification email:", error)
         toast({
           title: "Error al reenviar",
           description: error.message || "No se pudo reenviar el correo. Por favor, intenta nuevamente.",
@@ -61,7 +61,7 @@ export default function SignUpSuccessPage() {
         })
       }
     } catch (error) {
-      console.error("[v0] Unexpected error resending email:", error)
+      console.error("Unexpected error resending email:", error)
       toast({
         title: "Error",
         description: "Ocurrió un error inesperado. Por favor, intenta nuevamente.",

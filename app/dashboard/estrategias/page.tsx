@@ -6,7 +6,7 @@ import { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Plus, Power, PowerOff, Copy, MoreVertical, TrendingUp, ChevronDown, ChevronUp } from "lucide-react"
+import { Plus, Power, PowerOff, Copy, MoreVertical, TrendingUp, ChevronDown, ChevronUp, AlertCircle } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { createClient } from "@/lib/supabase/client"
 import { ApiKeyAlert } from "@/components/api-key-alert"
@@ -21,6 +21,52 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
+// Helper function to check if a strategy has all required fields
+const isStrategyComplete = (strategy: any): boolean => {
+  // Para futuros, también necesita leverage y position_side
+  const isFutures = strategy.market_type === "futures"
+  
+  const baseComplete = !!(
+    strategy.name &&
+    strategy.name !== "Estrategia sin nombre" &&
+    strategy.exchange_name &&
+    strategy.trading_pair &&
+    strategy.market_type &&
+    strategy.risk_type &&
+    strategy.risk_value !== null &&
+    strategy.risk_value !== undefined &&
+    strategy.risk_value > 0
+  )
+  
+  if (isFutures) {
+    return baseComplete && 
+      strategy.leverage !== null && 
+      strategy.leverage > 0 &&
+      strategy.position_side
+  }
+  
+  return baseComplete
+}
+
+// Helper function to get missing fields
+const getMissingFields = (strategy: any): string[] => {
+  const missing: string[] = []
+  if (!strategy.name || strategy.name === "Estrategia sin nombre") missing.push("Nombre")
+  if (!strategy.exchange_name) missing.push("Exchange")
+  if (!strategy.trading_pair) missing.push("Par de trading")
+  if (!strategy.market_type) missing.push("Tipo de mercado")
+  if (!strategy.risk_type) missing.push("Tipo de gestión de riesgo")
+  if (strategy.risk_value === null || strategy.risk_value === undefined || strategy.risk_value <= 0) missing.push("Cantidad/Monto de riesgo")
+  
+  // Para futuros, verificar campos adicionales
+  if (strategy.market_type === "futures") {
+    if (!strategy.leverage || strategy.leverage <= 0) missing.push("Apalancamiento")
+    if (!strategy.position_side) missing.push("Dirección (Long/Short)")
+  }
+  
+  return missing
+}
+
 export default function StrategiesPage() {
   const router = useRouter()
   const [strategies, setStrategies] = useState<any[]>([])
@@ -32,6 +78,8 @@ export default function StrategiesPage() {
   const [expandedStrategyId, setExpandedStrategyId] = useState<string | null>(null)
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null)
   const [copiedPayload, setCopiedPayload] = useState<string | null>(null)
+  const [showIncompleteDialog, setShowIncompleteDialog] = useState(false)
+  const [incompleteStrategy, setIncompleteStrategy] = useState<any>(null)
 
   const supabase = useMemo(() => createClient(), [])
 
@@ -46,13 +94,11 @@ export default function StrategiesPage() {
       } = await supabase.auth.getUser()
 
       if (!user) {
-        console.error("[v0] No user found")
+        console.error("No user found")
         setLoading(false)
         setCheckingApiKeys(false)
         return
       }
-
-      console.log("[v0] Current user:", { id: user.id, email: user.email })
 
       const { data: exchanges, error: exchangesError } = await supabase
         .from("exchanges")
@@ -61,7 +107,7 @@ export default function StrategiesPage() {
         .limit(1)
 
       if (exchangesError) {
-        console.error("[v0] Error checking API keys:", exchangesError)
+        console.error("Error checking API keys:", exchangesError)
       }
 
       setHasApiKeys(exchanges && exchanges.length > 0)
@@ -74,19 +120,16 @@ export default function StrategiesPage() {
         .order("created_at", { ascending: false })
 
       if (strategiesError) {
-        console.error("[v0] Error loading strategies:", strategiesError)
+        console.error("Error loading strategies:", strategiesError)
         setLoading(false)
         return
       }
 
-      console.log("[v0] Loaded strategies from database:", strategiesData)
       setStrategies(strategiesData || [])
 
       let strategyData = null
       let fromPreview = false
       let pendingStrategyId = null
-
-      console.log("[v0] Checking for pending strategies with email:", user.email)
 
       const { data: pendingStrategies, error: pendingError } = await supabase
         .from("pending_strategies")
@@ -95,25 +138,16 @@ export default function StrategiesPage() {
         .order("created_at", { ascending: false })
         .limit(1)
 
-      console.log("[v0] Pending strategies query result:", {
-        data: pendingStrategies,
-        error: pendingError,
-        found: pendingStrategies && pendingStrategies.length > 0,
-      })
-
       if (!pendingError && pendingStrategies && pendingStrategies.length > 0) {
-        console.log("[v0] Found pending strategy in database:", pendingStrategies[0])
         strategyData = pendingStrategies[0].strategy_data
         fromPreview = true
         pendingStrategyId = pendingStrategies[0].id
       } else {
-        console.log("[v0] No pending strategies found in database, checking sessionStorage")
         // Fallback to sessionStorage
         const previewDataString = sessionStorage.getItem("previewStrategy")
         const fromPreviewString = sessionStorage.getItem("fromPreview")
 
         if (previewDataString && fromPreviewString === "true") {
-          console.log("[v0] Found preview strategy in sessionStorage")
           strategyData = JSON.parse(previewDataString)
           fromPreview = true
         }
@@ -121,55 +155,20 @@ export default function StrategiesPage() {
 
       if (strategyData && fromPreview) {
         try {
-          console.log("[v0] Creating strategy from preview:", strategyData)
+          // Determinar si la estrategia está completa
+          const isComplete = !!(
+            strategyData.name &&
+            strategyData.pair &&
+            strategyData.marketType &&
+            strategyData.riskType &&
+            strategyData.riskAmount
+          )
 
-          if (
-            !strategyData.name ||
-            !strategyData.pair ||
-            !strategyData.marketType ||
-            !strategyData.riskType ||
-            !strategyData.riskAmount
-          ) {
-            console.log("[v0] Preview strategy is incomplete, skipping creation:", {
-              hasName: !!strategyData.name,
-              hasPair: !!strategyData.pair,
-              hasMarketType: !!strategyData.marketType,
-              hasRiskType: !!strategyData.riskType,
-              hasRiskAmount: !!strategyData.riskAmount,
-            })
-
-            // Clean up
-            if (pendingStrategyId) {
-              await supabase.from("pending_strategies").delete().eq("id", pendingStrategyId)
-            }
-            sessionStorage.removeItem("previewStrategy")
-            sessionStorage.removeItem("fromPreview")
-
-            // Redirect to nueva if no strategies exist
-            if (!strategiesData || strategiesData.length === 0) {
-              console.log("[v0] No strategies found, redirecting to /app/estrategias/nueva")
-              router.replace("/app/estrategias/nueva")
-            }
-            setLoading(false)
-            return
-          }
-
-          const exchangeName = strategyData.exchange || "binance"
-
-          console.log("[v0] Inserting strategy with data:", {
-            user_id: user.id,
-            exchange_id: null,
-            exchange_name: exchangeName,
-            name: strategyData.name,
-            description: strategyData.description || "",
-            trading_pair: strategyData.pair,
-            market_type: strategyData.marketType,
-            leverage: strategyData.leverage || 1,
-            risk_type: strategyData.riskType,
-            risk_value: Number.parseFloat(strategyData.riskAmount),
-            is_active: true,
-            webhook_url: `https://api-92000983434.southamerica-east1.run.app/api/webhook`,
-          })
+          const exchangeName = strategyData.exchange || null
+          
+          // Generar un ID único para el webhook
+          const webhookId = crypto.randomUUID()
+          const webhookUrl = `https://api-92000983434.southamerica-east1.run.app/api/webhook/${webhookId}`
 
           const { data: newStrategy, error: insertError } = await supabase
             .from("strategies")
@@ -177,35 +176,31 @@ export default function StrategiesPage() {
               user_id: user.id,
               exchange_id: null,
               exchange_name: exchangeName,
-              name: strategyData.name,
+              name: strategyData.name || "Estrategia sin nombre",
               description: strategyData.description || "",
-              trading_pair: strategyData.pair,
-              market_type: strategyData.marketType,
-              leverage: strategyData.leverage || 1,
-              risk_type: strategyData.riskType,
-              risk_value: Number.parseFloat(strategyData.riskAmount),
-              is_active: true,
-              webhook_url: `https://api-92000983434.southamerica-east1.run.app/api/webhook`,
+              trading_pair: strategyData.pair || null,
+              market_type: strategyData.marketType || null,
+              leverage: strategyData.leverage > 0 ? strategyData.leverage : null,
+              position_side: strategyData.positionSide || null,
+              risk_type: strategyData.riskType || null,
+              risk_value: strategyData.riskAmount ? Number.parseFloat(strategyData.riskAmount) : null,
+              is_active: false,
+              webhook_url: webhookUrl,
             })
             .select()
             .single()
 
           if (insertError) {
-            console.error("[v0] Error creating strategy from preview:", insertError)
+            console.error("Error creating strategy from preview:", insertError)
           } else {
-            console.log("[v0] Strategy created successfully:", newStrategy)
-
             if (pendingStrategyId) {
-              console.log("[v0] Deleting pending strategy:", pendingStrategyId)
               const { error: deleteError } = await supabase
                 .from("pending_strategies")
                 .delete()
                 .eq("id", pendingStrategyId)
 
               if (deleteError) {
-                console.error("[v0] Error deleting pending strategy:", deleteError)
-              } else {
-                console.log("[v0] Pending strategy deleted successfully")
+                console.error("Error deleting pending strategy:", deleteError)
               }
             }
 
@@ -217,23 +212,20 @@ export default function StrategiesPage() {
           sessionStorage.removeItem("previewStrategy")
           sessionStorage.removeItem("fromPreview")
         } catch (error) {
-          console.error("[v0] Error processing preview data:", error)
+          console.error("Error processing preview data:", error)
           sessionStorage.removeItem("previewStrategy")
           sessionStorage.removeItem("fromPreview")
         }
       } else {
-        console.log("[v0] No preview data to process")
-
         if (!strategiesData || strategiesData.length === 0) {
-          console.log("[v0] No strategies found, redirecting to /app/estrategias/nueva")
-          router.replace("/app/estrategias/nueva")
+          router.replace("/dashboard/estrategias/nueva")
           return
         }
       }
 
       setLoading(false)
     } catch (error) {
-      console.error("[v0] Error in loadStrategies:", error)
+      console.error("Error in loadStrategies:", error)
       setLoading(false)
       setCheckingApiKeys(false)
     }
@@ -244,16 +236,23 @@ export default function StrategiesPage() {
       const strategy = strategies.find((s) => s.id === id)
       if (!strategy) return
 
+      // Si la estrategia está inactiva y se quiere activar, verificar que esté completa
+      if (!strategy.is_active && !isStrategyComplete(strategy)) {
+        setIncompleteStrategy(strategy)
+        setShowIncompleteDialog(true)
+        return
+      }
+
       const { error } = await supabase.from("strategies").update({ is_active: !strategy.is_active }).eq("id", id)
 
       if (error) {
-        console.error("[v0] Error toggling strategy status:", error)
+        console.error("Error toggling strategy status:", error)
         return
       }
 
       setStrategies(strategies.map((s) => (s.id === id ? { ...s, is_active: !s.is_active } : s)))
     } catch (error) {
-      console.error("[v0] Error in toggleStatus:", error)
+      console.error("Error in toggleStatus:", error)
     }
   }
 
@@ -288,14 +287,13 @@ export default function StrategiesPage() {
         .single()
 
       if (error) {
-        console.error("[v0] Error duplicating strategy:", error)
+        console.error("Error duplicating strategy:", error)
         return
       }
 
-      console.log("[v0] Strategy duplicated:", newStrategy)
       loadStrategies()
     } catch (error) {
-      console.error("[v0] Error in duplicateStrategy:", error)
+      console.error("Error in duplicateStrategy:", error)
     }
   }
 
@@ -314,32 +312,35 @@ export default function StrategiesPage() {
       const { error } = await supabase.from("strategies").delete().eq("id", strategyToDelete.id)
 
       if (error) {
-        console.error("[v0] Error deleting strategy:", error)
+        console.error("Error deleting strategy:", error)
         return
       }
 
-      console.log("[v0] Strategy deleted:", strategyToDelete.id)
       setStrategies(strategies.filter((s) => s.id !== strategyToDelete.id))
       setShowDeleteDialog(false)
       setStrategyToDelete(null)
     } catch (error) {
-      console.error("[v0] Error in confirmDelete:", error)
+      console.error("Error in confirmDelete:", error)
     }
   }
 
   const getRiskLabel = (strategy: any) => {
+    if (!strategy.risk_type || strategy.risk_value === null || strategy.risk_value === undefined) {
+      return "No configurado"
+    }
+    
     const baseCurrency = strategy.trading_pair?.includes("/")
       ? strategy.trading_pair.split("/")[0]
       : strategy.trading_pair?.replace(/USDT|BUSD|BNB|EUR|GBP/g, "") || ""
 
     if (strategy.risk_type === "fixed_quantity") {
-      return `${strategy.risk_value} ${baseCurrency}`
+      return `${strategy.risk_value} ${baseCurrency || "unidades"}`
     } else if (strategy.risk_type === "fixed_amount") {
       return `${strategy.risk_value} USDT`
     } else if (strategy.risk_type === "percentage") {
       return `${strategy.risk_value}% del capital`
     }
-    return ""
+    return "No configurado"
   }
 
   const getUniqueExchanges = () => {
@@ -393,7 +394,7 @@ export default function StrategiesPage() {
             <h1 className="text-3xl font-bold text-foreground">Estrategias</h1>
             <p className="text-muted-foreground mt-1">Gestiona tus estrategias de trading automatizado</p>
           </div>
-          <Link href="/app/estrategias/nueva">
+          <Link href="/dashboard/estrategias/nueva">
             <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
               <Plus className="h-4 w-4 mr-2" />
               Nueva estrategia
@@ -429,7 +430,7 @@ export default function StrategiesPage() {
             <p className="text-muted-foreground mb-6">
               Crea tu primera estrategia para comenzar a automatizar tu trading
             </p>
-            <Link href="/app/estrategias/nueva">
+            <Link href="/dashboard/estrategias/nueva">
               <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
                 <Plus className="h-4 w-4 mr-2" />
                 Crear primera estrategia
@@ -476,6 +477,12 @@ export default function StrategiesPage() {
                               </>
                             )}
                           </span>
+                          {!isStrategyComplete(strategy) && (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                              <AlertCircle className="h-3 w-3" />
+                              Incompleta
+                            </span>
+                          )}
                         </div>
 
                         {strategy.description && (
@@ -485,12 +492,18 @@ export default function StrategiesPage() {
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                           <div>
                             <span className="text-muted-foreground">Par:</span>
-                            <span className="ml-2 text-foreground font-medium">{strategy.trading_pair}</span>
+                            <span className="ml-2 text-foreground font-medium">
+                              {strategy.trading_pair || "No configurado"}
+                            </span>
                           </div>
                           <div>
                             <span className="text-muted-foreground">Mercado:</span>
                             <span className="ml-2 text-foreground font-medium">
-                              {strategy.market_type === "spot" ? "Spot" : `Futuros ${strategy.leverage}x`}
+                              {!strategy.market_type 
+                                ? "No configurado" 
+                                : strategy.market_type === "spot" 
+                                  ? "Spot" 
+                                  : `Futuros ${strategy.leverage ? `${strategy.leverage}x` : ""}`}
                             </span>
                           </div>
                           <div>
@@ -532,7 +545,7 @@ export default function StrategiesPage() {
                             {strategy.is_active ? "Desactivar" : "Activar"}
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
-                            <Link href={`/app/estrategias/${strategy.id}`}>Editar</Link>
+                            <Link href={`/dashboard/estrategias/${strategy.id}`}>Editar</Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => duplicateStrategy(strategy.id)}>Duplicar</DropdownMenuItem>
                           <DropdownMenuItem
@@ -597,6 +610,42 @@ export default function StrategiesPage() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showIncompleteDialog} onOpenChange={setShowIncompleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-amber-500" />
+              Estrategia incompleta
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>No puedes activar esta estrategia porque faltan campos obligatorios:</p>
+                <ul className="list-disc list-inside space-y-1 text-sm">
+                  {incompleteStrategy && getMissingFields(incompleteStrategy).map((field) => (
+                    <li key={field} className="text-amber-600 dark:text-amber-400">{field}</li>
+                  ))}
+                </ul>
+                <p className="text-sm">Completa todos los campos para poder activar la estrategia.</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cerrar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowIncompleteDialog(false)
+                if (incompleteStrategy) {
+                  router.push(`/dashboard/estrategias/${incompleteStrategy.id}`)
+                }
+              }}
+              className="bg-accent text-accent-foreground hover:bg-accent/90"
+            >
+              Editar estrategia
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

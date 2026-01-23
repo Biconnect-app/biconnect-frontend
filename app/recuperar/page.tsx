@@ -21,8 +21,6 @@ export default function RecoverPage() {
     setError("")
     setLoading(true)
 
-    console.log("[v0] Password recovery attempt for:", email)
-
     // Validate email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
@@ -38,10 +36,8 @@ export default function RecoverPage() {
         redirectTo: `${window.location.origin}/recuperar/nueva-contrasena`,
       })
 
-      console.log("[v0] Password recovery response:", { error: resetError })
-
       if (resetError) {
-        console.error("[v0] Password recovery error:", resetError)
+        console.error("Password recovery error:", resetError)
         setError(resetError.message)
         setLoading(false)
         return
@@ -51,7 +47,7 @@ export default function RecoverPage() {
       setSubmitted(true)
       setLoading(false)
     } catch (err) {
-      console.error("[v0] Unexpected error during password recovery:", err)
+      console.error("Unexpected error during password recovery:", err)
       setError("Error al enviar el correo. Intenta nuevamente.")
       setLoading(false)
     }

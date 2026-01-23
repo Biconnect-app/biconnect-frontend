@@ -166,15 +166,14 @@ Integra un servicio de verificación de identidad:
 
 ## Despliegue
 
-### Vercel (Recomendado)
+### Google Cloud Run (Recomendado)
 
-1. Conecta tu repositorio a Vercel
-2. Configura las variables de entorno
-3. Despliega automáticamente
+1. Configura Cloud Build con el archivo `cloudbuild.yaml`
+2. Configura las variables de entorno en Cloud Run
+3. Despliega automáticamente con cada push
 
 ### Otros Proveedores
 
-- Netlify
 - AWS Amplify
 - Railway
 - Render

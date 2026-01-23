@@ -196,15 +196,10 @@ export default function OrdersPage() {
         data: { user },
       } = await supabase.auth.getUser()
 
-      console.log("[v0] User ID:", user?.id)
-
       if (!user) {
-        console.log("[v0] No user found")
         setLoading(false)
         return
       }
-
-      console.log("[v0] Fetching operaciones for user:", user.id)
 
       const { data: operacionesData, error: operacionesError } = await supabase
         .from("operaciones")
@@ -212,12 +207,8 @@ export default function OrdersPage() {
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
 
-      console.log("[v0] Operaciones data:", operacionesData)
-      console.log("[v0] Operaciones error:", operacionesError)
-      console.log("[v0] Operaciones count:", operacionesData?.length || 0)
-
       if (operacionesError) {
-        console.error("[v0] Error loading operaciones:", operacionesError)
+        console.error("Error loading operaciones:", operacionesError)
       } else {
         setOperaciones(operacionesData || [])
       }
@@ -227,18 +218,15 @@ export default function OrdersPage() {
         .select("id, name")
         .eq("user_id", user.id)
 
-      console.log("[v0] Strategies data:", strategiesData)
-      console.log("[v0] Strategies error:", strategiesError)
-
       if (strategiesError) {
-        console.error("[v0] Error loading strategies:", strategiesError)
+        console.error("Error loading strategies:", strategiesError)
       } else {
         setStrategies(strategiesData || [])
       }
 
       setLoading(false)
     } catch (error) {
-      console.error("[v0] Error in loadData:", error)
+      console.error("Error in loadData:", error)
       setLoading(false)
     }
   }

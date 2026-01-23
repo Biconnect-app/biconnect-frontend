@@ -26,7 +26,7 @@ export function ApiKeyAlert() {
             .eq("user_id", user.id)
 
           if (error) {
-            console.error("[v0] Error checking API keys:", error)
+            console.error("Error checking API keys:", error)
           }
 
           // Check if at least one exchange has both api_key and api_secret
@@ -34,7 +34,7 @@ export function ApiKeyAlert() {
           setHasApiKeys(hasValidKeys)
         }
       } catch (error) {
-        console.error("[v0] Error checking API keys:", error)
+        console.error("Error checking API keys:", error)
       } finally {
         setChecking(false)
       }
@@ -59,7 +59,7 @@ export function ApiKeyAlert() {
             Para comenzar a ejecutar órdenes automáticamente, necesitas configurar las API keys de tu exchange. Este es
             el último paso para completar tu registro.
           </p>
-          <Link href="/app/integraciones">
+          <Link href="/dashboard/integraciones">
             <Button className="bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white">
               Configurar API Keys ahora
             </Button>

@@ -32,11 +32,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { isFree, loading: planLoading } = useUserPlan()
   const [showLogoutDialog, setShowLogoutDialog] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  // Prevent hydration mismatch by only rendering theme-dependent content after mount
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
-    console.log("[v0] DashboardLayout rendered on route:", pathname)
-    console.log("[v0] Sidebar open state:", sidebarOpen)
-
     const checkSessionExpiration = async () => {
       const supabase = createClient()
       const {
@@ -75,28 +78,24 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const handleLogout = async () => {
     try {
-      console.log("[v0] Logout confirmado, cerrando sesión...")
       const supabase = createClient()
 
       // Remove login timestamp
       localStorage.removeItem("login_timestamp")
-      console.log("[v0] Login timestamp removido")
 
       // Sign out from Supabase
       const { error } = await supabase.auth.signOut()
 
       if (error) {
-        console.error("[v0] Error al cerrar sesión:", error)
+        console.error("Error al cerrar sesión:", error)
         throw error
       }
-
-      console.log("[v0] Sesión cerrada exitosamente, redirigiendo a /login")
 
       // Redirect to login
       router.push("/login")
       router.refresh()
     } catch (error) {
-      console.error("[v0] Error en handleLogout:", error)
+      console.error("Error en handleLogout:", error)
       // Even if there's an error, try to redirect to login
       router.push("/login")
       router.refresh()
@@ -104,10 +103,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   const menuItems = [
-    { icon: Layers, label: "Estrategias", href: "/app/estrategias", locked: false },
-    { icon: FileText, label: "Órdenes", href: "/app/ordenes", locked: false },
-    { icon: Plug, label: "Integraciones", href: "/app/integraciones", locked: false },
-    { icon: Settings, label: "Configuración", href: "/app/configuracion", locked: false },
+    { icon: Layers, label: "Estrategias", href: "/dashboard/estrategias", locked: false },
+    { icon: FileText, label: "Órdenes", href: "/dashboard/ordenes", locked: false },
+    { icon: Plug, label: "Integraciones", href: "/dashboard/integraciones", locked: false },
+    { icon: Settings, label: "Configuración", href: "/dashboard/configuracion", locked: false },
   ]
 
   return (
@@ -188,15 +187,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               size="lg"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             >
-              {theme === "dark" ? <Sun className="h-5 w-5 mr-3" /> : <Moon className="h-5 w-5 mr-3" />}
-              {theme === "dark" ? "Modo claro" : "Modo oscuro"}
+              {mounted && theme === "dark" ? <Sun className="h-5 w-5 mr-3" /> : <Moon className="h-5 w-5 mr-3" />}
+              {mounted && theme === "dark" ? "Modo claro" : "Modo oscuro"}
             </Button>
             <Button
               variant="ghost"
               className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
               size="lg"
               onClick={() => {
-                console.log("[v0] Botón Salir clickeado en ruta:", pathname)
                 setShowLogoutDialog(true)
               }}
             >
@@ -226,10 +224,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => console.log("[v0] Logout cancelado")}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                console.log("[v0] Logout confirmado por el usuario")
                 setShowLogoutDialog(false)
                 handleLogout()
               }}

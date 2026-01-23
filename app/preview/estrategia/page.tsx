@@ -91,12 +91,12 @@ export default function PreviewStrategyPage() {
 
   const [formData, setFormData] = useState({
     name: "",
-    exchange: "binance",
+    exchange: "",
     description: "",
     pair: "",
     marketType: "",
-    leverage: 1,
-    positionSide: "long",
+    leverage: 0,
+    positionSide: "",
     riskType: "",
     riskAmount: "",
     email: "", // Added email field
@@ -114,12 +114,11 @@ export default function PreviewStrategyPage() {
       } = await supabase.auth.getUser()
 
       if (user) {
-        console.log("[v0] User is already logged in, redirecting to create strategy")
         // Save current form data to sessionStorage before redirecting
         if (formData.name || formData.pair) {
           sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
         }
-        router.push("/app/estrategias/nueva")
+        router.push("/dashboard/estrategias/nueva")
       }
     }
     checkAuth()
@@ -136,21 +135,14 @@ export default function PreviewStrategyPage() {
     setPairsError(null)
 
     try {
-      console.log("[v0] Fetching pairs for exchange:", formData.exchange, "marketType:", formData.marketType)
-
       const response = await fetch(`/api/exchanges/${formData.exchange}/pairs?marketType=${formData.marketType}`)
-
-      console.log("[v0] Fetch response status:", response.status)
 
       if (!response.ok) {
         const errorData = await response.json()
-        console.error("[v0] API error response:", errorData)
         throw new Error(errorData.details || "Failed to fetch pairs")
       }
 
       const data = await response.json()
-      console.log("[v0] Received pairs count:", data.count)
-      console.log("[v0] Sample pairs:", data.pairs?.slice(0, 5))
 
       if (data.pairs && data.pairs.length > 0) {
         setTradingPairs(data.pairs)
@@ -159,7 +151,7 @@ export default function PreviewStrategyPage() {
         throw new Error("No pairs received from API")
       }
     } catch (error) {
-      console.error("[v0] Error fetching trading pairs:", error)
+      console.error("Error fetching trading pairs:", error)
       setPairsError(
         "Mostrando lista limitada de pares populares. Conecta tu exchange después del registro para ver todos los pares disponibles.",
       )
@@ -257,31 +249,39 @@ export default function PreviewStrategyPage() {
   }
 
   const handleRegisterClick = async (e: React.MouseEvent) => {
-    if (!validateForm()) {
-      e.preventDefault()
-      console.log("[v0] Form validation failed, preventing navigation")
-      return
+    // Guardar estrategia con valores tal cual los ingresó el usuario (vacíos si no los completó)
+    const strategyToSave = {
+      ...formData,
+      name: formData.name.trim() || "",
+      exchange: formData.exchange || "",
+      marketType: formData.marketType || "",
+      pair: formData.pair || "",
+      leverage: formData.leverage || 0,
+      positionSide: formData.positionSide || "",
+      riskType: formData.riskType || "",
+      riskAmount: formData.riskAmount || "",
     }
 
-    console.log("[v0] User clicked register from preview, saving strategy")
-
-    sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
+    sessionStorage.setItem("previewStrategy", JSON.stringify(strategyToSave))
     sessionStorage.setItem("fromPreview", "true")
-    console.log("[v0] Strategy saved to sessionStorage only")
   }
 
   const handleLoginClick = async (e: React.MouseEvent) => {
-    if (!validateForm()) {
-      e.preventDefault()
-      console.log("[v0] Form validation failed, preventing navigation to login")
-      return
+    // Guardar estrategia con valores tal cual los ingresó el usuario (vacíos si no los completó)
+    const strategyToSave = {
+      ...formData,
+      name: formData.name.trim() || "",
+      exchange: formData.exchange || "",
+      marketType: formData.marketType || "",
+      pair: formData.pair || "",
+      leverage: formData.leverage || 0,
+      positionSide: formData.positionSide || "",
+      riskType: formData.riskType || "",
+      riskAmount: formData.riskAmount || "",
     }
 
-    console.log("[v0] User clicked login from preview, saving strategy")
-
-    sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
+    sessionStorage.setItem("previewStrategy", JSON.stringify(strategyToSave))
     sessionStorage.setItem("fromPreview", "true")
-    console.log("[v0] Strategy saved to sessionStorage only")
   }
 
   return (

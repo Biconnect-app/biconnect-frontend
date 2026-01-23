@@ -61,7 +61,7 @@ export default function InitialApiSetupPage() {
       const isTestnet = formData.environment === "testnet"
       const baseUrl = isTestnet ? "https://testnet.binance.vision" : "https://api.binance.com"
 
-      console.log("[v0] Testing basic connectivity to", baseUrl)
+      console.log("Testing basic connectivity to", baseUrl)
 
       // Test ping endpoint (no auth required)
       const pingResponse = await fetch(`${baseUrl}/api/v3/ping`)
@@ -75,7 +75,7 @@ export default function InitialApiSetupPage() {
         return
       }
 
-      console.log("[v0] Basic connectivity OK, testing authentication...")
+      console.log("Basic connectivity OK, testing authentication...")
 
       const response = await fetch("/api/test-connection", {
         method: "POST",
@@ -91,16 +91,16 @@ export default function InitialApiSetupPage() {
       })
 
       const data = await response.json()
-      console.log("[v0] Test connection response:", data)
+      console.log("Test connection response:", data)
 
       if (data.success) {
-        console.log("[v0] Authentication successful")
+        console.log("Authentication successful")
         setTestResult({
           success: true,
           message: `✓ Conexión exitosa! API Key y Secret verificados correctamente. Cuenta: ${data.accountType || "verificada"}`,
         })
       } else {
-        console.error("[v0] Authentication failed:", data)
+        console.error("Authentication failed:", data)
 
         if (data.isGeoRestriction) {
           setTestResult({
@@ -117,7 +117,7 @@ export default function InitialApiSetupPage() {
         }
       }
     } catch (err) {
-      console.error("[v0] Error testing connection:", err)
+      console.error("Error testing connection:", err)
       setTestResult({
         success: false,
         message: "✗ Error al probar la conexión. Verifica tu conexión a internet",
@@ -149,7 +149,7 @@ export default function InitialApiSetupPage() {
         return
       }
 
-      console.log("[v0] Saving exchange for user:", user.id)
+      console.log("Saving exchange for user:", user.id)
 
       const { data, error: dbError } = await supabase
         .from("exchanges")
@@ -164,18 +164,18 @@ export default function InitialApiSetupPage() {
         .single()
 
       if (dbError) {
-        console.error("[v0] Error saving exchange:", dbError)
+        console.error("Error saving exchange:", dbError)
         setError(`Error al guardar: ${dbError.message}`)
         setIsSubmitting(false)
         return
       }
 
-      console.log("[v0] Exchange saved successfully:", data)
+      console.log("Exchange saved successfully:", data)
 
-      router.push("/app/estrategias")
+      router.push("/dashboard/estrategias")
       router.refresh()
     } catch (err) {
-      console.error("[v0] Error in handleSubmit:", err)
+      console.error("Error in handleSubmit:", err)
       setError("Error al guardar la configuración")
       setIsSubmitting(false)
     }
@@ -186,10 +186,10 @@ export default function InitialApiSetupPage() {
     try {
       const response = await fetch("/api/server-info")
       const data = await response.json()
-      console.log("[v0] Server info:", data)
+      console.log("Server info:", data)
       setServerInfo(data)
     } catch (err) {
-      console.error("[v0] Error fetching server info:", err)
+      console.error("Error fetching server info:", err)
       setServerInfo({ error: "Error al obtener información del servidor" })
     } finally {
       setIsLoadingServerInfo(false)
@@ -253,18 +253,11 @@ export default function InitialApiSetupPage() {
                     <span className="font-mono text-foreground">{serverInfo.serverIp}</span>
                   </div>
                   <div className="flex justify-between py-2 border-b border-border">
-                    <span className="text-muted-foreground">Región de Vercel:</span>
-                    <span className="font-mono text-foreground">{serverInfo.vercelRegion}</span>
+                    <span className="text-muted-foreground">Región:</span>
+                    <span className="font-mono text-foreground">{serverInfo.region || "southamerica-east1"}</span>
                   </div>
-                  {serverInfo.vercelIp && (
-                    <div className="flex justify-between py-2 border-b border-border">
-                      <span className="text-muted-foreground">IP de Vercel:</span>
-                      <span className="font-mono text-foreground">{serverInfo.vercelIp}</span>
-                    </div>
-                  )}
                   <p className="text-xs text-muted-foreground mt-3">
-                    Esta es la IP que Binance ve cuando pruebas la conexión desde el servidor. Si cambias la región en
-                    vercel.json, esta IP debería cambiar después de un nuevo deploy.
+                    Esta es la IP que Binance ve cuando pruebas la conexión desde el servidor.
                   </p>
                 </>
               )}
@@ -411,7 +404,7 @@ export default function InitialApiSetupPage() {
             >
               {isSubmitting ? "Guardando..." : "Guardar y comenzar"}
             </Button>
-            <Link href="/app/estrategias" className="flex-1">
+            <Link href="/dashboard/estrategias" className="flex-1">
               <Button type="button" variant="outline" className="w-full bg-transparent">
                 Omitir por ahora
               </Button>

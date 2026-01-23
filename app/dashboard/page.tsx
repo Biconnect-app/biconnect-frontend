@@ -27,12 +27,9 @@ export default function DashboardPage() {
         } = await supabase.auth.getUser()
 
         if (error || !authUser) {
-          console.log("[v0] No authenticated user, redirecting to login")
           router.push("/login")
           return
         }
-
-        console.log("[v0] User authenticated:", authUser.email)
 
         setUser({
           email: authUser.email || "",
@@ -47,18 +44,16 @@ export default function DashboardPage() {
           .limit(1)
 
         if (exchangeError) {
-          console.error("[v0] Error checking API keys:", exchangeError)
+          console.error("Error checking API keys:", exchangeError)
         }
 
         setHasApiKeys(exchanges && exchanges.length > 0)
 
         const previewData = sessionStorage.getItem("previewStrategy")
-        console.log("[v0] Dashboard: Checking for preview data:", previewData)
 
         if (previewData) {
           try {
             const strategyData = JSON.parse(previewData)
-            console.log("[v0] Dashboard: Parsed preview strategy:", strategyData)
 
             // Create a new strategy from the preview data
             const newStrategy = {
@@ -75,35 +70,29 @@ export default function DashboardPage() {
               createdAt: new Date().toISOString(),
             }
 
-            console.log("[v0] Dashboard: Creating new strategy:", newStrategy)
-
             // Add to strategies list in localStorage
             const existingStrategies = localStorage.getItem("strategies")
-            console.log("[v0] Dashboard: Existing strategies in localStorage:", existingStrategies)
 
             const strategies = existingStrategies ? JSON.parse(existingStrategies) : []
             const updatedStrategies = [...strategies, newStrategy]
 
             localStorage.setItem("strategies", JSON.stringify(updatedStrategies))
-            console.log("[v0] Dashboard: Saved updated strategies:", updatedStrategies)
 
             // Clear the preview data
             sessionStorage.removeItem("previewStrategy")
-            console.log("[v0] Dashboard: Cleared preview data from sessionStorage")
 
             // Redirect to strategies page to show the new strategy
-            console.log("[v0] Dashboard: Redirecting to strategies page")
-            router.push("/app/estrategias")
+            router.push("/dashboard/estrategias")
             return // Added return to prevent further execution
           } catch (error) {
-            console.error("[v0] Dashboard: Error creating strategy from preview:", error)
+            console.error("Error creating strategy from preview:", error)
             sessionStorage.removeItem("previewStrategy")
           }
         }
 
         setLoading(false)
       } catch (err) {
-        console.error("[v0] Auth check error:", err)
+        console.error("Auth check error:", err)
         router.push("/login")
       }
     }
@@ -182,7 +171,7 @@ export default function DashboardPage() {
                   Para comenzar a ejecutar órdenes automáticamente, necesitas configurar las API keys de tu exchange.
                   Este es el último paso para completar tu registro.
                 </p>
-                <Link href="/app/configuracion/api-inicial">
+                <Link href="/dashboard/configuracion/api-inicial">
                   <Button className="bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white">
                     Configurar API Keys ahora
                   </Button>

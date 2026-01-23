@@ -66,7 +66,7 @@ export function Paywall({ feature }: PaywallProps) {
               Ver planes y precios
             </Button>
           </Link>
-          <Link href="/app/estrategias">
+          <Link href="/dashboard/estrategias">
             <Button size="lg" variant="outline" className="bg-transparent">
               Volver a Estrategias
             </Button>

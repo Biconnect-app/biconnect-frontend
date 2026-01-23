@@ -8,5 +8,8 @@ node_modules/
 __pycache__/
 *.pyc
 
+# env files
+.env*
+
 # Don't ignore the Dockerfile
 !Dockerfile

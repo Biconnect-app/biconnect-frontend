@@ -51,7 +51,6 @@ export default function IntegrationsPage() {
       } = await supabase.auth.getUser()
 
       if (!user) {
-        console.log("[v0] No user found")
         return
       }
 
@@ -62,14 +61,13 @@ export default function IntegrationsPage() {
         .order("created_at", { ascending: false })
 
       if (error) {
-        console.error("[v0] Error loading exchanges:", error)
+        console.error("Error loading exchanges:", error)
         return
       }
 
-      console.log("[v0] Loaded exchanges:", data)
       setExchanges(data || [])
     } catch (error) {
-      console.error("[v0] Error in loadExchanges:", error)
+      console.error("Error in loadExchanges:", error)
     } finally {
       setLoading(false)
     }
@@ -92,7 +90,7 @@ export default function IntegrationsPage() {
         return
       }
 
-      console.log("[v0] Saving exchange for user:", user.id)
+      console.log("Saving exchange for user:", user.id)
 
       const { data, error } = await supabase
         .from("exchanges")
@@ -107,12 +105,12 @@ export default function IntegrationsPage() {
         .single()
 
       if (error) {
-        console.error("[v0] Error saving exchange:", error)
+        console.error("Error saving exchange:", error)
         alert(`Error al guardar: ${error.message}`)
         return
       }
 
-      console.log("[v0] Exchange saved:", data)
+      console.log("Exchange saved:", data)
 
       // Reset form and reload exchanges
       setFormData({ apiKey: "", apiSecret: "", testnet: true })
@@ -120,7 +118,7 @@ export default function IntegrationsPage() {
       await loadExchanges()
       alert("Exchange guardado exitosamente")
     } catch (error) {
-      console.error("[v0] Error in saveExchange:", error)
+      console.error("Error in saveExchange:", error)
       alert("Error al guardar el exchange")
     } finally {
       setSaving(false)
@@ -141,7 +139,7 @@ export default function IntegrationsPage() {
       const isTestnet = formData.testnet
       const baseUrl = isTestnet ? "https://testnet.binance.vision" : "https://api.binance.com"
 
-      console.log("[v0] Testing basic connectivity to", baseUrl)
+      console.log("Testing basic connectivity to", baseUrl)
 
       const pingResponse = await fetch(`${baseUrl}/api/v3/ping`)
 
@@ -154,7 +152,7 @@ export default function IntegrationsPage() {
         return
       }
 
-      console.log("[v0] Basic connectivity OK, testing authentication...")
+      console.log("Basic connectivity OK, testing authentication...")
 
       const response = await fetch("/api/test-connection", {
         method: "POST",
@@ -170,16 +168,16 @@ export default function IntegrationsPage() {
       })
 
       const data = await response.json()
-      console.log("[v0] Test connection response:", data)
+      console.log("Test connection response:", data)
 
       if (data.success) {
-        console.log("[v0] Authentication successful")
+        console.log("Authentication successful")
         setTestResult({
           success: true,
           message: `✓ Conexión exitosa! API Key y Secret verificados correctamente. Cuenta: ${data.accountType || "verificada"}`,
         })
       } else {
-        console.error("[v0] Authentication failed:", data)
+        console.error("Authentication failed:", data)
 
         if (data.isGeoRestriction) {
           setTestResult({
@@ -195,7 +193,7 @@ export default function IntegrationsPage() {
         }
       }
     } catch (err) {
-      console.error("[v0] Error testing connection:", err)
+      console.error("Error testing connection:", err)
       setTestResult({
         success: false,
         message: "✗ Error al probar la conexión. Verifica tu conexión a internet",
@@ -211,20 +209,20 @@ export default function IntegrationsPage() {
     }
 
     try {
-      console.log("[v0] Deleting exchange:", id)
+      console.log("Deleting exchange:", id)
 
       const { error } = await supabase.from("exchanges").delete().eq("id", id)
 
       if (error) {
-        console.error("[v0] Error deleting exchange:", error)
+        console.error("Error deleting exchange:", error)
         alert(`Error al eliminar: ${error.message}`)
         return
       }
 
-      console.log("[v0] Exchange deleted successfully")
+      console.log("Exchange deleted successfully")
       await loadExchanges()
     } catch (error) {
-      console.error("[v0] Error in deleteExchange:", error)
+      console.error("Error in deleteExchange:", error)
       alert("Error al eliminar el exchange")
     }
   }

@@ -27,7 +27,7 @@ export function Hero() {
   const handleStartFree = () => {
     if (isAuthenticated) {
       // User is logged in, go directly to create strategy
-      router.push("/app/estrategias/nueva")
+      router.push("/dashboard/estrategias/nueva")
     } else {
       // User is not logged in, show preview
       router.push("/preview/estrategia")

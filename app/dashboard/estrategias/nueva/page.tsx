@@ -108,7 +108,7 @@ export default function NuevaEstrategiaPage() {
   useEffect(() => {
     const strategyId = crypto.randomUUID()
     setPreGeneratedId(strategyId)
-    console.log("[v0] Pre-generated strategy ID:", strategyId)
+    console.log("Pre-generated strategy ID:", strategyId)
 
     const getUserId = async () => {
       const supabase = createClient()
@@ -127,7 +127,7 @@ export default function NuevaEstrategiaPage() {
     if (previewData && fromPreview === "true") {
       try {
         const parsedData = JSON.parse(previewData)
-        console.log("[v0] Loading preview data into new strategy form:", parsedData)
+        console.log("Loading preview data into new strategy form:", parsedData)
         setFormData({
           name: parsedData.name || "",
           exchange: parsedData.exchange || "binance",
@@ -141,9 +141,9 @@ export default function NuevaEstrategiaPage() {
         })
         sessionStorage.removeItem("previewStrategy")
         sessionStorage.removeItem("fromPreview")
-        console.log("[v0] Preview data loaded and cleared from sessionStorage")
+        console.log("Preview data loaded and cleared from sessionStorage")
       } catch (error) {
-        console.error("[v0] Error loading preview data:", error)
+        console.error("Error loading preview data:", error)
         sessionStorage.removeItem("previewStrategy")
         sessionStorage.removeItem("fromPreview")
       }
@@ -161,21 +161,21 @@ export default function NuevaEstrategiaPage() {
     setErrors([])
 
     try {
-      console.log("[v0] Fetching pairs for exchange:", formData.exchange, "marketType:", formData.marketType)
+      console.log("Fetching pairs for exchange:", formData.exchange, "marketType:", formData.marketType)
 
       const response = await fetch(`/api/exchanges/${formData.exchange}/pairs?marketType=${formData.marketType}`)
 
-      console.log("[v0] Fetch response status:", response.status)
+      console.log("Fetch response status:", response.status)
 
       if (!response.ok) {
         const errorData = await response.json()
-        console.error("[v0] API error response:", errorData)
+        console.error("API error response:", errorData)
         throw new Error(errorData.details || "Failed to fetch pairs")
       }
 
       const data = await response.json()
-      console.log("[v0] Received pairs count:", data.count)
-      console.log("[v0] Sample pairs:", data.pairs?.slice(0, 5))
+      console.log("Received pairs count:", data.count)
+      console.log("Sample pairs:", data.pairs?.slice(0, 5))
 
       if (data.pairs && data.pairs.length > 0) {
         setAvailablePairs(data.pairs)
@@ -184,7 +184,7 @@ export default function NuevaEstrategiaPage() {
         throw new Error("No pairs received from API")
       }
     } catch (error) {
-      console.error("[v0] Error fetching trading pairs:", error)
+      console.error("Error fetching trading pairs:", error)
       setErrors([
         "Mostrando lista limitada de pares populares. Conecta tu exchange en Integraciones para ver todos los pares disponibles.",
       ])
@@ -261,10 +261,10 @@ export default function NuevaEstrategiaPage() {
   }
 
   const handleSave = async () => {
-    console.log("[v0] handleSave called - starting save process")
+    console.log("handleSave called - starting save process")
 
     if (validateForm()) {
-      console.log("[v0] Validation passed")
+      console.log("Validation passed")
       setIsSubmitting(true)
       try {
         const supabase = createClient()
@@ -274,12 +274,12 @@ export default function NuevaEstrategiaPage() {
         } = await supabase.auth.getUser()
 
         if (!user) {
-          console.error("[v0] ❌ No user found")
+          console.error("❌ No user found")
           alert("Debes estar autenticado para guardar la estrategia")
           return
         }
 
-        console.log("[v0] User found:", user.id)
+        console.log("User found:", user.id)
 
         const strategyData = {
           id: preGeneratedId,
@@ -301,15 +301,15 @@ export default function NuevaEstrategiaPage() {
         const { data: newStrategy, error } = await supabase.from("strategies").insert(strategyData).select().single()
 
         if (error) {
-          console.error("[v0] ❌ Error saving strategy:", error)
+          console.error("❌ Error saving strategy:", error)
           alert(`Error al guardar la estrategia: ${error.message}`)
           return
         }
 
-        console.log("[v0] ✅ Strategy saved successfully")
+        console.log("✅ Strategy saved successfully")
         setStrategySaved(true)
       } catch (error) {
-        console.error("[v0] ❌ Exception in handleSave:", error)
+        console.error("❌ Exception in handleSave:", error)
         if (error instanceof Error) {
           alert(`Error inesperado: ${error.message}`)
         }
@@ -317,7 +317,7 @@ export default function NuevaEstrategiaPage() {
         setIsSubmitting(false)
       }
     } else {
-      console.log("[v0] ❌ Validation failed")
+      console.log("❌ Validation failed")
       alert("Por favor completa todos los campos requeridos")
     }
   }
@@ -348,7 +348,7 @@ export default function NuevaEstrategiaPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => router.push("/app/estrategias")}>
+            <Button variant="ghost" size="icon" onClick={() => router.push("/dashboard/estrategias")}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div>
@@ -773,7 +773,7 @@ export default function NuevaEstrategiaPage() {
                 <Save className="h-4 w-4 mr-2" />
                 Guardar estrategia
               </Button>
-              <Link href="/app/estrategias">
+              <Link href="/dashboard/estrategias">
                 <Button variant="outline" className="bg-transparent">
                   Cancelar
                 </Button>
@@ -837,7 +837,7 @@ export default function NuevaEstrategiaPage() {
 
             <div className="flex gap-4">
               <Button
-                onClick={() => router.push("/app/estrategias")}
+                onClick={() => router.push("/dashboard/estrategias")}
                 className="bg-accent hover:bg-accent/90 text-accent-foreground"
               >
                 Ir a mis estrategias

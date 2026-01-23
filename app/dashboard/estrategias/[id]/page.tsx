@@ -103,7 +103,7 @@ export default function EditStrategyPage() {
         throw new Error("No pairs received from API")
       }
     } catch (error) {
-      console.error("[v0] Error fetching trading pairs:", error)
+      console.error("Error fetching trading pairs:", error)
       setPairsError(
         "Mostrando lista limitada de pares populares. Conecta tu exchange en Integraciones para ver todos los pares disponibles.",
       )
@@ -121,7 +121,7 @@ export default function EditStrategyPage() {
       } = await supabase.auth.getUser()
 
       if (!user) {
-        console.error("[v0] No user found")
+        console.error("No user found")
         return
       }
 
@@ -135,11 +135,11 @@ export default function EditStrategyPage() {
         .single()
 
       if (error) {
-        console.error("[v0] Error loading strategy:", error)
+        console.error("Error loading strategy:", error)
         return
       }
 
-      console.log("[v0] Loaded strategy:", strategy)
+      console.log("Loaded strategy:", strategy)
       setFormData({
         id: strategy.id,
         name: strategy.name,
@@ -156,7 +156,7 @@ export default function EditStrategyPage() {
         market_position: strategy.market_position || "",
       })
     } catch (error) {
-      console.error("[v0] Error in loadStrategy:", error)
+      console.error("Error in loadStrategy:", error)
     }
   }
 
@@ -245,14 +245,14 @@ export default function EditStrategyPage() {
           .eq("id", params.id)
 
         if (error) {
-          console.error("[v0] Error updating strategy:", error)
+          console.error("Error updating strategy:", error)
           return
         }
 
-        console.log("[v0] Strategy updated successfully")
-        router.push("/app/estrategias")
+        console.log("Strategy updated successfully")
+        router.push("/dashboard/estrategias")
       } catch (error) {
-        console.error("[v0] Error in handleSave:", error)
+        console.error("Error in handleSave:", error)
       }
     }
   }
@@ -272,14 +272,14 @@ export default function EditStrategyPage() {
       const { error } = await supabase.from("strategies").delete().eq("id", params.id)
 
       if (error) {
-        console.error("[v0] Error deleting strategy:", error)
+        console.error("Error deleting strategy:", error)
         return
       }
 
-      console.log("[v0] Strategy deleted successfully")
-      router.push("/app/estrategias")
+      console.log("Strategy deleted successfully")
+      router.push("/dashboard/estrategias")
     } catch (error) {
-      console.error("[v0] Error in handleDelete:", error)
+      console.error("Error in handleDelete:", error)
     }
   }
 
@@ -318,7 +318,7 @@ export default function EditStrategyPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="space-y-6 max-w-3xl mx-auto">
         <div className="flex items-center gap-4">
-          <Link href="/app/estrategias">
+          <Link href="/dashboard/estrategias">
             <Button variant="ghost" size="icon">
               <ArrowLeft className="h-5 w-5" />
             </Button>
@@ -690,7 +690,7 @@ export default function EditStrategyPage() {
             <Save className="h-4 w-4 mr-2" />
             Guardar cambios
           </Button>
-          <Link href="/app/estrategias">
+          <Link href="/dashboard/estrategias">
             <Button variant="outline" className="bg-transparent">
               Cancelar
             </Button>

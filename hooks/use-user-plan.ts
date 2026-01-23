@@ -28,14 +28,14 @@ export function useUserPlan() {
           const { data: profile, error } = await supabase.from("profiles").select("plan").eq("id", user.id).single()
 
           if (error) {
-            console.error("[v0] Error fetching user plan:", error)
+            console.error("Error fetching user plan:", error)
             setPlan("free") // Default to free on error
           } else {
             setPlan(profile?.plan || "free")
           }
         }
       } catch (error) {
-        console.error("[v0] Error fetching user plan:", error)
+        console.error("Error fetching user plan:", error)
         setPlan("free") // Default to free on error
       } finally {
         setLoading(false)
