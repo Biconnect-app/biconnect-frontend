@@ -286,28 +286,6 @@ export default function PreviewStrategyPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link href="/">
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-              Volver al inicio
-            </Button>
-          </Link>
-          <div className="flex items-center gap-2">
-            <Link href="/login">
-              <Button variant="ghost" size="sm">
-                Iniciar sesión
-              </Button>
-            </Link>
-            <Link href="/registro">
-              <Button size="sm" className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                Registrarse
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </div>
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="space-y-6 max-w-3xl mx-auto">
           <div>
