@@ -526,16 +526,15 @@ export default function IntegrationsPage() {
                 En "Message", incluye el JSON con los datos de la señal:
                 <div className="bg-background rounded p-3 mt-2 font-mono text-xs overflow-x-auto">
                   {`{
-  "action": "long",
-  "symbol": "{{ticker}}",
-  "price": "{{close}}",
-  "qty_pct": 5,
-  "leverage": 5,
-  "tp": 0.01,
-  "sl": 0.005,
-  "client_id": "{{strategy.order.id}}"
+  "user_id": "tu-user-id",
+  "strategy_id": "tu-strategy-id",
+  "action": "{{strategy.order.action}}",
+  "market_position": "{{strategy.market_position}}"
 }`}
                 </div>
+                <p className="text-xs text-muted-foreground/70 mt-2 italic">
+                  * Este es solo un ejemplo. El mensaje real con tus datos aparecerá en la página de cada estrategia una vez creada.
+                </p>
               </li>
             </ol>
           </div>

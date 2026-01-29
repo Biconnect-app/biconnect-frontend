@@ -249,65 +249,69 @@ export default function PreviewStrategyPage() {
   }
 
   const handleRegisterClick = async (e: React.MouseEvent) => {
-    // Guardar estrategia con valores tal cual los ingresó el usuario (vacíos si no los completó)
-    const strategyToSave = {
-      ...formData,
-      name: formData.name.trim() || "",
-      exchange: formData.exchange || "",
-      marketType: formData.marketType || "",
-      pair: formData.pair || "",
-      leverage: formData.leverage || 0,
-      positionSide: formData.positionSide || "",
-      riskType: formData.riskType || "",
-      riskAmount: formData.riskAmount || "",
-    }
+    // Verificar si el usuario ingresó algún dato
+    const hasAnyData = 
+      formData.name.trim() !== "" ||
+      formData.exchange !== "" ||
+      formData.marketType !== "" ||
+      formData.pair !== "" ||
+      formData.leverage !== 0 ||
+      formData.positionSide !== "" ||
+      formData.riskType !== "" ||
+      formData.riskAmount !== ""
 
-    sessionStorage.setItem("previewStrategy", JSON.stringify(strategyToSave))
-    sessionStorage.setItem("fromPreview", "true")
+    // Solo guardar si hay al menos un dato ingresado
+    if (hasAnyData) {
+      const strategyToSave = {
+        ...formData,
+        name: formData.name.trim() || "",
+        exchange: formData.exchange || "",
+        marketType: formData.marketType || "",
+        pair: formData.pair || "",
+        leverage: formData.leverage || 0,
+        positionSide: formData.positionSide || "",
+        riskType: formData.riskType || "",
+        riskAmount: formData.riskAmount || "",
+      }
+
+      sessionStorage.setItem("previewStrategy", JSON.stringify(strategyToSave))
+      sessionStorage.setItem("fromPreview", "true")
+    }
   }
 
   const handleLoginClick = async (e: React.MouseEvent) => {
-    // Guardar estrategia con valores tal cual los ingresó el usuario (vacíos si no los completó)
-    const strategyToSave = {
-      ...formData,
-      name: formData.name.trim() || "",
-      exchange: formData.exchange || "",
-      marketType: formData.marketType || "",
-      pair: formData.pair || "",
-      leverage: formData.leverage || 0,
-      positionSide: formData.positionSide || "",
-      riskType: formData.riskType || "",
-      riskAmount: formData.riskAmount || "",
-    }
+    // Verificar si el usuario ingresó algún dato
+    const hasAnyData = 
+      formData.name.trim() !== "" ||
+      formData.exchange !== "" ||
+      formData.marketType !== "" ||
+      formData.pair !== "" ||
+      formData.leverage !== 0 ||
+      formData.positionSide !== "" ||
+      formData.riskType !== "" ||
+      formData.riskAmount !== ""
 
-    sessionStorage.setItem("previewStrategy", JSON.stringify(strategyToSave))
-    sessionStorage.setItem("fromPreview", "true")
+    // Solo guardar si hay al menos un dato ingresado
+    if (hasAnyData) {
+      const strategyToSave = {
+        ...formData,
+        name: formData.name.trim() || "",
+        exchange: formData.exchange || "",
+        marketType: formData.marketType || "",
+        pair: formData.pair || "",
+        leverage: formData.leverage || 0,
+        positionSide: formData.positionSide || "",
+        riskType: formData.riskType || "",
+        riskAmount: formData.riskAmount || "",
+      }
+
+      sessionStorage.setItem("previewStrategy", JSON.stringify(strategyToSave))
+      sessionStorage.setItem("fromPreview", "true")
+    }
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link href="/">
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-              Volver al inicio
-            </Button>
-          </Link>
-          <div className="flex items-center gap-2">
-            <Link href="/login">
-              <Button variant="ghost" size="sm">
-                Iniciar sesión
-              </Button>
-            </Link>
-            <Link href="/registro">
-              <Button size="sm" className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                Registrarse
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </div>
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="space-y-6 max-w-3xl mx-auto">
           <div>
@@ -330,17 +334,6 @@ export default function PreviewStrategyPage() {
                   className={errors.name ? "border-destructive" : ""}
                 />
                 {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Descripción (opcional)</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Describe tu estrategia..."
-                  rows={3}
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                />
               </div>
             </div>
           </div>
@@ -610,9 +603,9 @@ export default function PreviewStrategyPage() {
                     min="0"
                     placeholder={
                       formData.riskType === "fixed_quantity"
-                        ? "Ej: 0.01"
+                        ? "Ej: 0.5"
                         : formData.riskType === "fixed_amount"
-                          ? "Ej: 100"
+                          ? "Ej: 1000"
                           : "Ej: 5"
                     }
                     value={formData.riskAmount}
@@ -665,7 +658,7 @@ export default function PreviewStrategyPage() {
           <div className="bg-card border border-border rounded-xl p-6 space-y-4">
             <Link href="/registro" onClick={handleRegisterClick}>
               <Button className="w-full h-12 text-base bg-accent hover:bg-accent/90 text-accent-foreground">
-                Crear cuenta gratis
+                Crear estrategia
               </Button>
             </Link>
 
