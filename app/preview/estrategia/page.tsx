@@ -249,39 +249,65 @@ export default function PreviewStrategyPage() {
   }
 
   const handleRegisterClick = async (e: React.MouseEvent) => {
-    // Guardar estrategia con valores tal cual los ingresó el usuario (vacíos si no los completó)
-    const strategyToSave = {
-      ...formData,
-      name: formData.name.trim() || "",
-      exchange: formData.exchange || "",
-      marketType: formData.marketType || "",
-      pair: formData.pair || "",
-      leverage: formData.leverage || 0,
-      positionSide: formData.positionSide || "",
-      riskType: formData.riskType || "",
-      riskAmount: formData.riskAmount || "",
-    }
+    // Verificar si el usuario ingresó algún dato
+    const hasAnyData = 
+      formData.name.trim() !== "" ||
+      formData.exchange !== "" ||
+      formData.marketType !== "" ||
+      formData.pair !== "" ||
+      formData.leverage !== 0 ||
+      formData.positionSide !== "" ||
+      formData.riskType !== "" ||
+      formData.riskAmount !== ""
 
-    sessionStorage.setItem("previewStrategy", JSON.stringify(strategyToSave))
-    sessionStorage.setItem("fromPreview", "true")
+    // Solo guardar si hay al menos un dato ingresado
+    if (hasAnyData) {
+      const strategyToSave = {
+        ...formData,
+        name: formData.name.trim() || "",
+        exchange: formData.exchange || "",
+        marketType: formData.marketType || "",
+        pair: formData.pair || "",
+        leverage: formData.leverage || 0,
+        positionSide: formData.positionSide || "",
+        riskType: formData.riskType || "",
+        riskAmount: formData.riskAmount || "",
+      }
+
+      sessionStorage.setItem("previewStrategy", JSON.stringify(strategyToSave))
+      sessionStorage.setItem("fromPreview", "true")
+    }
   }
 
   const handleLoginClick = async (e: React.MouseEvent) => {
-    // Guardar estrategia con valores tal cual los ingresó el usuario (vacíos si no los completó)
-    const strategyToSave = {
-      ...formData,
-      name: formData.name.trim() || "",
-      exchange: formData.exchange || "",
-      marketType: formData.marketType || "",
-      pair: formData.pair || "",
-      leverage: formData.leverage || 0,
-      positionSide: formData.positionSide || "",
-      riskType: formData.riskType || "",
-      riskAmount: formData.riskAmount || "",
-    }
+    // Verificar si el usuario ingresó algún dato
+    const hasAnyData = 
+      formData.name.trim() !== "" ||
+      formData.exchange !== "" ||
+      formData.marketType !== "" ||
+      formData.pair !== "" ||
+      formData.leverage !== 0 ||
+      formData.positionSide !== "" ||
+      formData.riskType !== "" ||
+      formData.riskAmount !== ""
 
-    sessionStorage.setItem("previewStrategy", JSON.stringify(strategyToSave))
-    sessionStorage.setItem("fromPreview", "true")
+    // Solo guardar si hay al menos un dato ingresado
+    if (hasAnyData) {
+      const strategyToSave = {
+        ...formData,
+        name: formData.name.trim() || "",
+        exchange: formData.exchange || "",
+        marketType: formData.marketType || "",
+        pair: formData.pair || "",
+        leverage: formData.leverage || 0,
+        positionSide: formData.positionSide || "",
+        riskType: formData.riskType || "",
+        riskAmount: formData.riskAmount || "",
+      }
+
+      sessionStorage.setItem("previewStrategy", JSON.stringify(strategyToSave))
+      sessionStorage.setItem("fromPreview", "true")
+    }
   }
 
   return (
@@ -308,17 +334,6 @@ export default function PreviewStrategyPage() {
                   className={errors.name ? "border-destructive" : ""}
                 />
                 {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Descripción (opcional)</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Describe tu estrategia..."
-                  rows={3}
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                />
               </div>
             </div>
           </div>
@@ -588,9 +603,9 @@ export default function PreviewStrategyPage() {
                     min="0"
                     placeholder={
                       formData.riskType === "fixed_quantity"
-                        ? "Ej: 0.01"
+                        ? "Ej: 0.5"
                         : formData.riskType === "fixed_amount"
-                          ? "Ej: 100"
+                          ? "Ej: 1000"
                           : "Ej: 5"
                     }
                     value={formData.riskAmount}
@@ -643,7 +658,7 @@ export default function PreviewStrategyPage() {
           <div className="bg-card border border-border rounded-xl p-6 space-y-4">
             <Link href="/registro" onClick={handleRegisterClick}>
               <Button className="w-full h-12 text-base bg-accent hover:bg-accent/90 text-accent-foreground">
-                Crear cuenta gratis
+                Crear estrategia
               </Button>
             </Link>
 
