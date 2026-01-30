@@ -25,7 +25,7 @@ export function FAQ() {
     {
       question: "¿Hay límites de ejecuciones por minuto?",
       answer:
-        "El plan gratuito tiene un límite de 10 ejecuciones por minuto. El plan Pro permite hasta 100 ejecuciones por minuto. Estos límites protegen contra errores de configuración que podrían generar órdenes excesivas.",
+        "El período de prueba tiene un límite de 10 ejecuciones por minuto. El plan Pro permite hasta 100 ejecuciones por minuto. Estos límites protegen contra errores de configuración que podrían generar órdenes excesivas.",
     },
     {
       question: "¿Biconnect es compatible con Pine Script de TradingView?",
