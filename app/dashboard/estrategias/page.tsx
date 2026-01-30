@@ -6,10 +6,11 @@ import { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Plus, Power, PowerOff, Copy, MoreVertical, TrendingUp, ChevronDown, ChevronUp, AlertCircle } from "lucide-react"
+import { Plus, Power, PowerOff, Copy, MoreVertical, TrendingUp, ChevronDown, ChevronUp, AlertCircle, CreditCard } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { createClient } from "@/lib/supabase/client"
 import { ApiKeyAlert } from "@/components/api-key-alert"
+import { useUserPlan } from "@/hooks/use-user-plan"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -80,6 +81,9 @@ export default function StrategiesPage() {
   const [copiedPayload, setCopiedPayload] = useState<string | null>(null)
   const [showIncompleteDialog, setShowIncompleteDialog] = useState(false)
   const [incompleteStrategy, setIncompleteStrategy] = useState<any>(null)
+  const [showSubscriptionDialog, setShowSubscriptionDialog] = useState(false)
+  
+  const { needsSubscription, hasUsedTrial, loading: planLoading } = useUserPlan()
 
   const supabase = useMemo(() => createClient(), [])
 
@@ -236,11 +240,20 @@ export default function StrategiesPage() {
       const strategy = strategies.find((s) => s.id === id)
       if (!strategy) return
 
-      // Si la estrategia está inactiva y se quiere activar, verificar que esté completa
-      if (!strategy.is_active && !isStrategyComplete(strategy)) {
-        setIncompleteStrategy(strategy)
-        setShowIncompleteDialog(true)
-        return
+      // Si se quiere activar, verificar suscripción primero
+      if (!strategy.is_active) {
+        // Verificar si tiene suscripción activa
+        if (needsSubscription) {
+          setShowSubscriptionDialog(true)
+          return
+        }
+        
+        // Verificar que esté completa
+        if (!isStrategyComplete(strategy)) {
+          setIncompleteStrategy(strategy)
+          setShowIncompleteDialog(true)
+          return
+        }
       }
 
       const { error } = await supabase.from("strategies").update({ is_active: !strategy.is_active }).eq("id", id)
@@ -388,6 +401,28 @@ export default function StrategiesPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="space-y-6">
         <ApiKeyAlert />
+
+        {needsSubscription && !planLoading && (
+          <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-4">
+            <div className="flex items-start gap-3">
+              <CreditCard className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-destructive mb-1">Suscripción requerida</h3>
+                <p className="text-sm text-destructive/90 mb-3">
+                  {hasUsedTrial 
+                    ? "Tu suscripción ha expirado. Tus estrategias están inactivas y no se ejecutarán hasta que pases al Plan Pro."
+                    : "No tienes una suscripción activa. Tus estrategias están inactivas y no se ejecutarán hasta que inicies tu período de prueba."
+                  }
+                </p>
+                <Link href="/dashboard/suscripcion">
+                  <Button size="sm" variant="destructive">
+                    {hasUsedTrial ? "Pasar a Plan Pro" : "Iniciar período de prueba"}
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="flex items-center justify-between">
           <div>
@@ -646,6 +681,40 @@ export default function StrategiesPage() {
               className="bg-accent text-accent-foreground hover:bg-accent/90"
             >
               Editar estrategia
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showSubscriptionDialog} onOpenChange={setShowSubscriptionDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-destructive" />
+              Suscripción requerida
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>No puedes activar estrategias porque no tienes una suscripción activa.</p>
+                <p className="text-sm">
+                  {hasUsedTrial 
+                    ? "Pasa al Plan Pro para reactivar tus estrategias y continuar operando automáticamente."
+                    : "Inicia tu período de prueba gratuito de 30 días para activar tus estrategias y comenzar a operar automáticamente."
+                  }
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cerrar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowSubscriptionDialog(false)
+                router.push("/dashboard/suscripcion")
+              }}
+              className="bg-accent text-accent-foreground hover:bg-accent/90"
+            >
+              {hasUsedTrial ? "Pasar a Plan Pro" : "Iniciar período de prueba"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

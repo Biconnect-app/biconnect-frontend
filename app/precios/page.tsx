@@ -1,9 +1,45 @@
+"use client"
+
 import Navbar from "@/components/navbar"
 import { Button } from "@/components/ui/button"
-import { Check, X } from "lucide-react"
+import { Check, X, Sparkles } from "lucide-react"
 import Link from "next/link"
+import { CheckoutButton } from "@/components/checkout-button"
+import { useSearchParams } from "next/navigation"
+import { useEffect, useState, Suspense } from "react"
+
+function CancelledMessage() {
+  const searchParams = useSearchParams()
+  const [showCancelledMessage, setShowCancelledMessage] = useState(false)
+
+  useEffect(() => {
+    if (searchParams.get("checkout") === "cancelled") {
+      setShowCancelledMessage(true)
+      // Remove the query param from URL
+      window.history.replaceState({}, "", "/precios")
+    }
+  }, [searchParams])
+
+  if (!showCancelledMessage) return null
+
+  return (
+    <div className="container mx-auto px-4 mb-6">
+      <div className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-600 dark:text-yellow-400 px-4 py-3 rounded-lg text-center">
+        El proceso de pago fue cancelado. Puedes intentarlo de nuevo cuando quieras.
+        <button
+          onClick={() => setShowCancelledMessage(false)}
+          className="ml-4 text-sm underline hover:no-underline"
+        >
+          Cerrar
+        </button>
+      </div>
+    </div>
+  )
+}
 
 export default function PricingPage() {
+  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly")
+  
   const features = [
     { name: "Ejecuciones mensuales", free: "100", pro: "Ilimitadas" },
     { name: "Estrategias activas", free: "1", pro: "Ilimitadas" },
@@ -29,14 +65,46 @@ export default function PricingPage() {
     <div className="min-h-screen">
       <Navbar />
       <main className="pt-24 pb-20">
+        {/* Cancelled checkout message */}
+        <Suspense fallback={null}>
+          <CancelledMessage />
+        </Suspense>
+
         {/* Header */}
         <section className="px-4 py-16 bg-gradient-to-b from-primary/5 to-background">
           <div className="container mx-auto text-center max-w-3xl">
             <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6 text-balance">Elige tu plan</h1>
-            <p className="text-xl text-muted-foreground text-pretty">
+            <p className="text-xl text-muted-foreground text-pretty mb-8">
               Comienza gratis y actualiza cuando necesites más ejecuciones y funciones avanzadas. Sin contratos, cancela
               cuando quieras.
             </p>
+            
+            {/* Billing Period Toggle */}
+            <div className="inline-flex items-center gap-3 bg-muted/50 p-1.5 rounded-full">
+              <button
+                onClick={() => setBillingPeriod("monthly")}
+                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                  billingPeriod === "monthly"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Mensual
+              </button>
+              <button
+                onClick={() => setBillingPeriod("yearly")}
+                className={`px-6 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${
+                  billingPeriod === "yearly"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Anual
+                <span className="bg-accent text-accent-foreground text-xs px-2 py-0.5 rounded-full">
+                  -17%
+                </span>
+              </button>
+            </div>
           </div>
         </section>
 
@@ -105,15 +173,36 @@ export default function PricingPage() {
                   <h2 className="text-3xl font-bold mb-2">Plan Pro</h2>
                   <p className="text-primary-foreground/90 mb-6">Para traders algorítmicos serios</p>
                   <div className="flex items-baseline gap-2 mb-2">
-                    <span className="text-6xl font-bold">$29</span>
-                    <span className="text-primary-foreground/80 text-lg">/mes</span>
+                    {billingPeriod === "monthly" ? (
+                      <>
+                        <span className="text-6xl font-bold">$25</span>
+                        <span className="text-primary-foreground/80 text-lg">/mes</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-6xl font-bold">$250</span>
+                        <span className="text-primary-foreground/80 text-lg">/año</span>
+                      </>
+                    )}
                   </div>
-                  <p className="text-sm text-primary-foreground/70 mb-6">Facturación mensual o anual</p>
-                  <Link href="/preview/estrategia?plan=pro" className="block">
-                    <Button size="lg" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
-                      Obtener Pro
-                    </Button>
-                  </Link>
+                  {billingPeriod === "yearly" && (
+                    <p className="text-sm text-primary-foreground/70 mb-2">
+                      <span className="line-through">$300/año</span>{" "}
+                      <span className="text-accent font-semibold">Ahorras $50</span>
+                    </p>
+                  )}
+                  <div className="flex items-center gap-2 mb-6">
+                    <Sparkles className="h-4 w-4 text-accent" />
+                    <p className="text-sm text-primary-foreground/90 font-medium">
+                      ¡30 días de prueba gratis!
+                    </p>
+                  </div>
+                  <CheckoutButton
+                    priceType={billingPeriod}
+                    className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
+                  >
+                    Comenzar prueba gratis
+                  </CheckoutButton>
                 </div>
 
                 <div className="space-y-4">
@@ -222,9 +311,13 @@ export default function PricingPage() {
                     </Link>
                   </div>
                   <div className="text-center">
-                    <Link href="/preview/estrategia?plan=pro">
-                      <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">Obtener Pro</Button>
-                    </Link>
+                    <CheckoutButton
+                      priceType={billingPeriod}
+                      className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                      size="default"
+                    >
+                      Comenzar prueba gratis
+                    </CheckoutButton>
                   </div>
                 </div>
               </div>
@@ -237,6 +330,13 @@ export default function PricingPage() {
           <div className="container mx-auto max-w-3xl">
             <h2 className="text-3xl font-bold text-foreground text-center mb-12">Preguntas sobre planes</h2>
             <div className="space-y-6">
+              <div className="bg-card border border-border rounded-xl p-6">
+                <h3 className="font-semibold text-foreground mb-2">¿Cómo funciona la prueba gratuita de 30 días?</h3>
+                <p className="text-muted-foreground">
+                  Al suscribirte al Plan Pro, obtienes acceso completo a todas las funcionalidades durante 30 días sin
+                  cargo. Si decides cancelar antes de que termine el período de prueba, no se te cobrará nada.
+                </p>
+              </div>
               <div className="bg-card border border-border rounded-xl p-6">
                 <h3 className="font-semibold text-foreground mb-2">¿Puedo cambiar de plan en cualquier momento?</h3>
                 <p className="text-muted-foreground">
@@ -256,6 +356,13 @@ export default function PricingPage() {
                 <p className="text-muted-foreground">
                   Si alcanzas las 100 ejecuciones en el plan gratuito, las señales adicionales se pondrán en cola pero
                   no se ejecutarán hasta el próximo mes o hasta que actualices a Pro.
+                </p>
+              </div>
+              <div className="bg-card border border-border rounded-xl p-6">
+                <h3 className="font-semibold text-foreground mb-2">¿Qué métodos de pago aceptan?</h3>
+                <p className="text-muted-foreground">
+                  Aceptamos todas las tarjetas de crédito y débito principales (Visa, Mastercard, American Express) a
+                  través de Stripe, nuestra pasarela de pago segura.
                 </p>
               </div>
               <div className="bg-card border border-border rounded-xl p-6">

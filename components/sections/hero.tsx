@@ -59,7 +59,7 @@ export function Hero() {
               onClick={handleStartFree}
               disabled={checkingAuth}
             >
-              {checkingAuth ? "Cargando..." : "Comenzar gratis"}
+              {checkingAuth ? "Cargando..." : "Iniciar prueba gratuita"}
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
             <Link href="/docs">

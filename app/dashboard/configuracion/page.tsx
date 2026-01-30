@@ -8,9 +8,16 @@ import { Save } from "lucide-react"
 import { ApiKeyAlert } from "@/components/api-key-alert"
 import { createClient } from "@/lib/supabase/client"
 
+interface ProfileData {
+  first_name: string | null
+  last_name: string | null
+  plan: string
+}
+
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [profileData, setProfileData] = useState<ProfileData | null>(null)
   const [userData, setUserData] = useState({
     firstName: "",
     lastName: "",
@@ -39,6 +46,7 @@ export default function SettingsPage() {
           .eq("id", user.id)
           .single()
 
+        setProfileData(profile)
         setUserData({
           firstName: profile?.first_name || "",
           lastName: profile?.last_name || "",
