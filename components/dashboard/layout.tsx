@@ -6,7 +6,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Layers, FileText, Plug, Settings, LogOut, Menu, X, Moon, Sun, Lock } from "lucide-react"
+import { Layers, FileText, Plug, Settings, LogOut, Menu, X, Moon, Sun, Lock, CreditCard } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useTheme } from "next-themes"
 import { useUserPlan } from "@/hooks/use-user-plan"
@@ -30,7 +30,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const { isFree, loading: planLoading } = useUserPlan()
+  const { needsSubscription, loading: planLoading } = useUserPlan()
   const [showLogoutDialog, setShowLogoutDialog] = useState(false)
   const [mounted, setMounted] = useState(false)
 
@@ -106,6 +106,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { icon: Layers, label: "Estrategias", href: "/dashboard/estrategias", locked: false },
     { icon: FileText, label: "Órdenes", href: "/dashboard/ordenes", locked: false },
     { icon: Plug, label: "Integraciones", href: "/dashboard/integraciones", locked: false },
+    { icon: CreditCard, label: "Suscripción", href: "/dashboard/suscripcion", locked: false },
     { icon: Settings, label: "Configuración", href: "/dashboard/configuracion", locked: false },
   ]
 
@@ -142,7 +143,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
             {menuItems.map((item) => {
-              const isLocked = item.locked && isFree && !planLoading
+              const isLocked = item.locked && needsSubscription && !planLoading
               const isActive = pathname === item.href
 
               if (isLocked) {

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, Copy, Check, Save, Search, AlertCircle } from "lucide-react"
+import { ArrowLeft, Copy, Check, Save, Search, AlertCircle, CreditCard } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { DashboardLayout } from "@/components/dashboard/layout"
+import { useUserPlan } from "@/hooks/use-user-plan"
 
 // Comprehensive list of trading pairs vs USDT
 const FALLBACK_TRADING_PAIRS = [
@@ -104,6 +105,8 @@ export default function NuevaEstrategiaPage() {
   const [userId, setUserId] = useState<string>("")
   const [pairPopoverOpen, setPairPopoverOpen] = useState(false)
   const [strategySaved, setStrategySaved] = useState(false)
+  
+  const { hasActiveSubscription, needsSubscription, hasUsedTrial, loading: planLoading } = useUserPlan()
 
   useEffect(() => {
     const strategyId = crypto.randomUUID()
@@ -294,7 +297,7 @@ export default function NuevaEstrategiaPage() {
           position_side: formData.marketType === "futures" ? formData.positionSide : null,
           risk_type: formData.riskType,
           risk_value: Number.parseFloat(formData.riskAmount),
-          is_active: true,
+          is_active: hasActiveSubscription, // Solo activa si tiene suscripción
           webhook_url: `https://api-92000983434.southamerica-east1.run.app/api/webhook`,
         }
 
@@ -346,6 +349,25 @@ export default function NuevaEstrategiaPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {needsSubscription && !planLoading && (
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
+            <div className="flex items-start gap-3">
+              <CreditCard className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-amber-600 dark:text-amber-400 mb-1">
+                  {hasUsedTrial ? "Suscripción expirada" : "Suscripción requerida para activar"}
+                </h3>
+                <p className="text-sm text-amber-600/90 dark:text-amber-400/90">
+                  {hasUsedTrial 
+                    ? "Puedes crear la estrategia, pero permanecerá inactiva hasta que pases al Plan Pro."
+                    : "Puedes crear la estrategia, pero permanecerá inactiva hasta que inicies tu período de prueba."
+                  }
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" onClick={() => router.push("/dashboard/estrategias")}>

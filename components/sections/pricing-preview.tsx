@@ -14,14 +14,15 @@ export function PricingPreview() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-          {/* Plan Gratuito */}
+          {/* Período de Prueba */}
           <div className="bg-card border border-border rounded-2xl p-8 hover:shadow-xl transition-shadow">
             <div className="mb-6">
-              <h3 className="text-2xl font-bold text-foreground mb-2">Plan Gratuito</h3>
+              <h3 className="text-2xl font-bold text-foreground mb-2">Período de Prueba</h3>
               <div className="flex items-baseline gap-2">
                 <span className="text-5xl font-bold text-foreground">$0</span>
-                <span className="text-muted-foreground">/mes</span>
+                <span className="text-muted-foreground">/30 días</span>
               </div>
+              <p className="text-sm text-muted-foreground mt-2">Luego $29/mes</p>
             </div>
 
             <ul className="space-y-4 mb-8">
@@ -43,13 +44,13 @@ export function PricingPreview() {
               </li>
               <li className="flex items-start gap-3">
                 <Check className="h-5 w-5 text-accent mt-0.5 flex-shrink-0" />
-                <span className="text-muted-foreground">Soporte por email</span>
+                <span className="text-muted-foreground">Cancela cuando quieras</span>
               </li>
             </ul>
 
-            <Link href="/preview/estrategia" className="block">
+            <Link href="/registro" className="block">
               <Button variant="outline" className="w-full bg-transparent" size="lg">
-                Comenzar gratis
+                Iniciar prueba gratuita
               </Button>
             </Link>
           </div>
