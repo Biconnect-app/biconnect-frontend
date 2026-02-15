@@ -113,7 +113,7 @@ export default function NuevaEstrategiaPage() {
     setPreGeneratedId(strategyId)
     console.log("Pre-generated strategy ID:", strategyId)
 
-    const getUserId = async () => {
+    const loadStrategyData = async () => {
       const supabase = createClient()
       const {
         data: { user },
@@ -121,36 +121,81 @@ export default function NuevaEstrategiaPage() {
       if (user) {
         setUserId(user.id)
       }
-    }
-    getUserId()
 
-    const previewData = sessionStorage.getItem("previewStrategy")
-    const fromPreview = sessionStorage.getItem("fromPreview")
+      // First try sessionStorage (same-session flow)
+      const previewData = sessionStorage.getItem("previewStrategy")
+      const fromPreview = sessionStorage.getItem("fromPreview")
 
-    if (previewData && fromPreview === "true") {
-      try {
-        const parsedData = JSON.parse(previewData)
-        console.log("Loading preview data into new strategy form:", parsedData)
-        setFormData({
-          name: parsedData.name || "",
-          exchange: parsedData.exchange || "binance",
-          description: parsedData.description || "",
-          pair: parsedData.pair || "",
-          marketType: parsedData.marketType || "",
-          leverage: parsedData.leverage || 1,
-          positionSide: parsedData.positionSide || "long",
-          riskType: parsedData.riskType || "",
-          riskAmount: parsedData.riskAmount || "",
-        })
-        sessionStorage.removeItem("previewStrategy")
-        sessionStorage.removeItem("fromPreview")
-        console.log("Preview data loaded and cleared from sessionStorage")
-      } catch (error) {
-        console.error("Error loading preview data:", error)
-        sessionStorage.removeItem("previewStrategy")
-        sessionStorage.removeItem("fromPreview")
+      if (previewData && fromPreview === "true") {
+        try {
+          const parsedData = JSON.parse(previewData)
+          console.log("Loading preview data from sessionStorage:", parsedData)
+          setFormData({
+            name: parsedData.name || "",
+            exchange: parsedData.exchange || "binance",
+            description: parsedData.description || "",
+            pair: parsedData.pair || "",
+            marketType: parsedData.marketType || "",
+            leverage: parsedData.leverage || 1,
+            positionSide: parsedData.positionSide || "long",
+            riskType: parsedData.riskType || "",
+            riskAmount: parsedData.riskAmount || "",
+          })
+          sessionStorage.removeItem("previewStrategy")
+          sessionStorage.removeItem("fromPreview")
+          console.log("Preview data loaded and cleared from sessionStorage")
+          return
+        } catch (error) {
+          console.error("Error loading preview data from sessionStorage:", error)
+          sessionStorage.removeItem("previewStrategy")
+          sessionStorage.removeItem("fromPreview")
+        }
+      }
+
+      // If no sessionStorage data, check pending_strategies table (post-registration flow)
+      if (user?.email) {
+        try {
+          const { data: pendingStrategy, error: pendingError } = await supabase
+            .from("pending_strategies")
+            .select("strategy_data")
+            .eq("email", user.email.toLowerCase())
+            .maybeSingle()
+
+          if (pendingError) {
+            console.error("Error fetching pending strategy:", pendingError)
+            return
+          }
+
+          if (pendingStrategy?.strategy_data) {
+            const parsedData = pendingStrategy.strategy_data
+            console.log("Loading pending strategy from database:", parsedData)
+            setFormData({
+              name: parsedData.name || "",
+              exchange: parsedData.exchange || "binance",
+              description: parsedData.description || "",
+              pair: parsedData.pair || "",
+              marketType: parsedData.marketType || "",
+              leverage: parsedData.leverage || 1,
+              positionSide: parsedData.positionSide || "long",
+              riskType: parsedData.riskType || "",
+              riskAmount: parsedData.riskAmount || "",
+            })
+
+            // Delete the pending strategy now that we've loaded it
+            await supabase
+              .from("pending_strategies")
+              .delete()
+              .eq("email", user.email.toLowerCase())
+            
+            console.log("Pending strategy loaded and deleted from database")
+          }
+        } catch (error) {
+          console.error("Error loading pending strategy:", error)
+        }
       }
     }
+
+    loadStrategyData()
   }, [])
 
   useEffect(() => {

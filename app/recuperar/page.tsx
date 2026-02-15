@@ -33,13 +33,17 @@ export default function RecoverPage() {
       const supabase = createClient()
 
       // Check if email exists before sending reset email
-      const { data: emailExists } = await supabase
-        .rpc("check_email_exists", { email_input: email })
+      const { data: emailExists, error: rpcError } = await supabase
+        .rpc("check_email_exists", { email_to_check: email })
+
+      if (rpcError) {
+        console.error("RPC check_email_exists error:", rpcError)
+      }
 
       // Only send the reset email if the user actually exists
       if (emailExists) {
         const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/recuperar/nueva-contrasena`,
+          redirectTo: `${window.location.origin}/auth/callback?next=/recuperar/nueva-contrasena`,
         })
 
         if (resetError) {

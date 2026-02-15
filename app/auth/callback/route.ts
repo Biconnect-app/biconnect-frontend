@@ -75,6 +75,11 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${origin}/registro/confirmado`)
       }
 
+      // If this is a password recovery, redirect to the new password page
+      if (authType === "recovery" || nextPath === "/recuperar/nueva-contrasena") {
+        return NextResponse.redirect(`${origin}/recuperar/nueva-contrasena`)
+      }
+
       // If a next path was provided, redirect there
       if (nextPath) {
         return NextResponse.redirect(`${origin}${nextPath}`)
