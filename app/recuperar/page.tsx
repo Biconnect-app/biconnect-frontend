@@ -33,38 +33,26 @@ export default function RecoverPage() {
       const supabase = createClient()
 
       // Check if email exists before sending reset email
-      const { data: emailExists, error: checkError } = await supabase
+      const { data: emailExists } = await supabase
         .rpc("check_email_exists", { email_input: email })
 
-      if (checkError) {
-        console.error("Error checking email:", checkError)
-        setError("Error al verificar el email. Intenta nuevamente.")
-        setLoading(false)
-        return
-      }
+      // Only send the reset email if the user actually exists
+      if (emailExists) {
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/recuperar/nueva-contrasena`,
+        })
 
-      if (!emailExists) {
-        setError("No existe una cuenta registrada con este email.")
-        setLoading(false)
-        return
-      }
-
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/recuperar/nueva-contrasena`,
-      })
-
-      if (resetError) {
-        console.error("Password recovery error:", resetError)
-        if (resetError.message.includes("rate limit") || resetError.message.includes("Rate limit")) {
-          setError("Se han enviado demasiados emails. Por favor espera unos minutos antes de intentar nuevamente.")
-        } else {
-          setError(resetError.message)
+        if (resetError) {
+          console.error("Password recovery error:", resetError)
+          if (resetError.message.includes("rate limit") || resetError.message.includes("Rate limit")) {
+            setError("Se han enviado demasiados emails. Por favor espera unos minutos antes de intentar nuevamente.")
+            setLoading(false)
+            return
+          }
         }
-        setLoading(false)
-        return
       }
 
-      // Show success message
+      // Always show success message regardless of whether the email exists
       setSubmitted(true)
       setLoading(false)
     } catch (err) {
@@ -145,7 +133,7 @@ export default function RecoverPage() {
                 </div>
                 <h1 className="text-3xl font-bold text-foreground mb-2">Revisa tu email</h1>
                 <p className="text-muted-foreground">
-                  Hemos enviado instrucciones para restablecer tu contraseña a <strong>{email}</strong>
+                  Si existe una cuenta asociada a <strong>{email}</strong>, recibirás un correo con las instrucciones para restablecer tu contraseña.
                 </p>
               </div>
 
