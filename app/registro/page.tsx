@@ -98,13 +98,18 @@ export default function RegisterPage() {
         console.error("Error status:", signUpError.status)
 
         if (
+          signUpError.message.includes("rate limit") ||
+          signUpError.message.includes("Rate limit") ||
+          signUpError.code === "over_email_send_rate_limit"
+        ) {
+          setError("Se han enviado demasiados emails. Por favor espera unos minutos antes de intentar nuevamente.")
+        } else if (
           signUpError.message.includes("already registered") ||
           signUpError.message.includes("User already registered") ||
           signUpError.code === "user_already_exists"
         ) {
           setError("Este email ya está registrado. Por favor inicia sesión o usa otro email.")
         } else if (signUpError.message.includes("Database error")) {
-          // This could be username conflict if our check above failed
           setError("El nombre de usuario ya está en uso. Por favor elige otro.")
         } else if (signUpError.message.includes("Invalid email")) {
           setError("El email ingresado no es válido")
