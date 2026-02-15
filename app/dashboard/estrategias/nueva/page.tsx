@@ -707,11 +707,15 @@ export default function NuevaEstrategiaPage() {
                   </Label>
                   <Input
                     id="risk-amount"
-                    type="number"
-                    step="any"
-                    min="0"
+                    type="text"
+                    inputMode="decimal"
                     value={formData.riskAmount}
-                    onChange={(e) => setFormData({ ...formData, riskAmount: e.target.value })}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      if (val === "" || /^\d*\.?\d*$/.test(val)) {
+                        setFormData({ ...formData, riskAmount: val })
+                      }
+                    }}
                     className={
                       errors.includes("Debes ingresar una cantidad") ||
                       errors.includes("Debes ingresar un número válido") ||
