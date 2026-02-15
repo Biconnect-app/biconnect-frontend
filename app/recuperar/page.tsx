@@ -32,13 +32,34 @@ export default function RecoverPage() {
     try {
       const supabase = createClient()
 
+      // Check if email exists before sending reset email
+      const { data: emailExists, error: checkError } = await supabase
+        .rpc("check_email_exists", { email_input: email })
+
+      if (checkError) {
+        console.error("Error checking email:", checkError)
+        setError("Error al verificar el email. Intenta nuevamente.")
+        setLoading(false)
+        return
+      }
+
+      if (!emailExists) {
+        setError("No existe una cuenta registrada con este email.")
+        setLoading(false)
+        return
+      }
+
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/recuperar/nueva-contrasena`,
       })
 
       if (resetError) {
         console.error("Password recovery error:", resetError)
-        setError(resetError.message)
+        if (resetError.message.includes("rate limit") || resetError.message.includes("Rate limit")) {
+          setError("Se han enviado demasiados emails. Por favor espera unos minutos antes de intentar nuevamente.")
+        } else {
+          setError(resetError.message)
+        }
         setLoading(false)
         return
       }
