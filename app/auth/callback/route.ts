@@ -4,8 +4,12 @@ import { NextResponse } from "next/server"
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get("code")
-  const type = requestUrl.searchParams.get("type")
-  const origin = requestUrl.origin
+  const next = requestUrl.searchParams.get("next")
+  const authType = requestUrl.searchParams.get("type")
+  const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim()
+  const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim()
+  const origin = forwardedHost ? `${forwardedProto || "https"}://${forwardedHost}` : requestUrl.origin
+  const nextPath = next && next.startsWith("/") ? next : null
 
   if (code) {
     const supabase = await createClient()
@@ -67,8 +71,13 @@ export async function GET(request: Request) {
       }
 
       // If this is a signup confirmation, redirect to a confirmation page
-      if (type === "signup") {
+      if (authType === "signup") {
         return NextResponse.redirect(`${origin}/registro/confirmado`)
+      }
+
+      // If a next path was provided, redirect there
+      if (nextPath) {
+        return NextResponse.redirect(`${origin}${nextPath}`)
       }
 
       // For login/OAuth, redirect based on whether user has strategies
