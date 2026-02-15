@@ -6,6 +6,12 @@ import Stripe from "stripe"
 // Disable body parsing, we need the raw body for webhook verification
 export const runtime = "nodejs"
 
+const toISOStringOrNull = (unixSeconds?: number | null) => {
+  if (typeof unixSeconds !== "number") return null
+  const date = new Date(unixSeconds * 1000)
+  return Number.isNaN(date.getTime()) ? null : date.toISOString()
+}
+
 async function getSupabaseAdmin() {
   // Use service role key for admin operations
   return createServerClient(
@@ -69,12 +75,10 @@ export async function POST(request: NextRequest) {
               plan: "pro",
               stripe_subscription_id: subscription.id,
               stripe_subscription_status: subscription.status,
-              stripe_current_period_end: new Date(
-                (subscription as unknown as { current_period_end: number }).current_period_end * 1000
-              ).toISOString(),
-              trial_ends_at: subscription.trial_end
-                ? new Date(subscription.trial_end * 1000).toISOString()
-                : null,
+              stripe_current_period_end: toISOStringOrNull(
+                (subscription as unknown as { current_period_end?: number }).current_period_end
+              ),
+              trial_ends_at: toISOStringOrNull(subscription.trial_end ?? null),
               updated_at: new Date().toISOString(),
             })
             .eq("id", userId)
@@ -91,7 +95,7 @@ export async function POST(request: NextRequest) {
       case "customer.subscription.updated": {
         const subscription = event.data.object as Stripe.Subscription
         const userId = subscription.metadata?.supabase_user_id
-        const currentPeriodEnd = (subscription as unknown as { current_period_end: number }).current_period_end
+        const currentPeriodEnd = (subscription as unknown as { current_period_end?: number }).current_period_end
 
         if (userId) {
           const plan = subscription.status === "active" || subscription.status === "trialing" ? "pro" : "free"
@@ -101,12 +105,8 @@ export async function POST(request: NextRequest) {
             .update({
               plan,
               stripe_subscription_status: subscription.status,
-              stripe_current_period_end: new Date(
-                currentPeriodEnd * 1000
-              ).toISOString(),
-              trial_ends_at: subscription.trial_end
-                ? new Date(subscription.trial_end * 1000).toISOString()
-                : null,
+              stripe_current_period_end: toISOStringOrNull(currentPeriodEnd),
+              trial_ends_at: toISOStringOrNull(subscription.trial_end ?? null),
               updated_at: new Date().toISOString(),
             })
             .eq("id", userId)
@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
           const subscriptionResponse = await stripe.subscriptions.retrieve(subscriptionId)
           const subscription = subscriptionResponse as Stripe.Subscription
           const userId = subscription.metadata?.supabase_user_id
-          const currentPeriodEnd = (subscription as unknown as { current_period_end: number }).current_period_end
+          const currentPeriodEnd = (subscription as unknown as { current_period_end?: number }).current_period_end
 
           if (userId) {
             // Ensure plan is active
@@ -189,9 +189,7 @@ export async function POST(request: NextRequest) {
               .update({
                 plan: "pro",
                 stripe_subscription_status: subscription.status,
-                stripe_current_period_end: new Date(
-                  currentPeriodEnd * 1000
-                ).toISOString(),
+                stripe_current_period_end: toISOStringOrNull(currentPeriodEnd),
                 updated_at: new Date().toISOString(),
               })
               .eq("id", userId)
