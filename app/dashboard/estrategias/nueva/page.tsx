@@ -416,6 +416,16 @@ export default function NuevaEstrategiaPage() {
                   )}
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="description">Descripción (opcional)</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Describe tu estrategia..."
+                    rows={3}
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  />
+                </div>
               </div>
             </div>
 
@@ -690,67 +700,71 @@ export default function NuevaEstrategiaPage() {
                 </div>
 
                 {formData.riskType && (
-                  <div className="space-y-2">
-                    <Label htmlFor="risk-amount">
-                      {formData.riskType === "fixed_quantity" && "Cantidad *"}
-                      {formData.riskType === "fixed_amount" && "Monto *"}
-                      {formData.riskType === "percentage" && "Porcentaje *"}
-                    </Label>
-                    <Input
-                      id="risk-amount"
-                      type="number"
-                      step="any"
-                      min="0"
-                      placeholder={
-                        formData.riskType === "fixed_quantity"
-                          ? "Ej: 0.5"
-                          : formData.riskType === "fixed_amount"
-                            ? "Ej: 1000"
-                            : "Ej: 5"
+                <div className="space-y-2">
+                  <Label htmlFor="risk-amount">
+                    {formData.riskType === "fixed_quantity" && "Cantidad *"}
+                    {formData.riskType === "fixed_amount" && "Monto *"}
+                    {formData.riskType === "percentage" && "Porcentaje *"}
+                  </Label>
+                  <Input
+                    id="risk-amount"
+                    type="text"
+                    inputMode="decimal"
+                    placeholder={
+                      formData.riskType === "fixed_quantity"
+                        ? "Ej: 0.5"
+                        : formData.riskType === "fixed_amount"
+                          ? "Ej: 1000"
+                          : "Ej: 5"
+                    }
+                    value={formData.riskAmount}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      if (val === "" || /^\d*\.?\d*$/.test(val)) {
+                        setFormData({ ...formData, riskAmount: val })
                       }
-                      value={formData.riskAmount}
-                      onChange={(e) => setFormData({ ...formData, riskAmount: e.target.value })}
-                      className={
-                        errors.includes("Debes ingresar una cantidad") ||
-                        errors.includes("Debes ingresar un número válido") ||
-                        errors.includes("La cantidad no puede ser negativa") ||
-                        errors.includes("La cantidad debe ser mayor a 0") ||
-                        errors.includes("El porcentaje no puede ser mayor a 100") ||
-                        errors.includes("El porcentaje debe ser al menos 0.01") ||
-                        errors.includes("La cantidad debe ser al menos 0.00001") ||
-                        errors.includes("El monto debe ser al menos 1")
-                          ? "border-destructive"
-                          : ""
-                      }
-                    />
-                    {errors.includes("Debes ingresar una cantidad") && (
-                      <p className="text-xs text-destructive">Debes ingresar una cantidad</p>
-                    )}
-                    {errors.includes("Debes ingresar un número válido") && (
-                      <p className="text-xs text-destructive">Debes ingresar un número válido</p>
-                    )}
-                    {errors.includes("La cantidad no puede ser negativa") && (
-                      <p className="text-xs text-destructive">La cantidad no puede ser negativa</p>
-                    )}
-                    {errors.includes("La cantidad debe ser mayor a 0") && (
-                      <p className="text-xs text-destructive">La cantidad debe ser mayor a 0</p>
-                    )}
-                    {errors.includes("El porcentaje no puede ser mayor a 100") && (
-                      <p className="text-xs text-destructive">El porcentaje no puede ser mayor a 100</p>
-                    )}
-                    {errors.includes("El porcentaje debe ser al menos 0.01") && (
-                      <p className="text-xs text-destructive">El porcentaje debe ser al menos 0.01</p>
-                    )}
-                    {errors.includes("La cantidad debe ser al menos 0.00001") && (
-                      <p className="text-xs text-destructive">La cantidad debe ser al menos 0.00001</p>
-                    )}
-                    {errors.includes("El monto debe ser al menos 1") && (
-                      <p className="text-xs text-destructive">El monto debe ser al menos 1</p>
-                    )}
-                    {formData.riskType === "percentage" && (
-                      <p className="text-xs text-muted-foreground">Debe estar entre 0 y 100</p>
-                    )}
-                  </div>
+                    }}
+                    className={
+                      errors.includes("Debes ingresar una cantidad") ||
+                      errors.includes("Debes ingresar un número válido") ||
+                      errors.includes("La cantidad no puede ser negativa") ||
+                      errors.includes("La cantidad debe ser mayor a 0") ||
+                      errors.includes("El porcentaje no puede ser mayor a 100") ||
+                      errors.includes("El porcentaje debe ser al menos 0.01") ||
+                      errors.includes("La cantidad debe ser al menos 0.00001") ||
+                      errors.includes("El monto debe ser al menos 1")
+                        ? "border-destructive"
+                        : ""
+                    }
+                  />
+                  {errors.includes("Debes ingresar una cantidad") && (
+                    <p className="text-xs text-destructive">Debes ingresar una cantidad</p>
+                  )}
+                  {errors.includes("Debes ingresar un número válido") && (
+                    <p className="text-xs text-destructive">Debes ingresar un número válido</p>
+                  )}
+                  {errors.includes("La cantidad no puede ser negativa") && (
+                    <p className="text-xs text-destructive">La cantidad no puede ser negativa</p>
+                  )}
+                  {errors.includes("La cantidad debe ser mayor a 0") && (
+                    <p className="text-xs text-destructive">La cantidad debe ser mayor a 0</p>
+                  )}
+                  {errors.includes("El porcentaje no puede ser mayor a 100") && (
+                    <p className="text-xs text-destructive">El porcentaje no puede ser mayor a 100</p>
+                  )}
+                  {errors.includes("El porcentaje debe ser al menos 0.01") && (
+                    <p className="text-xs text-destructive">El porcentaje debe ser al menos 0.01</p>
+                  )}
+                  {errors.includes("La cantidad debe ser al menos 0.00001") && (
+                    <p className="text-xs text-destructive">La cantidad debe ser al menos 0.00001</p>
+                  )}
+                  {errors.includes("El monto debe ser al menos 1") && (
+                    <p className="text-xs text-destructive">El monto debe ser al menos 1</p>
+                  )}
+                  {formData.riskType === "percentage" && (
+                    <p className="text-xs text-muted-foreground">Debe estar entre 0 y 100</p>
+                  )}
+                </div>
                 )}
 
                 {formData.riskType && (

@@ -1,36 +1,57 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import type React from "react"
+
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { AlertCircle, CheckCircle, ArrowLeft } from "lucide-react"
+import { AlertCircle, CheckCircle, Eye, EyeOff, ArrowLeft, Loader2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 
-export default function NewPasswordPage() {
+export default function NuevaContrasenaPage() {
   const router = useRouter()
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
-  const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [sessionReady, setSessionReady] = useState(false)
   const [checkingSession, setCheckingSession] = useState(true)
 
   useEffect(() => {
-    async function checkSession() {
-      const supabase = createClient()
-      const { data, error: sessionError } = await supabase.auth.getUser()
+    const supabase = createClient()
 
-      if (sessionError || !data.user) {
-        setError("Tu enlace expiró o no es válido. Solicita una nueva recuperación.")
+    // Listen for the PASSWORD_RECOVERY event from Supabase
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event) => {
+        if (event === "PASSWORD_RECOVERY") {
+          setSessionReady(true)
+          setCheckingSession(false)
+        }
       }
+    )
 
+    // Also check if user already has a session (in case the event already fired)
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        setSessionReady(true)
+      }
       setCheckingSession(false)
     }
 
-    checkSession()
+    // Give a small delay for the auth event to fire, then check session
+    const timeout = setTimeout(checkSession, 2000)
+
+    return () => {
+      subscription.unsubscribe()
+      clearTimeout(timeout)
+    }
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,12 +59,12 @@ export default function NewPasswordPage() {
     setError("")
 
     if (password.length < 8) {
-      setError("La contraseña debe tener al menos 8 caracteres")
+      setError("La contrasena debe tener al menos 8 caracteres")
       return
     }
 
     if (password !== confirmPassword) {
-      setError("Las contraseñas no coinciden")
+      setError("Las contrasenas no coinciden")
       return
     }
 
@@ -51,40 +72,37 @@ export default function NewPasswordPage() {
 
     try {
       const supabase = createClient()
+
       const { error: updateError } = await supabase.auth.updateUser({
-        password,
+        password: password,
       })
 
       if (updateError) {
-        setError(updateError.message)
+        console.error("Password update error:", updateError)
+        if (updateError.message.includes("same as")) {
+          setError("La nueva contrasena debe ser diferente a la anterior")
+        } else {
+          setError(updateError.message)
+        }
         setLoading(false)
         return
       }
 
+      // Sign out so user logs in fresh with new password
       await supabase.auth.signOut()
       setSuccess(true)
       setLoading(false)
     } catch (err) {
       console.error("Unexpected error updating password:", err)
-      setError("Ocurrió un error inesperado. Intenta nuevamente.")
+      setError("Error al actualizar la contrasena. Intenta nuevamente.")
       setLoading(false)
     }
-  }
-
-  if (checkingSession) {
-    return (
-      <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-primary/5 via-background to-accent/5">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Verificando enlace...</p>
-        </div>
-      </div>
-    )
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-primary/5 via-background to-accent/5">
       <div className="w-full max-w-md">
+        {/* Logo */}
         <Link href="/" className="flex items-center justify-center gap-2 mb-8">
           <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
             <span className="text-primary-foreground font-bold text-xl">B</span>
@@ -92,12 +110,50 @@ export default function NewPasswordPage() {
           <span className="text-2xl font-bold text-foreground">Biconnect</span>
         </Link>
 
+        {/* Card */}
         <div className="bg-card border border-border rounded-2xl shadow-xl p-8">
-          {!success ? (
+          {checkingSession ? (
+            <div className="text-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-accent mx-auto mb-4" />
+              <p className="text-muted-foreground">Verificando enlace de recuperacion...</p>
+            </div>
+          ) : !sessionReady && !success ? (
+            <div className="text-center py-4">
+              <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="h-8 w-8 text-destructive" />
+              </div>
+              <h1 className="text-2xl font-bold text-foreground mb-2">Enlace invalido o expirado</h1>
+              <p className="text-muted-foreground mb-6">
+                El enlace de recuperacion ha expirado o ya fue utilizado. Solicita uno nuevo.
+              </p>
+              <Link href="/recuperar">
+                <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                  Solicitar nuevo enlace
+                </Button>
+              </Link>
+            </div>
+          ) : success ? (
+            <div className="text-center py-4">
+              <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="h-8 w-8 text-accent" />
+              </div>
+              <h1 className="text-2xl font-bold text-foreground mb-2">Contrasena actualizada</h1>
+              <p className="text-muted-foreground mb-6">
+                Tu contrasena ha sido actualizada correctamente. Ya podes iniciar sesion con tu nueva contrasena.
+              </p>
+              <Link href="/login">
+                <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" size="lg">
+                  Iniciar sesion
+                </Button>
+              </Link>
+            </div>
+          ) : (
             <>
               <div className="mb-8">
-                <h1 className="text-3xl font-bold text-foreground mb-2">Nueva contraseña</h1>
-                <p className="text-muted-foreground">Elige una contraseña segura para tu cuenta</p>
+                <h1 className="text-3xl font-bold text-foreground mb-2">Nueva contrasena</h1>
+                <p className="text-muted-foreground">
+                  Ingresa tu nueva contrasena para restablecer el acceso a tu cuenta.
+                </p>
               </div>
 
               {error && (
@@ -109,29 +165,49 @@ export default function NewPasswordPage() {
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="password">Contraseña</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="h-12"
-                  />
+                  <Label htmlFor="password">Nueva contrasena</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Minimo 8 caracteres"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="h-12 pr-12"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      aria-label={showPassword ? "Ocultar contrasena" : "Mostrar contrasena"}
+                    >
+                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirmar contraseña</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    placeholder="••••••••"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="h-12"
-                  />
+                  <Label htmlFor="confirmPassword">Confirmar contrasena</Label>
+                  <div className="relative">
+                    <Input
+                      id="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="Repeti tu nueva contrasena"
+                      required
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="h-12 pr-12"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      aria-label={showConfirmPassword ? "Ocultar contrasena" : "Mostrar contrasena"}
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
                 </div>
 
                 <Button
@@ -140,38 +216,19 @@ export default function NewPasswordPage() {
                   className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
                   disabled={loading}
                 >
-                  {loading ? "Guardando..." : "Guardar nueva contraseña"}
+                  {loading ? "Actualizando..." : "Actualizar contrasena"}
                 </Button>
               </form>
 
               <div className="mt-6">
-                <button
-                  type="button"
-                  onClick={() => router.push("/login")}
-                  className="flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full"
+                <Link
+                  href="/login"
+                  className="flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <ArrowLeft className="h-4 w-4" />
-                  Volver al inicio de sesión
-                </button>
+                  Volver al inicio de sesion
+                </Link>
               </div>
-            </>
-          ) : (
-            <>
-              <div className="text-center mb-8">
-                <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle className="h-8 w-8 text-accent" />
-                </div>
-                <h1 className="text-3xl font-bold text-foreground mb-2">Contraseña actualizada</h1>
-                <p className="text-muted-foreground">Ya puedes iniciar sesión con tu nueva contraseña</p>
-              </div>
-
-              <Button
-                size="lg"
-                className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
-                onClick={() => router.push("/login")}
-              >
-                Ir a iniciar sesión
-              </Button>
             </>
           )}
         </div>

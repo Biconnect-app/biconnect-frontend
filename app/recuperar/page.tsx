@@ -15,7 +15,6 @@ export default function RecoverPage() {
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== "undefined" ? window.location.origin : "")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,18 +32,27 @@ export default function RecoverPage() {
     try {
       const supabase = createClient()
 
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${siteUrl}/auth/callback?next=/recuperar/nueva-contrasena`,
-      })
+      // Check if email exists before sending reset email
+      const { data: emailExists } = await supabase
+        .rpc("check_email_exists", { email_input: email })
 
-      if (resetError) {
-        console.error("Password recovery error:", resetError)
-        setError(resetError.message)
-        setLoading(false)
-        return
+      // Only send the reset email if the user actually exists
+      if (emailExists) {
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/recuperar/nueva-contrasena`,
+        })
+
+        if (resetError) {
+          console.error("Password recovery error:", resetError)
+          if (resetError.message.includes("rate limit") || resetError.message.includes("Rate limit")) {
+            setError("Se han enviado demasiados emails. Por favor espera unos minutos antes de intentar nuevamente.")
+            setLoading(false)
+            return
+          }
+        }
       }
 
-      // Show success message
+      // Always show success message regardless of whether the email exists
       setSubmitted(true)
       setLoading(false)
     } catch (err) {
@@ -125,7 +133,7 @@ export default function RecoverPage() {
                 </div>
                 <h1 className="text-3xl font-bold text-foreground mb-2">Revisa tu email</h1>
                 <p className="text-muted-foreground">
-                  Hemos enviado instrucciones para restablecer tu contraseña a <strong>{email}</strong>
+                  Si existe una cuenta asociada a <strong>{email}</strong>, recibirás un correo con las instrucciones para restablecer tu contraseña.
                 </p>
               </div>
 

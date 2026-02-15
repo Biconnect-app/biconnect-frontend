@@ -13,7 +13,6 @@ export default function SignUpSuccessPage() {
   const [email, setEmail] = useState<string | null>(null)
   const searchParams = useSearchParams()
   const { toast } = useToast()
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== "undefined" ? window.location.origin : "")
 
   useEffect(() => {
     const emailParam = searchParams.get("email")
@@ -44,7 +43,7 @@ export default function SignUpSuccessPage() {
         type: "signup",
         email: email,
         options: {
-          emailRedirectTo: `${siteUrl}/auth/callback`,
+          emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || window.location.origin,
         },
       })
 
