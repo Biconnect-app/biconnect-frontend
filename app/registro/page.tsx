@@ -27,6 +27,7 @@ export default function RegisterPage() {
     password: "",
     confirmPassword: "",
   })
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== "undefined" ? window.location.origin : "")
 
   // Password validation
   const passwordValidation = {
@@ -82,7 +83,11 @@ export default function RegisterPage() {
         email: formData.email,
         password: formData.password,
         options: {
+<<<<<<< HEAD
           emailRedirectTo: `${window.location.origin}/auth/callback?type=signup`,
+=======
+          emailRedirectTo: `${siteUrl}/auth/callback`,
+>>>>>>> dc4a679 (last local change)
           data: {
             first_name: formData.firstName,
             last_name: formData.lastName,

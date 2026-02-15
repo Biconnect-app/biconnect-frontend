@@ -22,6 +22,10 @@ export async function GET(request: Request) {
     }
 
     if (data.user) {
+      if (nextPath === "/recuperar/nueva-contrasena") {
+        return NextResponse.redirect(`${origin}${nextPath}`)
+      }
+
       // Check if user has a profile, if not create one
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
@@ -70,6 +74,7 @@ export async function GET(request: Request) {
         }
       }
 
+<<<<<<< HEAD
       // If this is a signup confirmation, redirect to a confirmation page
       if (authType === "signup") {
         return NextResponse.redirect(`${origin}/registro/confirmado`)
@@ -81,6 +86,13 @@ export async function GET(request: Request) {
       }
 
       // For login/OAuth, redirect based on whether user has strategies
+=======
+      if (authType === "signup") {
+        return NextResponse.redirect(`${origin}/registro/exito`)
+      }
+
+      // Check if user has any strategies
+>>>>>>> dc4a679 (last local change)
       const { data: strategies, error: strategiesError } = await supabase
         .from("strategies")
         .select("id")

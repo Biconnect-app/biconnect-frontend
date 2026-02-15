@@ -15,6 +15,7 @@ export default function RecoverPage() {
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== "undefined" ? window.location.origin : "")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,9 +33,15 @@ export default function RecoverPage() {
     try {
       const supabase = createClient()
 
+<<<<<<< HEAD
       // Check if email exists before sending reset email
       const { data: emailExists } = await supabase
         .rpc("check_email_exists", { email_input: email })
+=======
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${siteUrl}/auth/callback?next=/recuperar/nueva-contrasena`,
+      })
+>>>>>>> dc4a679 (last local change)
 
       // Only send the reset email if the user actually exists
       if (emailExists) {
