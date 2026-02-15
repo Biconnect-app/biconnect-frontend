@@ -4,7 +4,12 @@ import { NextResponse } from "next/server"
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get("code")
-  const origin = requestUrl.origin
+  const next = requestUrl.searchParams.get("next")
+  const authType = requestUrl.searchParams.get("type")
+  const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim()
+  const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim()
+  const origin = forwardedHost ? `${forwardedProto || "https"}://${forwardedHost}` : requestUrl.origin
+  const nextPath = next && next.startsWith("/") ? next : null
 
   if (code) {
     const supabase = await createClient()
@@ -17,6 +22,10 @@ export async function GET(request: Request) {
     }
 
     if (data.user) {
+      if (nextPath === "/recuperar/nueva-contrasena") {
+        return NextResponse.redirect(`${origin}${nextPath}`)
+      }
+
       // Check if user has a profile, if not create one
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
@@ -62,6 +71,10 @@ export async function GET(request: Request) {
               })
           }
         }
+      }
+
+      if (authType === "signup") {
+        return NextResponse.redirect(`${origin}/registro/exito`)
       }
 
       // Check if user has any strategies
