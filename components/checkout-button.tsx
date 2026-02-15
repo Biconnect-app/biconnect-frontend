@@ -42,6 +42,11 @@ export function CheckoutButton({
       }
 
       // Get the appropriate price ID
+      const priceId =
+        priceType === "yearly" && STRIPE_PRICES.PRO_YEARLY
+          ? STRIPE_PRICES.PRO_YEARLY
+          : STRIPE_PRICES.PRO_MONTHLY
+
       // Create checkout session
       const response = await fetch("/api/stripe/checkout", {
         method: "POST",
@@ -49,7 +54,7 @@ export function CheckoutButton({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          priceType,
+          priceId,
         }),
       })
 

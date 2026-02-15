@@ -623,11 +623,15 @@ export default function EditStrategyPage() {
               </Label>
               <Input
                 id="risk-amount"
-                type="number"
-                step="any"
-                min="0"
+                type="text"
+                inputMode="decimal"
                 value={formData.riskAmount}
-                onChange={(e) => setFormData({ ...formData, riskAmount: e.target.value })}
+                onChange={(e) => {
+                  const val = e.target.value
+                  if (val === "" || /^\d*\.?\d*$/.test(val)) {
+                    setFormData({ ...formData, riskAmount: val })
+                  }
+                }}
                 className={errors.riskAmount ? "border-destructive" : ""}
               />
               {errors.riskAmount && <p className="text-xs text-destructive">{errors.riskAmount}</p>}

@@ -14,21 +14,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
-    const { priceType, successUrl, cancelUrl } = await request.json()
+    const { priceId, successUrl, cancelUrl } = await request.json()
 
-    // Resolve price ID from server-side envs
-    const priceId =
-      priceType === "yearly" && STRIPE_PRICES.PRO_YEARLY
-        ? STRIPE_PRICES.PRO_YEARLY
-        : STRIPE_PRICES.PRO_MONTHLY
-
-    // Debug: log price selection
-    console.log("Received priceType:", priceType)
-    console.log("Resolved priceId:", priceId)
+    // Debug: log price IDs
+    console.log("Received priceId:", priceId)
+    console.log("Valid price IDs:", STRIPE_PRICES)
 
     // Validate price ID
     const validPriceIds = [STRIPE_PRICES.PRO_MONTHLY, STRIPE_PRICES.PRO_YEARLY].filter(Boolean)
-    if (!priceId || !validPriceIds.includes(priceId)) {
+    if (!validPriceIds.includes(priceId)) {
       console.log("Price validation failed. Valid:", validPriceIds, "Received:", priceId)
       return NextResponse.json({ error: "Precio inválido" }, { status: 400 })
     }
@@ -76,7 +70,7 @@ export async function POST(request: NextRequest) {
           supabase_user_id: user.id,
         },
       },
-      success_url: successUrl || `${request.headers.get("origin")}/dashboard/estrategias?checkout=success`,
+      success_url: successUrl || `${request.headers.get("origin")}/dashboard?checkout=success`,
       cancel_url: cancelUrl || `${request.headers.get("origin")}/precios?checkout=cancelled`,
       metadata: {
         supabase_user_id: user.id,

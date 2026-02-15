@@ -598,9 +598,8 @@ export default function PreviewStrategyPage() {
                   </Label>
                   <Input
                     id="risk-amount"
-                    type="number"
-                    step="any"
-                    min="0"
+                    type="text"
+                    inputMode="decimal"
                     placeholder={
                       formData.riskType === "fixed_quantity"
                         ? "Ej: 0.5"
@@ -609,7 +608,12 @@ export default function PreviewStrategyPage() {
                           : "Ej: 5"
                     }
                     value={formData.riskAmount}
-                    onChange={(e) => setFormData({ ...formData, riskAmount: e.target.value })}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      if (val === "" || /^\d*\.?\d*$/.test(val)) {
+                        setFormData({ ...formData, riskAmount: val })
+                      }
+                    }}
                     className={errors.riskAmount ? "border-destructive" : ""}
                   />
                   {errors.riskAmount && <p className="text-xs text-destructive">{errors.riskAmount}</p>}
