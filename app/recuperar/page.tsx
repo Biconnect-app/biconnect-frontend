@@ -15,6 +15,7 @@ export default function RecoverPage() {
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== "undefined" ? window.location.origin : "")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,7 +34,7 @@ export default function RecoverPage() {
       const supabase = createClient()
 
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/recuperar/nueva-contrasena`,
+        redirectTo: `${siteUrl}/auth/callback?next=/recuperar/nueva-contrasena`,
       })
 
       if (resetError) {
