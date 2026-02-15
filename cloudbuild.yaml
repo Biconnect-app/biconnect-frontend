@@ -11,4 +11,3 @@ steps:
     - .
 images:
 - southamerica-east1-docker.pkg.dev/biconect/app-repo/biconnect-frontend:latest
-

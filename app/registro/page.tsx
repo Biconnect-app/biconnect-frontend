@@ -82,7 +82,7 @@ export default function RegisterPage() {
         email: formData.email,
         password: formData.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/dashboard/estrategias`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?type=signup`,
           data: {
             first_name: formData.firstName,
             last_name: formData.lastName,

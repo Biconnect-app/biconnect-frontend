@@ -4,6 +4,7 @@ import { NextResponse } from "next/server"
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get("code")
+  const type = requestUrl.searchParams.get("type")
   const origin = requestUrl.origin
 
   if (code) {
@@ -29,11 +30,13 @@ export async function GET(request: Request) {
       }
 
       if (!profile) {
-        // Create a profile for OAuth users
+        // Create a profile for new users
         const username = data.user.email?.split("@")[0] || `user_${Date.now()}`
-        const firstName = data.user.user_metadata?.full_name?.split(" ")[0] || 
+        const firstName = data.user.user_metadata?.first_name || 
+                         data.user.user_metadata?.full_name?.split(" ")[0] || 
                          data.user.user_metadata?.name?.split(" ")[0] || ""
-        const lastName = data.user.user_metadata?.full_name?.split(" ").slice(1).join(" ") || 
+        const lastName = data.user.user_metadata?.last_name ||
+                        data.user.user_metadata?.full_name?.split(" ").slice(1).join(" ") || 
                         data.user.user_metadata?.name?.split(" ").slice(1).join(" ") || ""
 
         const { error: insertError } = await supabase
@@ -48,7 +51,6 @@ export async function GET(request: Request) {
 
         if (insertError) {
           console.error("Error creating profile:", insertError)
-          // If username already exists, try with a unique suffix
           if (insertError.code === "23505") {
             const uniqueUsername = `${username}_${Date.now().toString(36)}`
             await supabase
@@ -64,7 +66,12 @@ export async function GET(request: Request) {
         }
       }
 
-      // Check if user has any strategies
+      // If this is a signup confirmation, redirect to a confirmation page
+      if (type === "signup") {
+        return NextResponse.redirect(`${origin}/registro/confirmado`)
+      }
+
+      // For login/OAuth, redirect based on whether user has strategies
       const { data: strategies, error: strategiesError } = await supabase
         .from("strategies")
         .select("id")
@@ -76,7 +83,6 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${origin}/dashboard/estrategias`)
       }
 
-      // Redirect based on whether user has strategies
       if (!strategies || strategies.length === 0) {
         return NextResponse.redirect(`${origin}/dashboard/estrategias/nueva`)
       }

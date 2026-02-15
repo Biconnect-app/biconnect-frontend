@@ -23,7 +23,7 @@ Esta guía explica cómo configurar la integración de Stripe para el cobro del 
 
 Añade las siguientes variables a tu archivo `.env.local`:
 
-```bash
+\`\`\`bash
 # Stripe Keys (obtén estos de https://dashboard.stripe.com/apikeys)
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_xxxxx
 STRIPE_SECRET_KEY=sk_test_xxxxx
@@ -36,7 +36,7 @@ STRIPE_PRICE_PRO_MONTHLY=price_xxxxx
 
 # Supabase Service Role Key (para webhooks)
 SUPABASE_SERVICE_ROLE_KEY=eyJxxxxx
-```
+\`\`\`
 
 ### 4. Configurar Webhook en Stripe
 
@@ -55,7 +55,7 @@ SUPABASE_SERVICE_ROLE_KEY=eyJxxxxx
 
 Para probar webhooks localmente:
 
-```bash
+\`\`\`bash
 # Instalar Stripe CLI
 brew install stripe/stripe-cli/stripe
 
@@ -66,16 +66,16 @@ stripe login
 stripe listen --forward-to localhost:3000/api/stripe/webhook
 
 # Copiar el webhook signing secret que aparece y añadirlo a .env.local
-```
+\`\`\`
 
 ### 6. Ejecutar Migración de Base de Datos
 
 Ejecuta el script SQL para añadir las columnas necesarias a la tabla `profiles`:
 
-```sql
+\`\`\`sql
 -- Archivo: scripts/add_stripe_columns.sql
 -- Ejecutar en Supabase SQL Editor
-```
+\`\`\`
 
 Este script añade:
 - `stripe_customer_id`: ID del cliente en Stripe
@@ -102,7 +102,7 @@ Los usuarios Pro pueden gestionar su suscripción desde:
 
 ## Archivos Creados
 
-```
+\`\`\`
 lib/stripe/
 ├── client.ts       # Cliente Stripe para el navegador
 ├── server.ts       # Cliente Stripe para el servidor
@@ -119,7 +119,7 @@ components/
 
 scripts/
 └── add_stripe_columns.sql       # Migración de base de datos
-```
+\`\`\`
 
 ## Testing
 
