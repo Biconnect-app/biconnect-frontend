@@ -699,6 +699,7 @@ export default function NuevaEstrategiaPage() {
                   )}
                 </div>
 
+                {formData.riskType && (
                 <div className="space-y-2">
                   <Label htmlFor="risk-amount">
                     {formData.riskType === "fixed_quantity" && "Cantidad *"}
@@ -709,6 +710,13 @@ export default function NuevaEstrategiaPage() {
                     id="risk-amount"
                     type="text"
                     inputMode="decimal"
+                    placeholder={
+                      formData.riskType === "fixed_quantity"
+                        ? "Ej: 0.5"
+                        : formData.riskType === "fixed_amount"
+                          ? "Ej: 1000"
+                          : "Ej: 5"
+                    }
                     value={formData.riskAmount}
                     onChange={(e) => {
                       const val = e.target.value
@@ -753,7 +761,11 @@ export default function NuevaEstrategiaPage() {
                   {errors.includes("El monto debe ser al menos 1") && (
                     <p className="text-xs text-destructive">El monto debe ser al menos 1</p>
                   )}
+                  {formData.riskType === "percentage" && (
+                    <p className="text-xs text-muted-foreground">Debe estar entre 0 y 100</p>
+                  )}
                 </div>
+                )}
 
                 {formData.riskType && (
                   <div className="p-4 bg-muted/30 border border-border/50 rounded-lg">
