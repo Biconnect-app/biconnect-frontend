@@ -359,10 +359,10 @@ export default function PricingPage() {
                 </p>
               </div>
               <div className="bg-card border border-border rounded-xl p-6">
-                <h3 className="font-semibold text-foreground mb-2">¿Qué métodos de pago aceptan?</h3>
+                <h3 className="font-semibold text-foreground mb-2">¿Que metodos de pago aceptan?</h3>
                 <p className="text-muted-foreground">
-                  Aceptamos todas las tarjetas de crédito y débito principales (Visa, Mastercard, American Express) a
-                  través de Stripe, nuestra pasarela de pago segura.
+                  Aceptamos pagos a traves de PayPal, incluyendo tarjetas de credito y debito vinculadas a tu cuenta PayPal, 
+                  asi como saldo de PayPal.
                 </p>
               </div>
               <div className="bg-card border border-border rounded-xl p-6">

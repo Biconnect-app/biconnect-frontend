@@ -6,13 +6,41 @@ import { ApiKeyAlert } from "@/components/api-key-alert"
 import { createClient } from "@/lib/supabase/client"
 import { CheckoutButton } from "@/components/checkout-button"
 import { ManageSubscriptionButton } from "@/components/manage-subscription-button"
+import { useSearchParams } from "next/navigation"
+import { Suspense } from "react"
 
 interface ProfileData {
   plan: string | null
-  stripe_subscription_status: string | null
-  stripe_current_period_end: string | null
+  paypal_status: string | null
+  paypal_plan_type: string | null
   trial_ends_at: string | null
   is_admin: boolean | null
+}
+
+function SuccessMessage() {
+  const searchParams = useSearchParams()
+  const [show, setShow] = useState(false)
+
+  useEffect(() => {
+    if (searchParams.get("success") === "true") {
+      setShow(true)
+      window.history.replaceState({}, "", "/dashboard/suscripcion")
+    }
+  }, [searchParams])
+
+  if (!show) return null
+
+  return (
+    <div className="bg-accent/10 border border-accent/30 text-accent-foreground px-4 py-3 rounded-lg">
+      Tu suscripcion se ha activado correctamente. Bienvenido al Plan Pro.
+      <button
+        onClick={() => setShow(false)}
+        className="ml-4 text-sm underline hover:no-underline"
+      >
+        Cerrar
+      </button>
+    </div>
+  )
 }
 
 export default function SubscriptionPage() {
@@ -35,7 +63,7 @@ export default function SubscriptionPage() {
       if (user) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("plan, stripe_subscription_status, stripe_current_period_end, trial_ends_at, is_admin")
+          .select("plan, paypal_status, paypal_plan_type, trial_ends_at, is_admin")
           .eq("id", user.id)
           .single()
 
@@ -58,11 +86,11 @@ export default function SubscriptionPage() {
   }
 
   const isOnTrial = () => {
-    return profileData?.stripe_subscription_status === "trialing"
+    return profileData?.paypal_status === "trialing"
   }
 
   const isPro = () => {
-    return profileData?.stripe_subscription_status === "active"
+    return profileData?.paypal_status === "active"
   }
 
   const isAdmin = () => {
@@ -70,35 +98,35 @@ export default function SubscriptionPage() {
   }
 
   const hasNoSubscription = () => {
-    const status = profileData?.stripe_subscription_status
-    return !status || status === "canceled" || status === "unpaid" || status === "incomplete_expired"
+    const status = profileData?.paypal_status
+    return !status || status === "canceled" || status === "inactive"
   }
 
   const hasUsedTrial = () => {
-    // User has used trial if they have a trial_ends_at date or had a subscription before
-    const status = profileData?.stripe_subscription_status
+    const status = profileData?.paypal_status
     return !!(
       profileData?.trial_ends_at || 
       status === "canceled" || 
-      status === "past_due" ||
-      status === "unpaid"
+      status === "inactive"
     )
   }
 
   const getSubscriptionStatusText = () => {
-    if (!profileData?.stripe_subscription_status) return null
+    if (!profileData?.paypal_status) return null
     
     const statusMap: Record<string, string> = {
       active: "Activa",
-      trialing: "En período de prueba",
-      past_due: "Pago pendiente",
+      trialing: "En periodo de prueba",
       canceled: "Cancelada",
-      unpaid: "Sin pagar",
-      incomplete: "Incompleta",
-      incomplete_expired: "Expirada",
+      inactive: "Inactiva",
     }
     
-    return statusMap[profileData.stripe_subscription_status] || profileData.stripe_subscription_status
+    return statusMap[profileData.paypal_status] || profileData.paypal_status
+  }
+
+  const getPlanTypeText = () => {
+    if (!profileData?.paypal_plan_type) return null
+    return profileData.paypal_plan_type === "annual" ? "Anual" : "Mensual"
   }
 
   return (
@@ -106,9 +134,13 @@ export default function SubscriptionPage() {
       <div className="space-y-6 max-w-3xl">
         <ApiKeyAlert />
 
+        <Suspense fallback={null}>
+          <SuccessMessage />
+        </Suspense>
+
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Suscripción</h1>
-          <p className="text-muted-foreground mt-1">Gestiona tu plan y facturación</p>
+          <h1 className="text-3xl font-bold text-foreground">Suscripcion</h1>
+          <p className="text-muted-foreground mt-1">Gestiona tu plan y facturacion</p>
         </div>
 
         {/* Current Plan */}
@@ -129,7 +161,7 @@ export default function SubscriptionPage() {
               
               <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-4">
                 <p className="text-sm text-purple-600 dark:text-purple-400">
-                  Tienes acceso completo a todas las funciones sin necesidad de suscripción.
+                  Tienes acceso completo a todas las funciones sin necesidad de suscripcion.
                 </p>
               </div>
 
@@ -144,27 +176,27 @@ export default function SubscriptionPage() {
                 <span className="font-semibold">Plan Pro activo</span>
               </div>
               
-              {profileData?.stripe_subscription_status && (
+              {profileData?.paypal_status && (
                 <div className="text-sm text-muted-foreground">
                   Estado: <span className="font-medium text-foreground">{getSubscriptionStatusText()}</span>
                 </div>
               )}
 
-              {profileData?.stripe_current_period_end && (
+              {profileData?.paypal_plan_type && (
                 <div className="text-sm text-muted-foreground">
-                  Próxima facturación: {formatDate(profileData.stripe_current_period_end)}
+                  Tipo de plan: <span className="font-medium text-foreground">{getPlanTypeText()}</span>
                 </div>
               )}
 
               <ManageSubscriptionButton>
-                Gestionar suscripción
+                Cancelar suscripcion
               </ManageSubscriptionButton>
             </div>
           ) : isOnTrial() ? (
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-amber-500">
                 <Calendar className="h-5 w-5" />
-                <span className="font-semibold">Período de Prueba</span>
+                <span className="font-semibold">Periodo de Prueba</span>
               </div>
               
               {profileData?.trial_ends_at && (
@@ -175,38 +207,38 @@ export default function SubscriptionPage() {
               )}
 
               <p className="text-muted-foreground">
-                Estás en el período de prueba. Tus estrategias están activas. Al finalizar el período, se te cobrará automáticamente.
+                Estas en el periodo de prueba. Tus estrategias estan activas. Al finalizar el periodo, se te cobrara automaticamente.
               </p>
 
               <ManageSubscriptionButton>
-                Gestionar suscripción
+                Cancelar suscripcion
               </ManageSubscriptionButton>
             </div>
           ) : (
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-destructive">
                 <AlertTriangle className="h-5 w-5" />
-                <span className="font-semibold">Sin suscripción activa</span>
+                <span className="font-semibold">Sin suscripcion activa</span>
               </div>
               
               <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
                 <p className="text-sm text-destructive">
                   {hasUsedTrial()
-                    ? "Tu suscripción ha expirado. Tus estrategias están inactivas y no se ejecutarán hasta que pases al Plan Pro."
-                    : "No tienes una suscripción activa. Tus estrategias están inactivas y no se ejecutarán hasta que inicies tu período de prueba."
+                    ? "Tu suscripcion ha expirado. Tus estrategias estan inactivas y no se ejecutaran hasta que pases al Plan Pro."
+                    : "No tienes una suscripcion activa. Tus estrategias estan inactivas y no se ejecutaran hasta que inicies tu periodo de prueba."
                   }
                 </p>
               </div>
 
               <p className="text-muted-foreground">
                 {hasUsedTrial()
-                  ? "Suscríbete al Plan Pro para reactivar tus estrategias y continuar operando automáticamente."
-                  : "Inicia tu período de prueba de 30 días para activar tus estrategias. No se te cobrará hasta que termine el período de prueba."
+                  ? "Suscribite al Plan Pro para reactivar tus estrategias y continuar operando automaticamente."
+                  : "Inicia tu periodo de prueba de 30 dias para activar tus estrategias. No se te cobrara hasta que termine el periodo de prueba."
                 }
               </p>
 
               <CheckoutButton priceType="monthly" size="default">
-                {hasUsedTrial() ? "Pasar a Plan Pro" : "Iniciar período de prueba"}
+                {hasUsedTrial() ? "Pasar a Plan Pro" : "Iniciar periodo de prueba"}
               </CheckoutButton>
             </div>
           )}
