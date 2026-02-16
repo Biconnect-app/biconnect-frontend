@@ -59,12 +59,12 @@ export default function NuevaContrasenaPage() {
     setError("")
 
     if (password.length < 8) {
-      setError("La contrasena debe tener al menos 8 caracteres")
+      setError("La contraseña debe tener al menos 8 caracteres")
       return
     }
 
     if (password !== confirmPassword) {
-      setError("Las contrasenas no coinciden")
+      setError("Las contraseñas no coinciden")
       return
     }
 
@@ -80,7 +80,7 @@ export default function NuevaContrasenaPage() {
       if (updateError) {
         console.error("Password update error:", updateError)
         if (updateError.message.includes("same as")) {
-          setError("La nueva contrasena debe ser diferente a la anterior")
+          setError("La nueva contraseña debe ser diferente a la anterior")
         } else {
           setError(updateError.message)
         }
@@ -99,7 +99,7 @@ export default function NuevaContrasenaPage() {
       }, 3000)
     } catch (err) {
       console.error("Unexpected error updating password:", err)
-      setError("Error al actualizar la contrasena. Intenta nuevamente.")
+      setError("Error al actualizar la contraseña. Intenta nuevamente.")
       setLoading(false)
     }
   }
@@ -142,9 +142,9 @@ export default function NuevaContrasenaPage() {
               <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="h-8 w-8 text-accent" />
               </div>
-              <h1 className="text-2xl font-bold text-foreground mb-2">Contrasena actualizada</h1>
+              <h1 className="text-2xl font-bold text-foreground mb-2">Contraseña actualizada</h1>
               <p className="text-muted-foreground mb-6">
-                Tu contrasena ha sido actualizada correctamente. Seras redirigido al inicio de sesion en unos segundos.
+                Tu contraseña ha sido actualizada correctamente. Seras redirigido al inicio de sesion en unos segundos.
               </p>
               <Link href="/login">
                 <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" size="lg">
@@ -155,9 +155,9 @@ export default function NuevaContrasenaPage() {
           ) : (
             <>
               <div className="mb-8">
-                <h1 className="text-3xl font-bold text-foreground mb-2">Nueva contrasena</h1>
+                <h1 className="text-3xl font-bold text-foreground mb-2">Nueva contraseña</h1>
                 <p className="text-muted-foreground">
-                  Ingresa tu nueva contrasena para restablecer el acceso a tu cuenta.
+                  Ingresa tu nueva contraseña para restablecer el acceso a tu cuenta.
                 </p>
               </div>
 
@@ -170,7 +170,7 @@ export default function NuevaContrasenaPage() {
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="password">Nueva contrasena</Label>
+                  <Label htmlFor="password">Nueva contraseña</Label>
                   <div className="relative">
                     <Input
                       id="password"
@@ -185,7 +185,7 @@ export default function NuevaContrasenaPage() {
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                      aria-label={showPassword ? "Ocultar contrasena" : "Mostrar contrasena"}
+                      aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                     >
                       {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
@@ -193,12 +193,12 @@ export default function NuevaContrasenaPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirmar contrasena</Label>
+                  <Label htmlFor="confirmPassword">Confirmar contraseña</Label>
                   <div className="relative">
                     <Input
                       id="confirmPassword"
                       type={showConfirmPassword ? "text" : "password"}
-                      placeholder="Repeti tu nueva contrasena"
+                      placeholder="Repeti tu nueva contraseña"
                       required
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
@@ -208,7 +208,7 @@ export default function NuevaContrasenaPage() {
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                      aria-label={showConfirmPassword ? "Ocultar contrasena" : "Mostrar contrasena"}
+                      aria-label={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                     >
                       {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
@@ -221,7 +221,7 @@ export default function NuevaContrasenaPage() {
                   className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
                   disabled={loading}
                 >
-                  {loading ? "Actualizando..." : "Actualizar contrasena"}
+                  {loading ? "Actualizando..." : "Actualizar contraseña"}
                 </Button>
               </form>
 
