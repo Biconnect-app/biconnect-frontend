@@ -20,11 +20,6 @@ if (!CLIENT_ID || !CLIENT_SECRET) {
 }
 
 async function getAccessToken() {
-  console.log(`Using PayPal base URL: ${PAYPAL_BASE_URL}`)
-  console.log(`Client ID starts with: ${CLIENT_ID.substring(0, 10)}...`)
-  console.log(`Client Secret starts with: ${CLIENT_SECRET.substring(0, 10)}...`)
-  console.log(`Client ID length: ${CLIENT_ID.length}, Secret length: ${CLIENT_SECRET.length}`)
-  
   const auth = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64")
   
   const response = await fetch(`${PAYPAL_BASE_URL}/v1/oauth2/token`, {
@@ -36,13 +31,10 @@ async function getAccessToken() {
     body: "grant_type=client_credentials",
   })
   
-  console.log(`Auth response status: ${response.status}`)
   const data = await response.json()
   if (!response.ok) {
-    console.error("Auth response body:", JSON.stringify(data, null, 2))
     throw new Error(`Failed to get access token: ${JSON.stringify(data)}`)
   }
-  console.log("Access token obtained successfully!")
   return data.access_token
 }
 

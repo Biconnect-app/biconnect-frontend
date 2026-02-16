@@ -12,8 +12,8 @@ export const PAYPAL_CONFIG = {
 } as const
 
 export const PAYPAL_PLANS = {
-  PRO_MONTHLY: process.env.PAYPAL_MONTHLY_PLAN_ID!,
-  PRO_YEARLY: process.env.PAYPAL_YEARLY_PLAN_ID!,
+  PRO_MONTHLY: process.env.NEXT_PUBLIC_PAYPAL_PLAN_MONTHLY!,
+  PRO_YEARLY: process.env.NEXT_PUBLIC_PAYPAL_PLAN_ANNUAL!,
 } as const
 
 // Trial period in days

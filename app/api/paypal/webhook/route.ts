@@ -1,5 +1,3 @@
-"use server"
-
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 
@@ -114,8 +112,8 @@ export async function POST(req: Request) {
         }
 
         // Determine plan type from plan ID
-        const monthlyPlanId = process.env.PAYPAL_PLAN_MONTHLY
-        const annualPlanId = process.env.PAYPAL_PLAN_ANNUAL
+        const monthlyPlanId = process.env.NEXT_PUBLIC_PAYPAL_PLAN_MONTHLY
+        const annualPlanId = process.env.NEXT_PUBLIC_PAYPAL_PLAN_ANNUAL
         let planType = "monthly"
         if (planId === annualPlanId) {
           planType = "annual"
