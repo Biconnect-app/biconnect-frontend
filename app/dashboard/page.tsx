@@ -191,15 +191,15 @@ export default function DashboardPage() {
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard</h1>
-          <p className="text-muted-foreground">Monitorea tus estrategias y ejecuciones en tiempo real</p>
+          <p className="text-gray-400">Monitorea tus estrategias y ejecuciones en tiempo real</p>
         </div>
 
         {/* KPIs */}
         <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
           <div className="bg-card border border-border rounded-xl p-6">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-sm text-muted-foreground">Órdenes hoy</div>
-              <Activity className="h-4 w-4 text-muted-foreground" />
+              <div className="text-sm text-gray-400">Órdenes hoy</div>
+              <Activity className="h-4 w-4 text-blue-400" />
             </div>
             <div className="text-3xl font-bold text-foreground">47</div>
             <div className="text-xs text-accent mt-1">+12 vs ayer</div>
@@ -207,8 +207,8 @@ export default function DashboardPage() {
 
           <div className="bg-card border border-border rounded-xl p-6">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-sm text-muted-foreground">Tasa de éxito</div>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <div className="text-sm text-gray-400">Tasa de éxito</div>
+              <TrendingUp className="h-4 w-4 text-green-400" />
             </div>
             <div className="text-3xl font-bold text-foreground">94.5%</div>
             <div className="text-xs text-accent mt-1">+2.1% vs ayer</div>
@@ -216,8 +216,8 @@ export default function DashboardPage() {
 
           <div className="bg-card border border-border rounded-xl p-6">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-sm text-muted-foreground">Latencia p50</div>
-              <Zap className="h-4 w-4 text-muted-foreground" />
+              <div className="text-sm text-gray-400">Latencia p50</div>
+              <Zap className="h-4 w-4 text-yellow-400" />
             </div>
             <div className="text-3xl font-bold text-foreground">0.8s</div>
             <div className="text-xs text-muted-foreground mt-1">p95: 1.2s</div>
@@ -225,8 +225,8 @@ export default function DashboardPage() {
 
           <div className="bg-card border border-border rounded-xl p-6">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-sm text-muted-foreground">Fallos</div>
-              <AlertCircle className="h-4 w-4 text-muted-foreground" />
+              <div className="text-sm text-gray-400">Fallos</div>
+              <AlertCircle className="h-4 w-4 text-red-400" />
             </div>
             <div className="text-3xl font-bold text-foreground">3</div>
             <div className="text-xs text-destructive mt-1">2 por balance</div>
@@ -234,8 +234,8 @@ export default function DashboardPage() {
 
           <div className="bg-card border border-border rounded-xl p-6">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-sm text-muted-foreground">Drawdown</div>
-              <Clock className="h-4 w-4 text-muted-foreground" />
+              <div className="text-sm text-gray-400">Drawdown</div>
+              <Clock className="h-4 w-4 text-purple-400" />
             </div>
             <div className="text-3xl font-bold text-foreground">-2.3%</div>
             <div className="text-xs text-muted-foreground mt-1">Acumulado</div>

@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -82,6 +82,7 @@ export default function StrategiesPage() {
   const [showIncompleteDialog, setShowIncompleteDialog] = useState(false)
   const [incompleteStrategy, setIncompleteStrategy] = useState<any>(null)
   const [showSubscriptionDialog, setShowSubscriptionDialog] = useState(false)
+  const isLoadingStrategiesRef = useRef(false)
   
   const { needsSubscription, hasUsedTrial, loading: planLoading } = useUserPlan()
 
@@ -92,6 +93,16 @@ export default function StrategiesPage() {
   }, [])
 
   const loadStrategies = async () => {
+    console.log("=== loadStrategies STARTED ===")
+    
+    // Prevent concurrent executions
+    if (isLoadingStrategiesRef.current) {
+      console.log("⚠ loadStrategies already running, skipping duplicate call")
+      return
+    }
+    
+    isLoadingStrategiesRef.current = true
+    
     try {
       const {
         data: { user },
@@ -101,8 +112,11 @@ export default function StrategiesPage() {
         console.error("No user found")
         setLoading(false)
         setCheckingApiKeys(false)
+        isLoadingStrategiesRef.current = false
         return
       }
+
+      console.log("User found:", user.email)
 
       const { data: exchanges, error: exchangesError } = await supabase
         .from("exchanges")
@@ -126,47 +140,62 @@ export default function StrategiesPage() {
       if (strategiesError) {
         console.error("Error loading strategies:", strategiesError)
         setLoading(false)
+        isLoadingStrategiesRef.current = false
         return
       }
 
+      console.log("Existing strategies count:", strategiesData?.length || 0)
       setStrategies(strategiesData || [])
 
       let strategyData = null
       let fromPreview = false
       let pendingStrategyId = null
 
-      const { data: pendingStrategies, error: pendingError } = await supabase
-        .from("pending_strategies")
-        .select("*")
-        .eq("email", user.email)
-        .order("created_at", { ascending: false })
-        .limit(1)
+      // Check sessionStorage first (most recent in current browser session)
+      const previewDataString = sessionStorage.getItem("previewStrategy")
+      const fromPreviewString = sessionStorage.getItem("fromPreview")
 
-      if (!pendingError && pendingStrategies && pendingStrategies.length > 0) {
-        strategyData = pendingStrategies[0].strategy_data
+      console.log("sessionStorage check:", { hasData: !!previewDataString, fromPreview: fromPreviewString })
+
+      if (previewDataString && fromPreviewString === "true") {
+        strategyData = JSON.parse(previewDataString)
         fromPreview = true
-        pendingStrategyId = pendingStrategies[0].id
+        console.log("✓ Found preview strategy in sessionStorage:", strategyData.name)
       } else {
-        // Fallback to sessionStorage
-        const previewDataString = sessionStorage.getItem("previewStrategy")
-        const fromPreviewString = sessionStorage.getItem("fromPreview")
+        // Fallback to pending_strategies table
+        const { data: pendingStrategies, error: pendingError } = await supabase
+          .from("pending_strategies")
+          .select("*")
+          .eq("email", user.email)
+          .order("created_at", { ascending: false })
+          .limit(1)
 
-        if (previewDataString && fromPreviewString === "true") {
-          strategyData = JSON.parse(previewDataString)
+        console.log("pending_strategies check:", { count: pendingStrategies?.length || 0 })
+
+        if (!pendingError && pendingStrategies && pendingStrategies.length > 0) {
+          strategyData = pendingStrategies[0].strategy_data
           fromPreview = true
+          pendingStrategyId = pendingStrategies[0].id
+          console.log("✓ Found preview strategy in pending_strategies:", strategyData.name)
         }
       }
 
+      console.log("Preview data decision:", { hasPreviewData: !!strategyData, fromPreview })
+
       if (strategyData && fromPreview) {
+        console.log("→ Processing preview strategy...")
         try {
-          // Determinar si la estrategia está completa
-          const isComplete = !!(
-            strategyData.name &&
-            strategyData.pair &&
-            strategyData.marketType &&
-            strategyData.riskType &&
-            strategyData.riskAmount
-          )
+          // Clean up sessionStorage and pending_strategies FIRST to prevent duplicates
+          sessionStorage.removeItem("previewStrategy")
+          sessionStorage.removeItem("fromPreview")
+          
+          // Delete pending strategy from database if exists
+          await supabase
+            .from("pending_strategies")
+            .delete()
+            .eq("email", user.email.toLowerCase())
+
+          console.log("Cleaned up preview data before saving strategy")
 
           const exchangeName = strategyData.exchange || null
           
@@ -195,43 +224,62 @@ export default function StrategiesPage() {
             .single()
 
           if (insertError) {
-            console.error("Error creating strategy from preview:", insertError)
+            console.error("✗ Error creating strategy from preview:", insertError)
+            setLoading(false)
+            isLoadingStrategiesRef.current = false
+            return
           } else {
-            if (pendingStrategyId) {
-              const { error: deleteError } = await supabase
-                .from("pending_strategies")
-                .delete()
-                .eq("id", pendingStrategyId)
+            console.log("✓ Strategy created from preview successfully")
+            
+            // Reload ONLY the strategies list without checking for pending strategies again
+            const { data: updatedStrategies, error: reloadError } = await supabase
+              .from("strategies")
+              .select("*")
+              .eq("user_id", user.id)
+              .order("created_at", { ascending: false })
 
-              if (deleteError) {
-                console.error("Error deleting pending strategy:", deleteError)
-              }
+            if (!reloadError) {
+              setStrategies(updatedStrategies || [])
+              console.log("✓ Strategies reloaded, count:", updatedStrategies?.length || 0)
             }
-
-            // Reload strategies to show the new one
-            loadStrategies()
+            
+            // Mark as done and return to prevent further redirections
+            console.log("→ Finishing loadStrategies (after preview save)")
+            setLoading(false)
+            isLoadingStrategiesRef.current = false
+            console.log("=== loadStrategies COMPLETED (preview path) ===")
+            return
           }
-
-          // Clean up sessionStorage
-          sessionStorage.removeItem("previewStrategy")
-          sessionStorage.removeItem("fromPreview")
         } catch (error) {
-          console.error("Error processing preview data:", error)
+          console.error("✗ Error processing preview data:", error)
           sessionStorage.removeItem("previewStrategy")
           sessionStorage.removeItem("fromPreview")
-        }
-      } else {
-        if (!strategiesData || strategiesData.length === 0) {
-          router.replace("/dashboard/estrategias/nueva")
+          setLoading(false)
+          isLoadingStrategiesRef.current = false
           return
         }
       }
+      
+      console.log("→ No preview data to process, checking existing strategies...")
+      console.log("strategiesData.length:", strategiesData?.length || 0)
+      
+      // Only redirect to /nueva if there are no strategies AND no preview data was processed
+      if (!strategiesData || strategiesData.length === 0) {
+        console.log("→ No strategies found, redirecting to /nueva")
+        router.replace("/dashboard/estrategias/nueva")
+        isLoadingStrategiesRef.current = false
+        return
+      }
 
+      console.log("→ Has strategies, staying on current page")
       setLoading(false)
+      isLoadingStrategiesRef.current = false
+      console.log("=== loadStrategies COMPLETED (normal path) ===")
     } catch (error) {
-      console.error("Error in loadStrategies:", error)
+      console.error("✗ Error in loadStrategies:", error)
       setLoading(false)
       setCheckingApiKeys(false)
+      isLoadingStrategiesRef.current = false
     }
   }
 
@@ -427,7 +475,7 @@ export default function StrategiesPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Estrategias</h1>
-            <p className="text-muted-foreground mt-1">Gestiona tus estrategias de trading automatizado</p>
+            <p className="text-gray-400 mt-1">Gestiona tus estrategias de trading automatizado</p>
           </div>
           <Link href="/dashboard/estrategias/nueva">
             <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
@@ -439,19 +487,19 @@ export default function StrategiesPage() {
 
         <div className="grid md:grid-cols-4 gap-4">
           <div className="bg-card border border-border rounded-xl p-4">
-            <div className="text-sm text-muted-foreground mb-1">Total estrategias</div>
+            <div className="text-sm text-gray-400 mb-1">Total estrategias</div>
             <div className="text-2xl font-bold text-foreground">{strategies.length}</div>
           </div>
           <div className="bg-card border border-border rounded-xl p-4">
-            <div className="text-sm text-muted-foreground mb-1">Activas</div>
+            <div className="text-sm text-gray-400 mb-1">Activas</div>
             <div className="text-2xl font-bold text-green-500">{strategies.filter((s) => s.is_active).length}</div>
           </div>
           <div className="bg-card border border-border rounded-xl p-4">
-            <div className="text-sm text-muted-foreground mb-1">Inactivas</div>
+            <div className="text-sm text-gray-400 mb-1">Inactivas</div>
             <div className="text-2xl font-bold text-foreground">{strategies.filter((s) => !s.is_active).length}</div>
           </div>
           <div className="bg-card border border-border rounded-xl p-4">
-            <div className="text-sm text-muted-foreground mb-1">Exchange</div>
+            <div className="text-sm text-gray-400 mb-1">Exchange</div>
             <div className="text-lg font-bold text-foreground">
               {getUniqueExchanges() || <span className="text-muted-foreground text-sm">Ninguno</span>}
             </div>
@@ -460,7 +508,7 @@ export default function StrategiesPage() {
 
         {strategies.length === 0 ? (
           <div className="bg-card border border-border rounded-xl p-12 text-center">
-            <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <TrendingUp className="h-12 w-12 text-blue-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-foreground mb-2">No tienes estrategias aún</h3>
             <p className="text-muted-foreground mb-6">
               Crea tu primera estrategia para comenzar a automatizar tu trading

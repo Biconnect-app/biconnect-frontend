@@ -144,53 +144,10 @@ export default function NuevaEstrategiaPage() {
           sessionStorage.removeItem("previewStrategy")
           sessionStorage.removeItem("fromPreview")
           console.log("Preview data loaded and cleared from sessionStorage")
-          return
         } catch (error) {
           console.error("Error loading preview data from sessionStorage:", error)
           sessionStorage.removeItem("previewStrategy")
           sessionStorage.removeItem("fromPreview")
-        }
-      }
-
-      // If no sessionStorage data, check pending_strategies table (post-registration flow)
-      if (user?.email) {
-        try {
-          const { data: pendingStrategy, error: pendingError } = await supabase
-            .from("pending_strategies")
-            .select("strategy_data")
-            .eq("email", user.email.toLowerCase())
-            .maybeSingle()
-
-          if (pendingError) {
-            console.error("Error fetching pending strategy:", pendingError)
-            return
-          }
-
-          if (pendingStrategy?.strategy_data) {
-            const parsedData = pendingStrategy.strategy_data
-            console.log("Loading pending strategy from database:", parsedData)
-            setFormData({
-              name: parsedData.name || "",
-              exchange: parsedData.exchange || "binance",
-              description: parsedData.description || "",
-              pair: parsedData.pair || "",
-              marketType: parsedData.marketType || "",
-              leverage: parsedData.leverage || 1,
-              positionSide: parsedData.positionSide || "long",
-              riskType: parsedData.riskType || "",
-              riskAmount: parsedData.riskAmount || "",
-            })
-
-            // Delete the pending strategy now that we've loaded it
-            await supabase
-              .from("pending_strategies")
-              .delete()
-              .eq("email", user.email.toLowerCase())
-            
-            console.log("Pending strategy loaded and deleted from database")
-          }
-        } catch (error) {
-          console.error("Error loading pending strategy:", error)
         }
       }
     }
@@ -355,6 +312,11 @@ export default function NuevaEstrategiaPage() {
         }
 
         console.log("✅ Strategy saved successfully")
+
+        // Clean up sessionStorage if any data remains
+        sessionStorage.removeItem("previewStrategy")
+        sessionStorage.removeItem("fromPreview")
+
         setStrategySaved(true)
       } catch (error) {
         console.error("❌ Exception in handleSave:", error)
@@ -459,17 +421,6 @@ export default function NuevaEstrategiaPage() {
                   {errors.includes("Ya existe una estrategia con este nombre") && (
                     <p className="text-xs text-destructive">Ya existe una estrategia con este nombre</p>
                   )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="description">Descripción (opcional)</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Describe tu estrategia..."
-                    rows={3}
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  />
                 </div>
               </div>
             </div>

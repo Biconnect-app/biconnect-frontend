@@ -343,16 +343,6 @@ export default function EditStrategyPage() {
               />
               {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Descripción (opcional)</Label>
-              <Textarea
-                id="description"
-                rows={3}
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              />
-            </div>
           </div>
         </div>
 

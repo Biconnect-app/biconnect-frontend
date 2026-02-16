@@ -73,10 +73,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Failed to cancel subscription" }, { status: 500 })
     }
 
-    // Update the profile
+    // Mark the subscription as "will cancel at period end" but keep it active
+    // PayPal keeps the subscription active until the end of the billing period
     const { error: updateError } = await supabase
       .from("profiles")
-      .update({ paypal_status: "canceled" })
+      .update({ paypal_cancel_at_period_end: true })
       .eq("id", user.id)
 
     if (updateError) {

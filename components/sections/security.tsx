@@ -9,13 +9,13 @@ export function Security() {
             <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4 text-balance">
               Seguridad y cumplimiento
             </h2>
-            <p className="text-xl text-muted-foreground text-pretty">Tu seguridad es nuestra prioridad número uno</p>
+            <p className="text-xl text-gray-300 text-pretty">Tu seguridad es nuestra prioridad número uno</p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-8 mb-12">
             <div className="bg-card border border-border rounded-xl p-6">
               <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
-                <Shield className="h-6 w-6 text-accent" />
+                <Shield className="h-6 w-6 text-blue-400" />
               </div>
               <h3 className="text-xl font-semibold text-foreground mb-3">Custodia Segura</h3>
               <p className="text-muted-foreground leading-relaxed">
@@ -26,7 +26,7 @@ export function Security() {
 
             <div className="bg-card border border-border rounded-xl p-6">
               <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
-                <Lock className="h-6 w-6 text-accent" />
+                <Lock className="h-6 w-6 text-green-400" />
               </div>
               <h3 className="text-xl font-semibold text-foreground mb-3">Encriptación de Nivel Bancario</h3>
               <p className="text-muted-foreground leading-relaxed">
@@ -37,7 +37,7 @@ export function Security() {
 
             <div className="bg-card border border-border rounded-xl p-6">
               <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
-                <Eye className="h-6 w-6 text-accent" />
+                <Eye className="h-6 w-6 text-purple-400" />
               </div>
               <h3 className="text-xl font-semibold text-foreground mb-3">Autenticación 2FA</h3>
               <p className="text-muted-foreground leading-relaxed">
@@ -48,7 +48,7 @@ export function Security() {
 
             <div className="bg-card border border-border rounded-xl p-6">
               <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
-                <FileCheck className="h-6 w-6 text-accent" />
+                <FileCheck className="h-6 w-6 text-cyan-400" />
               </div>
               <h3 className="text-xl font-semibold text-foreground mb-3">Auditorías Regulares</h3>
               <p className="text-muted-foreground leading-relaxed">

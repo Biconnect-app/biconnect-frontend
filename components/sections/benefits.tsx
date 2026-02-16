@@ -43,7 +43,7 @@ export function Benefits() {
       <div className="container mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4 text-balance">Beneficios clave</h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto text-pretty">
+          <p className="text-xl text-gray-300 max-w-2xl mx-auto text-pretty">
             Todo lo que necesitas para automatizar tu trading con confianza
           </p>
         </div>

@@ -105,6 +105,7 @@ export async function POST(req: Request) {
         const subscriberId = resource.subscriber?.payer_id
         const planId = resource.plan_id
         const customId = resource.custom_id // We pass the user ID as custom_id
+        const nextBillingTime = resource.billing_info?.next_billing_time
 
         if (!customId) {
           console.error("No custom_id (user ID) in subscription")
@@ -119,13 +120,24 @@ export async function POST(req: Request) {
           planType = "annual"
         }
 
+        // Check if there's a trial
+        const trialCycle = resource.billing_info?.cycle_executions?.find(
+          (cycle: any) => cycle.tenure_type === "TRIAL"
+        )
+        const isTrialing = trialCycle && trialCycle.cycles_remaining > 0
+        const status = isTrialing ? "trialing" : "active"
+        const trialEndsAt = isTrialing && nextBillingTime ? nextBillingTime : null
+
         const { error } = await supabase
           .from("profiles")
           .update({
             paypal_subscriber_id: subscriberId,
             paypal_subscription_id: subscriptionId,
             paypal_plan_type: planType,
-            paypal_status: "active",
+            paypal_status: status,
+            paypal_next_billing_time: nextBillingTime,
+            trial_ends_at: trialEndsAt,
+            paypal_cancel_at_period_end: false, // Reset cancellation flag
           })
           .eq("id", customId)
 
@@ -142,15 +154,41 @@ export async function POST(req: Request) {
         const subscriptionId = resource.id
         const status = mapPaypalStatus(resource.status)
 
-        const { error } = await supabase
+        // Get user ID from subscription
+        const { data: profile } = await supabase
           .from("profiles")
-          .update({ paypal_status: status })
+          .select("id")
           .eq("paypal_subscription_id", subscriptionId)
+          .single()
 
-        if (error) {
-          console.error(`Error updating profile on ${eventType}:`, error)
-        } else {
-          console.log(`Subscription ${eventType} for: ${subscriptionId}`)
+        if (profile) {
+          // Update subscription status
+          const { error } = await supabase
+            .from("profiles")
+            .update({ 
+              paypal_status: status,
+              paypal_cancel_at_period_end: false,
+            })
+            .eq("paypal_subscription_id", subscriptionId)
+
+          if (error) {
+            console.error(`Error updating profile on ${eventType}:`, error)
+          } else {
+            console.log(`Subscription ${eventType} for: ${subscriptionId}`)
+            
+            // Deactivate all active strategies for this user
+            const { error: strategiesError } = await supabase
+              .from("strategies")
+              .update({ is_active: false })
+              .eq("user_id", profile.id)
+              .eq("is_active", true)
+
+            if (strategiesError) {
+              console.error("Error deactivating strategies:", strategiesError)
+            } else {
+              console.log(`Deactivated all strategies for user ${profile.id}`)
+            }
+          }
         }
         break
       }
@@ -158,15 +196,17 @@ export async function POST(req: Request) {
       case "BILLING.SUBSCRIPTION.CANCELLED": {
         const subscriptionId = resource.id
 
+        // Don't change status yet, just mark it will cancel at period end
+        // The subscription remains active until it expires
         const { error } = await supabase
           .from("profiles")
-          .update({ paypal_status: "canceled" })
+          .update({ paypal_cancel_at_period_end: true })
           .eq("paypal_subscription_id", subscriptionId)
 
         if (error) {
           console.error("Error updating profile on cancellation:", error)
         } else {
-          console.log(`Subscription cancelled: ${subscriptionId}`)
+          console.log(`Subscription marked for cancellation: ${subscriptionId}`)
         }
         break
       }
@@ -175,11 +215,22 @@ export async function POST(req: Request) {
       case "PAYMENT.SALE.COMPLETED": {
         // Payment went through, ensure subscription is marked active
         const subscriptionId = resource.billing_agreement_id || resource.id
+        const nextBillingTime = resource.billing_info?.next_billing_time
 
         if (subscriptionId) {
+          const updateData: any = { 
+            paypal_status: "active",
+            trial_ends_at: null, // Clear trial since payment went through
+            paypal_cancel_at_period_end: false, // Clear cancellation flag since it renewed
+          }
+          
+          if (nextBillingTime) {
+            updateData.paypal_next_billing_time = nextBillingTime
+          }
+
           const { error } = await supabase
             .from("profiles")
-            .update({ paypal_status: "active" })
+            .update(updateData)
             .eq("paypal_subscription_id", subscriptionId)
 
           if (error) {

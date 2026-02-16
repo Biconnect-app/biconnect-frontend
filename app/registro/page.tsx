@@ -78,11 +78,16 @@ export default function RegisterPage() {
       const supabase = createClient()
 
       // Sign up with Supabase Auth
+      // Use explicit production URL or window origin for redirect
+      const redirectUrl = process.env.NEXT_PUBLIC_SITE_URL 
+        ? `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?type=signup`
+        : `${window.location.origin}/auth/callback?type=signup`
+      
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?type=signup`,
+          emailRedirectTo: redirectUrl,
           data: {
             first_name: formData.firstName,
             last_name: formData.lastName,

@@ -36,6 +36,11 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // Allow confirmation pages even if logged in
+  const isConfirmationPage = request.nextUrl.pathname === "/registro/confirmado" || 
+                            request.nextUrl.pathname === "/registro/exito"
+  
+  // Redirect authenticated users away from login/register pages (except confirmation pages)
   if ((request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/registro") && user) {
     const url = request.nextUrl.clone()
     url.pathname = "/dashboard/estrategias"

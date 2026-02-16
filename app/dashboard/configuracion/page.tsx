@@ -99,7 +99,7 @@ export default function SettingsPage() {
 
         <div>
           <h1 className="text-3xl font-bold text-foreground">Configuración</h1>
-          <p className="text-muted-foreground mt-1">Gestiona tu perfil</p>
+          <p className="text-gray-400 mt-1">Gestiona tu perfil</p>
         </div>
 
         {/* Profile */}

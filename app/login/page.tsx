@@ -107,6 +107,7 @@ export default function LoginPage() {
         if (previewDataString && fromPreviewString === "true") {
           try {
             const strategyData = JSON.parse(previewDataString)
+            console.log("Preview strategy detected for logged in user, will process in dashboard")
 
             // Verificar si el nombre de la estrategia ya existe
             const { data: existingStrategies, error: checkError } = await supabase

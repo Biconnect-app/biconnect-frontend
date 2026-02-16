@@ -316,7 +316,7 @@ export default function PreviewStrategyPage() {
         <div className="space-y-6 max-w-3xl mx-auto">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Crea tu primera estrategia</h1>
-            <p className="text-muted-foreground mt-1">Configura una nueva estrategia de trading automatizado</p>
+            <p className="text-white mt-1">Configura una nueva estrategia de trading automatizado</p>
           </div>
 
           {/* Información básica */}
@@ -379,7 +379,7 @@ export default function PreviewStrategyPage() {
                       </div>
                     )}
                     <div className="font-semibold text-foreground">Spot</div>
-                    <div className="text-sm text-muted-foreground mt-1">Compra/venta directa</div>
+                    <div className="text-sm text-white mt-1">Compra/venta directa</div>
                   </button>
                   <button
                     type="button"
@@ -396,7 +396,7 @@ export default function PreviewStrategyPage() {
                       </div>
                     )}
                     <div className="font-semibold text-foreground">Futuros</div>
-                    <div className="text-sm text-muted-foreground mt-1">Con apalancamiento</div>
+                    <div className="text-sm text-white mt-1">Con apalancamiento</div>
                   </button>
                 </div>
                 {errors.marketType && <p className="text-xs text-destructive">{errors.marketType}</p>}
@@ -423,7 +423,7 @@ export default function PreviewStrategyPage() {
                           </div>
                         )}
                         <div className="font-semibold text-foreground">Long</div>
-                        <div className="text-sm text-muted-foreground mt-1">Compra (alcista)</div>
+                        <div className="text-sm text-white mt-1">Compra (alcista)</div>
                       </button>
                       <button
                         type="button"
@@ -440,7 +440,7 @@ export default function PreviewStrategyPage() {
                           </div>
                         )}
                         <div className="font-semibold text-foreground">Short</div>
-                        <div className="text-sm text-muted-foreground mt-1">Venta (bajista)</div>
+                        <div className="text-sm text-white mt-1">Venta (bajista)</div>
                       </button>
                     </div>
                   </div>
@@ -455,7 +455,7 @@ export default function PreviewStrategyPage() {
                         className={`px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
                           formData.leverage === lev
                             ? "border-accent bg-accent/10 text-accent shadow-sm"
-                            : "border-border hover:border-accent/50 text-muted-foreground hover:text-foreground"
+                            : "border-border hover:border-accent/50 text-white hover:text-foreground"
                         }`}
                       >
                         {lev}x
@@ -474,9 +474,9 @@ export default function PreviewStrategyPage() {
                       }}
                       className="w-24"
                     />
-                    <span className="text-sm text-muted-foreground">Personalizado (1-125x)</span>
+                    <span className="text-sm text-white">Personalizado (1-125x)</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">Multiplica tus ganancias (y pérdidas) potenciales</p>
+                  <p className="text-xs text-white">Multiplica tus ganancias (y pérdidas) potenciales</p>
                 </div>
               )}
 
@@ -520,7 +520,7 @@ export default function PreviewStrategyPage() {
                   </PopoverContent>
                 </Popover>
                 {errors.pair && <p className="text-xs text-destructive">{errors.pair}</p>}
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-white">
                   {loadingPairs
                     ? "Cargando pares disponibles desde Binance..."
                     : `${tradingPairs.length} pares ${pairsError ? "populares" : "disponibles"}`}
@@ -618,7 +618,7 @@ export default function PreviewStrategyPage() {
                   />
                   {errors.riskAmount && <p className="text-xs text-destructive">{errors.riskAmount}</p>}
                   {formData.riskType === "percentage" && (
-                    <p className="text-xs text-muted-foreground">Debe estar entre 0 y 100</p>
+                    <p className="text-xs text-white">Debe estar entre 0 y 100</p>
                   )}
                 </div>
               )}
@@ -627,7 +627,7 @@ export default function PreviewStrategyPage() {
                 <div className="mt-4 p-4 bg-muted/30 border border-border/50 rounded-lg">
                   <h3 className="text-sm font-semibold text-foreground mb-2">Ejemplo:</h3>
                   {formData.riskType === "fixed_quantity" && (
-                    <div className="space-y-1 text-sm text-muted-foreground">
+                    <div className="space-y-1 text-sm text-white">
                       <p>
                         Si ingresas <span className="font-semibold text-foreground">0.5</span> contratos de BTC/USDT:
                       </p>
@@ -636,7 +636,7 @@ export default function PreviewStrategyPage() {
                     </div>
                   )}
                   {formData.riskType === "fixed_amount" && (
-                    <div className="space-y-1 text-sm text-muted-foreground">
+                    <div className="space-y-1 text-sm text-white">
                       <p>
                         Si ingresas <span className="font-semibold text-foreground">$1,000</span> como monto fijo:
                       </p>
@@ -645,7 +645,7 @@ export default function PreviewStrategyPage() {
                     </div>
                   )}
                   {formData.riskType === "percentage" && (
-                    <div className="space-y-1 text-sm text-muted-foreground">
+                    <div className="space-y-1 text-sm text-white">
                       <p>
                         Si ingresas <span className="font-semibold text-foreground">5%</span> de tu capital:
                       </p>
@@ -666,7 +666,7 @@ export default function PreviewStrategyPage() {
               </Button>
             </Link>
 
-            <p className="text-center text-sm text-muted-foreground">
+            <p className="text-center text-sm text-white">
               ¿Ya tienes una cuenta?{" "}
               <Link href="/login" onClick={handleLoginClick} className="text-accent hover:underline font-medium">
                 Inicia sesión aquí

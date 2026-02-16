@@ -64,97 +64,119 @@ export function CheckoutButton({
   }
 
   useEffect(() => {
-    if (!showPayPal || !paypalButtonRef.current) return
+    if (!showPayPal) return
 
-    // Clear previous buttons
-    paypalButtonRef.current.innerHTML = ""
+    // Wait for the dialog to render and the ref to be available
+    const timer = setTimeout(() => {
+      if (!paypalButtonRef.current) {
+        console.error("PayPal button ref is not available")
+        return
+      }
 
-    const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID
-    if (!clientId) {
-      console.error("NEXT_PUBLIC_PAYPAL_CLIENT_ID not set")
-      return
-    }
+      // Clear previous buttons
+      paypalButtonRef.current.innerHTML = ""
 
-    // Load PayPal SDK
-    const existingScript = document.getElementById("paypal-sdk")
-    if (existingScript) {
-      existingScript.remove()
-    }
+      const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID
+      
+      if (!clientId) {
+        console.error("NEXT_PUBLIC_PAYPAL_CLIENT_ID not set")
+        alert("Error: PayPal no está configurado correctamente.")
+        return
+      }
 
-    const script = document.createElement("script")
-    script.id = "paypal-sdk"
-    script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&vault=true&intent=subscription`
-    script.setAttribute("data-sdk-integration-source", "button-factory")
+      if (!planId) {
+        console.error("Plan ID not set")
+        alert("Error: Plan ID no está configurado correctamente.")
+        return
+      }
 
-    script.onload = () => {
-      if (
-        window.paypal &&
-        paypalButtonRef.current
-      ) {
-        setPaypalReady(true)
-        window.paypal
-          .Buttons({
-            style: {
-              shape: "rect",
-              color: "gold",
-              layout: "vertical",
-              label: "subscribe",
-            },
-            createSubscription: async (
-              _data: Record<string, unknown>,
-              actions: { subscription: { create: (opts: Record<string, unknown>) => Promise<string> } }
-            ) => {
-              const supabase = createClient()
-              const {
-                data: { user },
-              } = await supabase.auth.getUser()
+      // Load PayPal SDK
+      const existingScript = document.getElementById("paypal-sdk")
+      if (existingScript) {
+        existingScript.remove()
+      }
 
-              return actions.subscription.create({
-                plan_id: planId,
-                custom_id: user?.id || "",
-                application_context: {
-                  shipping_preference: "NO_SHIPPING",
-                },
-              })
-            },
-            onApprove: async (data: { subscriptionID: string }) => {
-              // Activate the subscription on our backend
-              try {
-                const response = await fetch("/api/paypal/activate", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    subscriptionId: data.subscriptionID,
-                    planType: priceType === "yearly" ? "annual" : "monthly",
-                  }),
+      const script = document.createElement("script")
+      script.id = "paypal-sdk"
+      script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&vault=true&intent=subscription`
+      script.setAttribute("data-sdk-integration-source", "button-factory")
+
+      script.onload = () => {
+        if (
+          window.paypal &&
+          paypalButtonRef.current
+        ) {
+          setPaypalReady(true)
+          window.paypal
+            .Buttons({
+              style: {
+                shape: "rect",
+                color: "gold",
+                layout: "vertical",
+                label: "subscribe",
+              },
+              createSubscription: async (
+                _data: Record<string, unknown>,
+                actions: { subscription: { create: (opts: Record<string, unknown>) => Promise<string> } }
+              ) => {
+                const supabase = createClient()
+                const {
+                  data: { user },
+                } = await supabase.auth.getUser()
+
+                return actions.subscription.create({
+                  plan_id: planId,
+                  custom_id: user?.id || "",
+                  application_context: {
+                    shipping_preference: "NO_SHIPPING",
+                  },
                 })
+              },
+              onApprove: async (data: { subscriptionID: string }) => {
+                // Activate the subscription on our backend
+                try {
+                  const response = await fetch("/api/paypal/activate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      subscriptionId: data.subscriptionID,
+                      planType: priceType === "yearly" ? "annual" : "monthly",
+                    }),
+                  })
 
-                if (response.ok) {
-                  setShowPayPal(false)
-                  router.push("/dashboard/suscripcion?success=true")
-                } else {
+                  if (response.ok) {
+                    setShowPayPal(false)
+                    router.push("/dashboard/suscripcion?success=true")
+                  } else {
+                    alert("Error al activar la suscripcion. Contacta soporte.")
+                  }
+                } catch (error) {
+                  console.error("Activation error:", error)
                   alert("Error al activar la suscripcion. Contacta soporte.")
                 }
-              } catch (error) {
-                console.error("Activation error:", error)
-                alert("Error al activar la suscripcion. Contacta soporte.")
-              }
-            },
-            onError: (err: Error) => {
-              console.error("PayPal error:", err)
-              alert("Error con PayPal. Por favor, intenta de nuevo.")
-            },
-            onCancel: () => {
-              setShowPayPal(false)
-            },
-          })
-          .render(paypalButtonRef.current)
+              },
+              onError: (err: Error) => {
+                console.error("PayPal error:", err)
+                alert("Error con PayPal. Por favor, intenta de nuevo.")
+              },
+              onCancel: () => {
+                setShowPayPal(false)
+              },
+            })
+            .render(paypalButtonRef.current)
+        }
       }
-    }
 
-    document.body.appendChild(script)
+      script.onerror = () => {
+        console.error("Failed to load PayPal SDK")
+        alert("Error al cargar PayPal. Verifica tu conexión a internet.")
+      }
+
+      document.body.appendChild(script)
+    }, 100) // Wait 100ms for the dialog to render
 
     return () => {
+      clearTimeout(timer)
       const s = document.getElementById("paypal-sdk")
       if (s) s.remove()
     }

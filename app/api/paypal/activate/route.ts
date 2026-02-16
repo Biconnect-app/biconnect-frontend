@@ -62,6 +62,39 @@ export async function POST(req: Request) {
     const subscription = await response.json()
     const subscriberId = subscription.subscriber?.payer_id || ""
 
+    // Determine if it's in trial period
+    const billingInfo = subscription.billing_info
+    const nextBillingTime = billingInfo?.next_billing_time
+    
+    // Check if there's a trial cycle
+    const trialCycle = subscription.billing_info?.cycle_executions?.find(
+      (cycle: any) => cycle.tenure_type === "TRIAL"
+    )
+    const isTrialing = trialCycle && trialCycle.cycles_remaining > 0
+    
+    // Get the actual PayPal status
+    const paypalStatus = subscription.status
+    let status: string
+    
+    if (paypalStatus === "APPROVAL_PENDING") {
+      status = "pending"
+    } else if (paypalStatus === "APPROVED" || paypalStatus === "ACTIVE") {
+      // If there's an active trial, mark as trialing
+      status = isTrialing ? "trialing" : "active"
+    } else if (paypalStatus === "SUSPENDED") {
+      status = "suspended"
+    } else if (paypalStatus === "CANCELLED") {
+      status = "canceled"
+    } else {
+      status = "active"
+    }
+
+    // Calculate trial end date if in trial
+    let trialEndsAt = null
+    if (isTrialing && nextBillingTime) {
+      trialEndsAt = nextBillingTime
+    }
+
     // Update the profile with subscription info
     const { error } = await supabase
       .from("profiles")
@@ -69,7 +102,10 @@ export async function POST(req: Request) {
         paypal_subscriber_id: subscriberId,
         paypal_subscription_id: subscriptionId,
         paypal_plan_type: planType || "monthly",
-        paypal_status: subscription.status === "ACTIVE" ? "active" : "trialing",
+        paypal_status: status,
+        trial_ends_at: trialEndsAt,
+        paypal_next_billing_time: nextBillingTime,
+        paypal_cancel_at_period_end: false, // Reset cancellation flag on new activation
       })
       .eq("id", user.id)
 
@@ -78,7 +114,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Failed to update profile" }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, status: subscription.status })
+    return NextResponse.json({ 
+      success: true, 
+      status: status,
+      isTrialing,
+      trialEndsAt,
+      nextBillingTime 
+    })
   } catch (error) {
     console.error("PayPal activation error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

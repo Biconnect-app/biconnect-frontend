@@ -241,7 +241,7 @@ export default function IntegrationsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Integraciones</h1>
-            <p className="text-muted-foreground mt-1">Gestiona conexiones con TradingView y exchanges</p>
+            <p className="text-gray-400 mt-1">Gestiona conexiones con TradingView y exchanges</p>
           </div>
           <Button
             onClick={() => setShowAddForm(!showAddForm)}
