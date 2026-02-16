@@ -1,11 +1,17 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { STRIPE_PRICES } from "@/lib/stripe/config"
 import { Loader2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
 
 interface CheckoutButtonProps {
   priceType?: "monthly" | "yearly"
@@ -23,7 +29,15 @@ export function CheckoutButton({
   size = "lg",
 }: CheckoutButtonProps) {
   const [loading, setLoading] = useState(false)
+  const [showPayPal, setShowPayPal] = useState(false)
+  const [paypalReady, setPaypalReady] = useState(false)
+  const paypalButtonRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
+
+  const planId =
+    priceType === "yearly"
+      ? process.env.NEXT_PUBLIC_PAYPAL_PLAN_ANNUAL
+      : process.env.NEXT_PUBLIC_PAYPAL_PLAN_MONTHLY
 
   const handleCheckout = async () => {
     try {
@@ -36,40 +50,11 @@ export function CheckoutButton({
       } = await supabase.auth.getUser()
 
       if (!user) {
-        // Redirect to login with return URL
         router.push("/login?redirect=/precios&plan=pro")
         return
       }
 
-      // Get the appropriate price ID
-      const priceId =
-        priceType === "yearly" && STRIPE_PRICES.PRO_YEARLY
-          ? STRIPE_PRICES.PRO_YEARLY
-          : STRIPE_PRICES.PRO_MONTHLY
-
-      // Create checkout session
-      const response = await fetch("/api/stripe/checkout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          priceId,
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || "Error al crear la sesión de pago")
-      }
-
-      // Redirect to Stripe Checkout (URL is always returned by the API)
-      if (data.url) {
-        window.location.href = data.url
-      } else {
-        throw new Error("No se recibió URL de checkout")
-      }
+      setShowPayPal(true)
     } catch (error) {
       console.error("Checkout error:", error)
       alert("Error al procesar el pago. Por favor, intenta de nuevo.")
@@ -78,22 +63,153 @@ export function CheckoutButton({
     }
   }
 
+  useEffect(() => {
+    if (!showPayPal || !paypalButtonRef.current) return
+
+    // Clear previous buttons
+    paypalButtonRef.current.innerHTML = ""
+
+    const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID
+    if (!clientId) {
+      console.error("NEXT_PUBLIC_PAYPAL_CLIENT_ID not set")
+      return
+    }
+
+    // Load PayPal SDK
+    const existingScript = document.getElementById("paypal-sdk")
+    if (existingScript) {
+      existingScript.remove()
+    }
+
+    const script = document.createElement("script")
+    script.id = "paypal-sdk"
+    script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&vault=true&intent=subscription`
+    script.setAttribute("data-sdk-integration-source", "button-factory")
+
+    script.onload = () => {
+      if (
+        window.paypal &&
+        paypalButtonRef.current
+      ) {
+        setPaypalReady(true)
+        window.paypal
+          .Buttons({
+            style: {
+              shape: "rect",
+              color: "gold",
+              layout: "vertical",
+              label: "subscribe",
+            },
+            createSubscription: async (
+              _data: Record<string, unknown>,
+              actions: { subscription: { create: (opts: Record<string, unknown>) => Promise<string> } }
+            ) => {
+              const supabase = createClient()
+              const {
+                data: { user },
+              } = await supabase.auth.getUser()
+
+              return actions.subscription.create({
+                plan_id: planId,
+                custom_id: user?.id || "",
+                application_context: {
+                  shipping_preference: "NO_SHIPPING",
+                },
+              })
+            },
+            onApprove: async (data: { subscriptionID: string }) => {
+              // Activate the subscription on our backend
+              try {
+                const response = await fetch("/api/paypal/activate", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    subscriptionId: data.subscriptionID,
+                    planType: priceType === "yearly" ? "annual" : "monthly",
+                  }),
+                })
+
+                if (response.ok) {
+                  setShowPayPal(false)
+                  router.push("/dashboard/suscripcion?success=true")
+                } else {
+                  alert("Error al activar la suscripcion. Contacta soporte.")
+                }
+              } catch (error) {
+                console.error("Activation error:", error)
+                alert("Error al activar la suscripcion. Contacta soporte.")
+              }
+            },
+            onError: (err: Error) => {
+              console.error("PayPal error:", err)
+              alert("Error con PayPal. Por favor, intenta de nuevo.")
+            },
+            onCancel: () => {
+              setShowPayPal(false)
+            },
+          })
+          .render(paypalButtonRef.current)
+      }
+    }
+
+    document.body.appendChild(script)
+
+    return () => {
+      const s = document.getElementById("paypal-sdk")
+      if (s) s.remove()
+    }
+  }, [showPayPal, planId, priceType, router])
+
   return (
-    <Button
-      onClick={handleCheckout}
-      disabled={loading}
-      className={className}
-      variant={variant}
-      size={size}
-    >
-      {loading ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Procesando...
-        </>
-      ) : (
-        children
-      )}
-    </Button>
+    <>
+      <Button
+        onClick={handleCheckout}
+        disabled={loading}
+        className={className}
+        variant={variant}
+        size={size}
+      >
+        {loading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Procesando...
+          </>
+        ) : (
+          children
+        )}
+      </Button>
+
+      <Dialog open={showPayPal} onOpenChange={setShowPayPal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Suscribirse al Plan Pro</DialogTitle>
+            <DialogDescription>
+              {priceType === "yearly"
+                ? "Plan anual: $250/ano con 30 dias de prueba gratis"
+                : "Plan mensual: $25/mes con 30 dias de prueba gratis"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {!paypalReady && (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            )}
+            <div ref={paypalButtonRef} />
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   )
+}
+
+// Type augmentation for PayPal SDK on window
+declare global {
+  interface Window {
+    paypal?: {
+      Buttons: (config: Record<string, unknown>) => {
+        render: (container: HTMLElement) => void
+      }
+    }
+  }
 }

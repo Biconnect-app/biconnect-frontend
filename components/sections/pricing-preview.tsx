@@ -22,7 +22,7 @@ export function PricingPreview() {
                 <span className="text-5xl font-bold text-foreground">$0</span>
                 <span className="text-muted-foreground">/30 días</span>
               </div>
-              <p className="text-sm text-muted-foreground mt-2">Luego $29/mes</p>
+              <p className="text-sm text-muted-foreground mt-2">Luego $25/mes</p>
             </div>
 
             <ul className="space-y-4 mb-8">
@@ -64,7 +64,7 @@ export function PricingPreview() {
             <div className="mb-6">
               <h3 className="text-2xl font-bold mb-2">Plan Pro</h3>
               <div className="flex items-baseline gap-2">
-                <span className="text-5xl font-bold">$29</span>
+                <span className="text-5xl font-bold">$25</span>
                 <span className="text-primary-foreground/80">/mes</span>
               </div>
             </div>
