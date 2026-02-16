@@ -21,46 +21,41 @@ export function useUserPlan() {
           // Query profiles table to check admin status and subscription
           const { data: profile, error } = await supabase
             .from("profiles")
-            .select("plan, stripe_subscription_status, trial_ends_at, is_admin")
+            .select("plan, paypal_status, trial_ends_at, is_admin")
             .eq("id", user.id)
             .single()
 
           if (error) {
             console.error("Error fetching user plan:", error)
-            setPlan(null) // No plan on error
+            setPlan(null)
           } else {
-            console.log("Profile data:", profile) // DEBUG
-            
             // Check if user is admin - admins bypass all subscription requirements
             if (profile?.is_admin) {
-              console.log("User is admin!") // DEBUG
               setIsAdmin(true)
               setPlan("admin")
               setLoading(false)
               return
             }
             
-            // Check stripe_subscription_status to determine actual plan
-            const status = profile?.stripe_subscription_status
+            // Check paypal_status to determine actual plan
+            const status = profile?.paypal_status
             
             // Check if user has already used trial
-            // Trial was used if: trial_ends_at exists OR status was ever trialing/active/canceled
             const trialWasUsed = !!(
               profile?.trial_ends_at || 
               status === "canceled" || 
-              status === "past_due" ||
-              status === "unpaid"
+              status === "inactive"
             )
             setHasUsedTrial(trialWasUsed)
             
             if (status === "trialing") {
               setPlan("trial")
-              setHasUsedTrial(true) // Currently in trial means trial was used
+              setHasUsedTrial(true)
             } else if (status === "active") {
               setPlan("pro")
-              setHasUsedTrial(true) // Was pro means trial was used
+              setHasUsedTrial(true)
             } else {
-              setPlan(null) // No active subscription
+              setPlan(null)
             }
           }
         }
