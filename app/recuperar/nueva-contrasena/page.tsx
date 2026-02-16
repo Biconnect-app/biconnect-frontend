@@ -88,10 +88,15 @@ export default function NuevaContrasenaPage() {
         return
       }
 
-      // Sign out so user logs in fresh with new password
+      // Sign out so user must log in fresh with new password
       await supabase.auth.signOut()
       setSuccess(true)
       setLoading(false)
+
+      // Auto-redirect to login after 3 seconds
+      setTimeout(() => {
+        router.push("/login")
+      }, 3000)
     } catch (err) {
       console.error("Unexpected error updating password:", err)
       setError("Error al actualizar la contrasena. Intenta nuevamente.")
@@ -139,7 +144,7 @@ export default function NuevaContrasenaPage() {
               </div>
               <h1 className="text-2xl font-bold text-foreground mb-2">Contrasena actualizada</h1>
               <p className="text-muted-foreground mb-6">
-                Tu contrasena ha sido actualizada correctamente. Ya podes iniciar sesion con tu nueva contrasena.
+                Tu contrasena ha sido actualizada correctamente. Seras redirigido al inicio de sesion en unos segundos.
               </p>
               <Link href="/login">
                 <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" size="lg">
