@@ -14,11 +14,11 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata = {
-  title: "Biconnect - Compra y vende criptomonedas en minutos",
+  title: "Cuanted - Compra y vende criptomonedas en minutos",
   description:
-    "Plataforma segura y profesional para comprar y vender criptomonedas. Comienza a invertir hoy con Biconnect.",
+    "Plataforma segura y profesional para comprar y vender criptomonedas. Comienza a invertir hoy con Cuanted.",
   openGraph: {
-    title: "Biconnect - Compra y vende criptomonedas",
+    title: "Cuanted - Compra y vende criptomonedas",
     description: "Plataforma segura y profesional para comprar y vender criptomonedas.",
     type: "website",
   },

@@ -555,12 +555,17 @@ export default function NuevaEstrategiaPage() {
                           key={lev}
                           type="button"
                           onClick={() => setFormData({ ...formData, leverage: lev })}
-                          className={`px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
+                          className={`relative px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
                             formData.leverage === lev
-                              ? "border-accent bg-accent/10 text-accent shadow-sm"
+                              ? "border-accent bg-accent/20 shadow-lg ring-2 ring-accent/30 text-accent"
                               : "border-border hover:border-accent/50 text-muted-foreground hover:text-foreground"
                           }`}
                         >
+                          {formData.leverage === lev && (
+                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-accent rounded-full flex items-center justify-center">
+                              <Check className="h-2.5 w-2.5 text-accent-foreground" />
+                            </div>
+                          )}
                           {lev}x
                         </button>
                       ))}

@@ -71,6 +71,7 @@ export default function EditStrategyPage() {
   const [tradingPairs, setTradingPairs] = useState<string[]>(FALLBACK_TRADING_PAIRS)
   const [loadingPairs, setLoadingPairs] = useState(false)
   const [pairsError, setPairsError] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   useEffect(() => {
     loadStrategy()
@@ -153,7 +154,6 @@ export default function EditStrategyPage() {
         riskAmount: strategy.risk_value?.toString() || "",
         webhookUrl: strategy.webhook_url,
         order: strategy.order || { action: "" },
-        market_position: strategy.market_position || "",
       })
     } catch (error) {
       console.error("Error in loadStrategy:", error)
@@ -225,6 +225,7 @@ export default function EditStrategyPage() {
   const handleSave = async () => {
     if (validateForm()) {
       try {
+        setSaveError(null)
         const supabase = createClient()
 
         const { error } = await supabase
@@ -239,20 +240,20 @@ export default function EditStrategyPage() {
             risk_type: formData.riskType,
             risk_value: Number.parseFloat(formData.riskAmount),
             updated_at: new Date().toISOString(),
-            order: formData.order,
-            market_position: formData.market_position,
           })
           .eq("id", params.id)
 
         if (error) {
           console.error("Error updating strategy:", error)
+          setSaveError(error.message || "Error al actualizar la estrategia")
           return
         }
 
         console.log("Strategy updated successfully")
         router.push("/dashboard/estrategias")
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error in handleSave:", error)
+        setSaveError(error.message || "Error inesperado al guardar los cambios")
       }
     }
   }
@@ -463,12 +464,17 @@ export default function EditStrategyPage() {
                         key={lev}
                         type="button"
                         onClick={() => setFormData({ ...formData, leverage: lev })}
-                        className={`p-2 rounded-lg border-2 text-sm font-medium transition-all ${
+                        className={`relative p-2 rounded-lg border-2 text-sm font-medium transition-all ${
                           formData.leverage === lev
-                            ? "border-accent bg-accent/10 text-accent"
+                            ? "border-accent bg-accent/20 shadow-lg ring-2 ring-accent/30 text-accent"
                             : "border-border hover:border-accent/50"
                         }`}
                       >
+                        {formData.leverage === lev && (
+                          <div className="absolute -top-1 -right-1 w-4 h-4 bg-accent rounded-full flex items-center justify-center">
+                            <Check className="h-2.5 w-2.5 text-accent-foreground" />
+                          </div>
+                        )}
                         {lev}x
                       </button>
                     ))}
@@ -658,26 +664,12 @@ export default function EditStrategyPage() {
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-          <h2 className="text-xl font-semibold text-foreground">Webhook de TradingView</h2>
-
-          <div className="flex gap-2">
-            <Input
-              value={`https://api-92000983434.southamerica-east1.run.app/api/webhook`}
-              readOnly
-              className="font-mono text-sm"
-            />
-            <Button onClick={copyWebhook} variant="outline" className="bg-transparent">
-              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            </Button>
-          </div>
-        </div>
-
-        <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-          <h2 className="text-xl font-semibold text-foreground">Payload JSON</h2>
-
-          <Textarea value={generatePayload()} readOnly className="font-mono text-sm" rows={12} />
-        </div>
+        {saveError && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{saveError}</AlertDescription>
+          </Alert>
+        )}
 
         <div className="flex gap-4">
           <Button onClick={handleSave} className="bg-accent hover:bg-accent/90 text-accent-foreground">

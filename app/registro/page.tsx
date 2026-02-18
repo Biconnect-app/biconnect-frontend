@@ -9,11 +9,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Eye, EyeOff, AlertCircle, Check, X } from "lucide-react"
+import { Eye, EyeOff, AlertCircle, Check, X, Moon, Sun } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
+import { useTheme } from "next-themes"
 
 export default function RegisterPage() {
   const router = useRouter()
+  const { theme, setTheme, resolvedTheme } = useTheme()
 
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -128,13 +130,21 @@ export default function RegisterPage() {
       }
 
       if (data.user) {
-        const previewDataString = sessionStorage.getItem("previewStrategy")
-        const fromPreviewString = sessionStorage.getItem("fromPreview")
+        // Check both localStorage and sessionStorage
+        const previewDataString = localStorage.getItem("previewStrategy") || sessionStorage.getItem("previewStrategy")
+        const fromPreviewString = localStorage.getItem("fromPreview") || sessionStorage.getItem("fromPreview")
+
+        console.log("📋 Registro - Checking for preview strategy:", { 
+          hasPreviewData: !!previewDataString, 
+          fromPreview: fromPreviewString,
+          email: formData.email 
+        })
 
         if (previewDataString && fromPreviewString === "true") {
           try {
             const strategyData = JSON.parse(previewDataString)
-            console.log("Saving pending strategy for user:", formData.email)
+            console.log("💾 Registro - Saving pending strategy for user:", formData.email)
+            console.log("💾 Strategy data:", { name: strategyData.name, exchange: strategyData.exchange })
 
             // Save to pending_strategies table with user's email
             const { error: pendingError } = await supabase.from("pending_strategies").upsert(
@@ -149,13 +159,16 @@ export default function RegisterPage() {
             )
 
             if (pendingError) {
-              console.error("Error saving pending strategy:", pendingError)
+              console.error("❌ Registro - Error saving pending strategy:", pendingError)
             } else {
-              console.log("Pending strategy saved successfully")
+              console.log("✅ Registro - Pending strategy saved successfully to database")
+              console.log("✅ LocalStorage + SessionStorage preserved for confirmation + login")
             }
           } catch (error) {
-            console.error("Error saving pending strategy:", error)
+            console.error("❌ Registro - Error saving pending strategy:", error)
           }
+        } else {
+          console.log("⚠️ Registro - No preview strategy found in sessionStorage")
         }
 
         console.log("Registration successful, redirecting to success page")
@@ -170,13 +183,22 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-primary/5 via-background to-accent/5">
+      {/* Theme Toggle */}
+      <button
+        onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+        className="fixed top-4 right-4 p-2 rounded-lg bg-card border border-border hover:bg-accent/10 transition-colors"
+        aria-label="Toggle theme"
+      >
+        {resolvedTheme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+      </button>
+      
       <div className="w-full max-w-2xl">
         {/* Logo */}
         <Link href="/" className="flex items-center justify-center gap-2 mb-8">
           <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-xl">B</span>
+            <span className="text-primary-foreground font-bold text-xl">C</span>
           </div>
-          <span className="text-2xl font-bold text-foreground">Biconnect</span>
+          <span className="text-2xl font-bold text-foreground">Cuanted</span>
         </Link>
 
         {/* Register Card */}
@@ -331,8 +353,8 @@ export default function RegisterPage() {
                 required
                 className="mt-1"
               />
-              <Label htmlFor="terms" className="text-sm font-normal cursor-pointer">
-                He leído y acepto los<a href="/terminos" className="text-primary hover:underline"> Términos de Uso</a> y la<a href="/privacidad" className="text-primary hover:underline"> Política de Privacidad</a>
+              <Label htmlFor="terms" className="text-sm font-normal cursor-pointer text-muted-foreground">
+                He leído y acepto los<a href="/terminos" className="text-primary font-semibold hover:underline"> Términos de Uso</a> y la<a href="/privacidad" className="text-primary font-semibold hover:underline"> Política de Privacidad</a>
               </Label>
             </div>
 

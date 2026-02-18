@@ -7,10 +7,12 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { AlertCircle, CheckCircle, ArrowLeft } from "lucide-react"
+import { AlertCircle, CheckCircle, ArrowLeft, Moon, Sun } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
+import { useTheme } from "next-themes"
 
 export default function RecoverPage() {
+  const { theme, setTheme, resolvedTheme } = useTheme()
   const [email, setEmail] = useState("")
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState("")
@@ -42,8 +44,12 @@ export default function RecoverPage() {
 
       // Only send the reset email if the user actually exists
       if (emailExists) {
+        const redirectUrl = process.env.NEXT_PUBLIC_SITE_URL
+          ? `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/recuperar/nueva-contrasena`
+          : `${window.location.origin}/auth/callback?next=/recuperar/nueva-contrasena`
+        
         const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/auth/callback?next=/recuperar/nueva-contrasena`,
+          redirectTo: redirectUrl,
         })
 
         if (resetError) {
@@ -68,13 +74,22 @@ export default function RecoverPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-primary/5 via-background to-accent/5">
+      {/* Theme Toggle */}
+      <button
+        onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+        className="fixed top-4 right-4 p-2 rounded-lg bg-card border border-border hover:bg-accent/10 transition-colors"
+        aria-label="Toggle theme"
+      >
+        {resolvedTheme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+      </button>
+      
       <div className="w-full max-w-md">
         {/* Logo */}
         <Link href="/" className="flex items-center justify-center gap-2 mb-8">
           <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-xl">B</span>
+            <span className="text-primary-foreground font-bold text-xl">C</span>
           </div>
-          <span className="text-2xl font-bold text-foreground">Biconnect</span>
+          <span className="text-2xl font-bold text-foreground">Cuanted</span>
         </Link>
 
         {/* Recovery Card */}

@@ -8,12 +8,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Check, Search } from "lucide-react"
+import { Check, Search, Moon, Sun } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
+import { useTheme } from "next-themes"
 
 const FALLBACK_TRADING_PAIRS = [
   "BTC/USDT",
@@ -83,6 +84,7 @@ const QUICK_LEVERAGE_OPTIONS = [1, 2, 5, 10, 20, 50, 100, 125]
 
 export default function PreviewStrategyPage() {
   const router = useRouter()
+  const { theme, setTheme, resolvedTheme } = useTheme()
   const [copied, setCopied] = useState(false)
   const [openPairSelect, setOpenPairSelect] = useState(false)
   const [tradingPairs, setTradingPairs] = useState<string[]>(FALLBACK_TRADING_PAIRS)
@@ -95,8 +97,8 @@ export default function PreviewStrategyPage() {
     description: "",
     pair: "",
     marketType: "",
-    leverage: 0,
-    positionSide: "",
+    leverage: 1,
+    positionSide: "long",
     riskType: "",
     riskAmount: "",
     email: "", // Added email field
@@ -114,8 +116,16 @@ export default function PreviewStrategyPage() {
       } = await supabase.auth.getUser()
 
       if (user) {
-        // Save current form data to sessionStorage before redirecting
-        if (formData.name || formData.pair) {
+        // Save current form data to sessionStorage before redirecting (solo si hay datos reales)
+        const hasAnyData = 
+          formData.name.trim() !== "" ||
+          formData.exchange !== "" ||
+          formData.marketType !== "" ||
+          formData.pair !== "" ||
+          formData.riskType !== "" ||
+          formData.riskAmount !== ""
+        
+        if (hasAnyData) {
           sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
         }
         router.push("/dashboard/estrategias/nueva")
@@ -249,14 +259,12 @@ export default function PreviewStrategyPage() {
   }
 
   const handleRegisterClick = async (e: React.MouseEvent) => {
-    // Verificar si el usuario ingresó algún dato
+    // Verificar si el usuario ingresó algún dato (excluyendo valores por defecto)
     const hasAnyData = 
       formData.name.trim() !== "" ||
       formData.exchange !== "" ||
       formData.marketType !== "" ||
       formData.pair !== "" ||
-      formData.leverage !== 0 ||
-      formData.positionSide !== "" ||
       formData.riskType !== "" ||
       formData.riskAmount !== ""
 
@@ -274,20 +282,24 @@ export default function PreviewStrategyPage() {
         riskAmount: formData.riskAmount || "",
       }
 
+      // Usar localStorage para persistir entre pestañas y navegación
+      localStorage.setItem("previewStrategy", JSON.stringify(strategyToSave))
+      localStorage.setItem("fromPreview", "true")
       sessionStorage.setItem("previewStrategy", JSON.stringify(strategyToSave))
       sessionStorage.setItem("fromPreview", "true")
+      console.log("📝 Preview - Saved strategy to storage:", { name: strategyToSave.name, exchange: strategyToSave.exchange })
+    } else {
+      console.log("⚠️ Preview - No data to save (all fields empty)")
     }
   }
 
   const handleLoginClick = async (e: React.MouseEvent) => {
-    // Verificar si el usuario ingresó algún dato
+    // Verificar si el usuario ingresó algún dato (excluyendo valores por defecto)
     const hasAnyData = 
       formData.name.trim() !== "" ||
       formData.exchange !== "" ||
       formData.marketType !== "" ||
       formData.pair !== "" ||
-      formData.leverage !== 0 ||
-      formData.positionSide !== "" ||
       formData.riskType !== "" ||
       formData.riskAmount !== ""
 
@@ -305,13 +317,40 @@ export default function PreviewStrategyPage() {
         riskAmount: formData.riskAmount || "",
       }
 
+      // Usar localStorage para persistir entre pestañas y navegación
+      localStorage.setItem("previewStrategy", JSON.stringify(strategyToSave))
+      localStorage.setItem("fromPreview", "true")
       sessionStorage.setItem("previewStrategy", JSON.stringify(strategyToSave))
       sessionStorage.setItem("fromPreview", "true")
+      console.log("📝 Preview - Saved strategy to storage:", { name: strategyToSave.name, exchange: strategyToSave.exchange })
+    } else {
+      console.log("⚠️ Preview - No data to save (all fields empty)")
     }
   }
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Header with Logo */}
+      <div className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <span className="text-primary-foreground font-bold">C</span>
+              </div>
+              <span className="text-xl font-bold text-foreground">Cuanted</span>
+            </Link>
+            <button
+              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+              className="p-2 rounded-lg bg-card border border-border hover:bg-accent/10 transition-colors"
+              aria-label="Toggle theme"
+            >
+              {resolvedTheme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="space-y-6 max-w-3xl mx-auto">
           <div>
@@ -452,12 +491,17 @@ export default function PreviewStrategyPage() {
                         key={lev}
                         type="button"
                         onClick={() => setFormData({ ...formData, leverage: lev })}
-                        className={`px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
+                        className={`relative px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
                           formData.leverage === lev
-                            ? "border-accent bg-accent/10 text-accent shadow-sm"
+                            ? "border-accent bg-accent/20 shadow-lg ring-2 ring-accent/30 text-accent"
                             : "border-border hover:border-accent/50 text-white hover:text-foreground"
                         }`}
                       >
+                        {formData.leverage === lev && (
+                          <div className="absolute -top-1 -right-1 w-4 h-4 bg-accent rounded-full flex items-center justify-center">
+                            <Check className="h-2.5 w-2.5 text-accent-foreground" />
+                          </div>
+                        )}
                         {lev}x
                       </button>
                     ))}
@@ -659,20 +703,18 @@ export default function PreviewStrategyPage() {
           </div>
 
           {/* Botones de acción finales */}
-          <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-            <Link href="/registro" onClick={handleRegisterClick}>
-              <Button className="w-full h-12 text-base bg-accent hover:bg-accent/90 text-accent-foreground">
-                Crear estrategia
-              </Button>
-            </Link>
+          <Link href="/registro" onClick={handleRegisterClick}>
+            <Button className="w-full h-12 text-base bg-accent hover:bg-accent/90 text-accent-foreground">
+              Crear estrategia
+            </Button>
+          </Link>
 
-            <p className="text-center text-sm text-white">
-              ¿Ya tienes una cuenta?{" "}
-              <Link href="/login" onClick={handleLoginClick} className="text-accent hover:underline font-medium">
-                Inicia sesión aquí
-              </Link>
-            </p>
-          </div>
+          <p className="mt-8 text-center text-sm text-muted-foreground">
+            ¿Ya tienes una cuenta?{" "}
+            <Link href="/login" onClick={handleLoginClick} className="text-primary font-semibold hover:underline">
+              Inicia sesión aquí
+            </Link>
+          </p>
         </div>
       </div>
     </div>

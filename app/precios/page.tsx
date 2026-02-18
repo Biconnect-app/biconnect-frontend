@@ -347,7 +347,7 @@ export default function PricingPage() {
               <div className="bg-card border border-border rounded-xl p-6">
                 <h3 className="font-semibold text-foreground mb-2">¿Qué cuenta como una ejecución?</h3>
                 <p className="text-muted-foreground">
-                  Una ejecución es cada vez que Biconnect recibe una señal de TradingView y envía una orden al exchange.
+                  Una ejecución es cada vez que Cuanted recibe una señal de TradingView y envía una orden al exchange.
                   Las señales duplicadas o rechazadas por validación no cuentan como ejecuciones.
                 </p>
               </div>

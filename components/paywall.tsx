@@ -25,27 +25,27 @@ export function Paywall({ feature }: PaywallProps) {
           <h3 className="text-xl font-semibold text-foreground mb-4">El Plan Pro incluye:</h3>
           <ul className="text-left space-y-3 text-gray-300">
             <li className="flex items-start gap-3">
-              <Zap className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+              <Zap className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
               <span>Ejecuciones ilimitadas por mes</span>
             </li>
             <li className="flex items-start gap-3">
-              <Zap className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+              <Zap className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
               <span>Estrategias activas ilimitadas</span>
             </li>
             <li className="flex items-start gap-3">
-              <Zap className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+              <Zap className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
               <span>Múltiples exchanges conectados</span>
             </li>
             <li className="flex items-start gap-3">
-              <Zap className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+              <Zap className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
               <span>Dashboard avanzado con métricas en tiempo real</span>
             </li>
             <li className="flex items-start gap-3">
-              <Zap className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+              <Zap className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
               <span>Logs y órdenes con retención de 90 días</span>
             </li>
             <li className="flex items-start gap-3">
-              <Zap className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+              <Zap className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
               <span>Gestión de riesgo avanzada</span>
             </li>
             <li className="flex items-start gap-3">

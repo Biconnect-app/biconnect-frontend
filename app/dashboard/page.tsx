@@ -235,7 +235,7 @@ export default function DashboardPage() {
           <div className="bg-card border border-border rounded-xl p-6">
             <div className="flex items-center justify-between mb-2">
               <div className="text-sm text-gray-400">Drawdown</div>
-              <Clock className="h-4 w-4 text-purple-400" />
+              <Clock className="h-4 w-4 text-blue-400" />
             </div>
             <div className="text-3xl font-bold text-foreground">-2.3%</div>
             <div className="text-xs text-muted-foreground mt-1">Acumulado</div>

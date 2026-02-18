@@ -44,7 +44,7 @@ export function Hero() {
           </div>
 
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-foreground leading-tight text-balance">
-            Biconnect — Orquestación entre TradingView y tus exchanges
+            Cuanted — Orquestación entre TradingView y tus exchanges
           </h1>
 
           <p className="text-xl text-muted-foreground leading-relaxed text-pretty max-w-3xl mx-auto">

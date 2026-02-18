@@ -507,7 +507,7 @@ export default function IntegrationsPage() {
             <div className="flex-1">
               <h2 className="text-xl font-semibold text-foreground mb-2">TradingView</h2>
               <p className="text-sm text-muted-foreground mb-4">
-                Configura alertas en TradingView para enviar señales a Biconnect mediante webhooks.
+                Configura alertas en TradingView para enviar señales a Cuanted mediante webhooks.
               </p>
             </div>
             <div className="flex items-center gap-2 px-3 py-1 bg-accent/10 text-accent rounded-full text-sm font-medium">

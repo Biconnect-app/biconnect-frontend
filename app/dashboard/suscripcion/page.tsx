@@ -173,7 +173,7 @@ export default function SubscriptionPage() {
             </div>
           ) : isPro() ? (
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-cyan-400">
+              <div className="flex items-center gap-2 text-green-500">
                 <Sparkles className="h-5 w-5" />
                 <span className="font-semibold">Plan Pro activo</span>
               </div>
@@ -204,7 +204,7 @@ export default function SubscriptionPage() {
               )}
 
               {profileData?.paypal_next_billing_time && !profileData?.paypal_cancel_at_period_end && (
-                <div className="flex items-center gap-2 bg-accent/10 text-accent px-3 py-2 rounded-lg text-sm">
+                <div className="flex items-center gap-2 bg-blue-500/10 text-blue-300 px-3 py-2 rounded-lg text-sm">
                   <Calendar className="h-4 w-4" />
                   <span>Próximo cobro: {formatDate(profileData.paypal_next_billing_time)}</span>
                 </div>
@@ -244,7 +244,7 @@ export default function SubscriptionPage() {
               )}
 
               {profileData?.paypal_next_billing_time && !profileData?.paypal_cancel_at_period_end && (
-                <div className="flex items-center gap-2 bg-blue-500/10 text-blue-500 px-3 py-2 rounded-lg text-sm">
+                <div className="flex items-center gap-2 bg-blue-500/10 text-blue-300 px-3 py-2 rounded-lg text-sm">
                   <Calendar className="h-4 w-4" />
                   <span>Primer cobro será el {formatDate(profileData.paypal_next_billing_time)}</span>
                 </div>
@@ -295,19 +295,19 @@ export default function SubscriptionPage() {
           <h2 className="text-xl font-semibold text-foreground">Beneficios del Plan Pro</h2>
           <ul className="space-y-2 text-gray-300">
             <li className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-cyan-400" />
+              <Sparkles className="h-4 w-4 text-green-500" />
               Ejecuciones ilimitadas
             </li>
             <li className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-cyan-400" />
+              <Sparkles className="h-4 w-4 text-green-500" />
               Estrategias ilimitadas
             </li>
             <li className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-cyan-400" />
+              <Sparkles className="h-4 w-4 text-green-500" />
               Soporte prioritario
             </li>
             <li className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-cyan-400" />
+              <Sparkles className="h-4 w-4 text-green-500" />
               Funciones avanzadas
             </li>
           </ul>

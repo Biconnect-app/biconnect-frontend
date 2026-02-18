@@ -9,12 +9,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Eye, EyeOff, AlertCircle } from "lucide-react"
+import { Eye, EyeOff, AlertCircle, Moon, Sun } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
+import { useTheme } from "next-themes"
 
 export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { theme, setTheme, resolvedTheme } = useTheme()
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState("")
@@ -101,13 +103,21 @@ export default function LoginPage() {
       }
 
       if (data.user) {
-        const previewDataString = sessionStorage.getItem("previewStrategy")
-        const fromPreviewString = sessionStorage.getItem("fromPreview")
+        // Check both localStorage and sessionStorage
+        const previewDataString = localStorage.getItem("previewStrategy") || sessionStorage.getItem("previewStrategy")
+        const fromPreviewString = localStorage.getItem("fromPreview") || sessionStorage.getItem("fromPreview")
+
+        console.log("📋 Login - Checking for preview strategy:", { 
+          hasPreviewData: !!previewDataString, 
+          fromPreview: fromPreviewString,
+          email: data.user.email 
+        })
 
         if (previewDataString && fromPreviewString === "true") {
           try {
             const strategyData = JSON.parse(previewDataString)
-            console.log("Preview strategy detected for logged in user, will process in dashboard")
+            console.log("💾 Login - Preview strategy detected, will process in dashboard")
+            console.log("💾 Strategy data:", { name: strategyData.name, exchange: strategyData.exchange })
 
             // Verificar si el nombre de la estrategia ya existe
             const { data: existingStrategies, error: checkError } = await supabase
@@ -140,7 +150,8 @@ export default function LoginPage() {
 
               strategyData.name = newName
 
-              // Actualizar el sessionStorage con el nuevo nombre
+              // Actualizar tanto localStorage como sessionStorage con el nuevo nombre
+              localStorage.setItem("previewStrategy", JSON.stringify(strategyData))
               sessionStorage.setItem("previewStrategy", JSON.stringify(strategyData))
             }
           } catch (error) {
@@ -160,13 +171,22 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-primary/5 via-background to-accent/5">
+      {/* Theme Toggle */}
+      <button
+        onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+        className="fixed top-4 right-4 p-2 rounded-lg bg-card border border-border hover:bg-accent/10 transition-colors"
+        aria-label="Toggle theme"
+      >
+        {resolvedTheme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+      </button>
+      
       <div className="w-full max-w-md">
         {/* Logo */}
         <Link href="/" className="flex items-center justify-center gap-2 mb-8">
           <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-xl">B</span>
+            <span className="text-primary-foreground font-bold text-xl">C</span>
           </div>
-          <span className="text-2xl font-bold text-foreground">Biconnect</span>
+          <span className="text-2xl font-bold text-foreground">Cuanted</span>
         </Link>
 
         {/* Login Card */}

@@ -62,7 +62,6 @@ const getMissingFields = (strategy: any): string[] => {
   // Para futuros, verificar campos adicionales
   if (strategy.market_type === "futures") {
     if (!strategy.leverage || strategy.leverage <= 0) missing.push("Apalancamiento")
-    if (!strategy.position_side) missing.push("Dirección (Long/Short)")
   }
   
   return missing
@@ -151,11 +150,15 @@ export default function StrategiesPage() {
       let fromPreview = false
       let pendingStrategyId = null
 
-      // Check sessionStorage first (most recent in current browser session)
-      const previewDataString = sessionStorage.getItem("previewStrategy")
-      const fromPreviewString = sessionStorage.getItem("fromPreview")
+      // Check both localStorage and sessionStorage (localStorage persists across tabs)
+      const previewDataString = localStorage.getItem("previewStrategy") || sessionStorage.getItem("previewStrategy")
+      const fromPreviewString = localStorage.getItem("fromPreview") || sessionStorage.getItem("fromPreview")
 
-      console.log("sessionStorage check:", { hasData: !!previewDataString, fromPreview: fromPreviewString })
+      console.log("📋 Dashboard - sessionStorage check:", { 
+        hasData: !!previewDataString, 
+        fromPreview: fromPreviewString,
+        email: user.email 
+      })
 
       if (previewDataString && fromPreviewString === "true") {
         strategyData = JSON.parse(previewDataString)
@@ -163,14 +166,24 @@ export default function StrategiesPage() {
         console.log("✓ Found preview strategy in sessionStorage:", strategyData.name)
       } else {
         // Fallback to pending_strategies table
+        console.log("🔍 Dashboard - Checking pending_strategies table for email:", user.email?.toLowerCase())
+        
         const { data: pendingStrategies, error: pendingError } = await supabase
           .from("pending_strategies")
           .select("*")
-          .eq("email", user.email)
+          .eq("email", user.email?.toLowerCase())
           .order("created_at", { ascending: false })
           .limit(1)
 
-        console.log("pending_strategies check:", { count: pendingStrategies?.length || 0 })
+        console.log("📊 Dashboard - pending_strategies result:", { 
+          count: pendingStrategies?.length || 0,
+          error: pendingError,
+          data: pendingStrategies?.[0] ? { 
+            email: pendingStrategies[0].email,
+            hasData: !!pendingStrategies[0].strategy_data,
+            strategyName: pendingStrategies[0].strategy_data?.name 
+          } : null
+        })
 
         if (!pendingError && pendingStrategies && pendingStrategies.length > 0) {
           strategyData = pendingStrategies[0].strategy_data
@@ -185,7 +198,9 @@ export default function StrategiesPage() {
       if (strategyData && fromPreview) {
         console.log("→ Processing preview strategy...")
         try {
-          // Clean up sessionStorage and pending_strategies FIRST to prevent duplicates
+          // Clean up localStorage, sessionStorage and pending_strategies FIRST to prevent duplicates
+          localStorage.removeItem("previewStrategy")
+          localStorage.removeItem("fromPreview")
           sessionStorage.removeItem("previewStrategy")
           sessionStorage.removeItem("fromPreview")
           
@@ -485,7 +500,7 @@ export default function StrategiesPage() {
           </Link>
         </div>
 
-        <div className="grid md:grid-cols-4 gap-4">
+        <div className="grid md:grid-cols-3 gap-4">
           <div className="bg-card border border-border rounded-xl p-4">
             <div className="text-sm text-gray-400 mb-1">Total estrategias</div>
             <div className="text-2xl font-bold text-foreground">{strategies.length}</div>
@@ -497,12 +512,6 @@ export default function StrategiesPage() {
           <div className="bg-card border border-border rounded-xl p-4">
             <div className="text-sm text-gray-400 mb-1">Inactivas</div>
             <div className="text-2xl font-bold text-foreground">{strategies.filter((s) => !s.is_active).length}</div>
-          </div>
-          <div className="bg-card border border-border rounded-xl p-4">
-            <div className="text-sm text-gray-400 mb-1">Exchange</div>
-            <div className="text-lg font-bold text-foreground">
-              {getUniqueExchanges() || <span className="text-muted-foreground text-sm">Ninguno</span>}
-            </div>
           </div>
         </div>
 

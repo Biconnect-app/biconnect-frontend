@@ -2,13 +2,15 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { CheckCircle, LogIn } from "lucide-react"
+import { CheckCircle, LogIn, Moon, Sun } from "lucide-react"
 import { useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
+import { useTheme } from "next-themes"
 
 export default function RegistroConfirmadoPage() {
   const router = useRouter()
+  const { theme, setTheme, resolvedTheme } = useTheme()
 
   useEffect(() => {
     // Sign out the user so they have to login manually
@@ -22,13 +24,22 @@ export default function RegistroConfirmadoPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-primary/5 via-background to-accent/5">
+      {/* Theme Toggle */}
+      <button
+        onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+        className="fixed top-4 right-4 p-2 rounded-lg bg-card border border-border hover:bg-accent/10 transition-colors"
+        aria-label="Toggle theme"
+      >
+        {resolvedTheme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+      </button>
+      
       <div className="w-full max-w-md">
         {/* Logo */}
         <Link href="/" className="flex items-center justify-center gap-2 mb-8">
           <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-xl">B</span>
+            <span className="text-primary-foreground font-bold text-xl">C</span>
           </div>
-          <span className="text-2xl font-bold text-foreground">Biconnect</span>
+          <span className="text-2xl font-bold text-foreground">Cuanted</span>
         </Link>
 
         {/* Confirmation Card */}
@@ -59,7 +70,7 @@ export default function RegistroConfirmadoPage() {
           <p className="mt-6 text-xs text-muted-foreground">
             Si tenes algún problema,{" "}
             <a
-              href="mailto:soporte@biconnect.app"
+              href="mailto:soporte@cuanted.com"
               className="text-primary hover:underline"
             >
               contacta a soporte

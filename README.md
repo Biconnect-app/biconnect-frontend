@@ -1,191 +1,79 @@
-# Biconnect - Plataforma de Criptomonedas
+# Biconnect Frontend
 
-Plataforma moderna y segura para comprar y vender criptomonedas, construida con Next.js 15, React 19, y Tailwind CSS v4.
+Aplicación web para la gestión de estrategias y suscripciones de trading, construida con Next.js, React y Supabase. Incluye autenticación, recuperación de contraseña, panel de usuario y gestión de integraciones.
 
-## Características
+## Descripción
 
-- 🏠 **Landing Page completa** con hero, características, precios, seguridad y FAQ
-- 💰 **Página de precios** con comparación detallada de planes
-- 🔐 **Sistema de autenticación** (login, registro, recuperación de contraseña)
-- 📊 **Dashboard** con portfolio, activos, y mercado en vivo
-- 🌓 **Dark mode** con toggle
-- 📱 **Responsive** en todos los dispositivos
-- ♿ **Accesible** con ARIA labels y navegación por teclado
+Esta aplicación permite a los usuarios:
+- Registrarse, iniciar sesión y recuperar su contraseña mediante Supabase Auth.
+- Gestionar estrategias de trading y suscripciones desde un dashboard seguro.
+- Integrar cuentas de exchanges y servicios de pago.
+- Visualizar y administrar configuraciones personales.
 
-## Tecnologías
-
-- **Framework**: Next.js 15 (App Router)
-- **UI**: React 19
-- **Estilos**: Tailwind CSS v4
-- **Componentes**: shadcn/ui
-- **Tipografía**: Geist Sans & Geist Mono
-- **Iconos**: Lucide React
-
-## Instalación
-
-1. Clona el repositorio o descarga el ZIP
-2. Instala las dependencias:
-
-\`\`\`bash
-npm install
-\`\`\`
-
-3. Ejecuta el servidor de desarrollo:
-
-\`\`\`bash
-npm run dev
-\`\`\`
-
-4. Abre [http://localhost:3000](http://localhost:3000) en tu navegador
+No incluye landing page pública ni mercado en vivo. El foco está en la experiencia autenticada y la gestión de usuario.
 
 ## Estructura del Proyecto
 
-\`\`\`
-biconnect/
-├── app/
-│   ├── (pages)/
-│   │   ├── page.tsx              # Landing page
-│   │   ├── precios/              # Página de precios
-│   │   ├── login/                # Inicio de sesión
-│   │   ├── registro/             # Registro
-│   │   ├── recuperar/            # Recuperación de contraseña
-│   │   └── app/                  # Dashboard (protegido)
-│   ├── layout.tsx                # Layout principal
-│   └── globals.css               # Estilos globales
-├── components/
-│   ├── navbar.tsx                # Navegación principal
-│   ├── footer.tsx                # Footer
-│   ├── sections/                 # Secciones de landing
-│   └── dashboard/                # Componentes del dashboard
-├── lib/
-│   └── auth.ts                   # Lógica de autenticación (simulada)
-└── public/                       # Assets estáticos
-\`\`\`
+```
+app/
+  ├── login/                  # Login de usuario
+  ├── registro/               # Registro de usuario
+  ├── recuperar/              # Recuperación y reseteo de contraseña
+  │     └── nueva-contrasena/ # Seteo de nueva contraseña
+  ├── dashboard/              # Panel principal (protegido)
+  │     ├── estrategias/      # Gestión de estrategias
+  │     ├── integraciones/    # Integraciones de exchanges
+  │     ├── ordenes/          # Historial de órdenes
+  │     ├── suscripcion/      # Gestión de suscripción
+  │     └── configuracion/    # Configuración de usuario
+  ├── precios/                # Página de precios (estática)
+  ├── docs/                   # Documentación
+  ├── privacidad/             # Política de privacidad
+  ├── terminos/               # Términos y condiciones
+components/
+  ├── navbar.tsx              # Navegación principal
+  ├── footer.tsx              # Footer
+  ├── dashboard/              # Componentes del dashboard
+  ├── sections/               # Secciones informativas
+  └── ui/                     # Componentes reutilizables
+lib/
+  ├── supabase/               # Integración con Supabase (auth, client, server)
+  └── utils.ts                # Utilidades generales
+public/                       # Imágenes y assets
+scripts/                      # Scripts SQL y de migración (ignorado en git)
+```
 
-## Contenido Editable (Placeholders)
+## Variables de Entorno
 
-### Variables a Reemplazar
+Configura un archivo `.env`:
+- `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY`: credenciales públicas de Supabase
+- `NEXT_PUBLIC_SITE_URL`: URL base del frontend
+- Variables de PayPal si usas pagos
 
-Busca y reemplaza estos placeholders en el código:
+## Instalación y uso
 
-- **{{DESCRIPCION_EMPRESA}}**: Descripción completa de Biconnect (en `components/sections/about.tsx`)
-- **{{VENTAJAS_GRATUITA}}**: Lista de beneficios del plan gratuito
-- **{{VENTAJAS_PAGA}}**: Lista de beneficios del plan Pro
-- **{{PRECIO_PRO}}**: Precio mensual del plan Pro (actualmente $29)
-- **{{AÑO}}**: Año actual (se genera automáticamente)
+```bash
+npm install
+npm run dev
+# o
+pnpm install
+pnpm dev
+```
 
-### Imágenes y Assets
-
-Reemplaza las imágenes placeholder en:
-
-- `/public/` - Logo de Biconnect
-- Hero section - Imagen de la plataforma de trading
-- Favicon
-
-### Enlaces de Redes Sociales
-
-Actualiza los enlaces en `components/footer.tsx`:
-
-- Twitter
-- LinkedIn
-- GitHub
-- Email de contacto
-
-## Integración con Backend
-
-Este proyecto usa autenticación simulada en el frontend. Para producción:
-
-### 1. Autenticación Real
-
-Reemplaza `lib/auth.ts` con integración a tu backend:
-
-\`\`\`typescript
-// Ejemplo con API real
-export async function login(email: string, password: string) {
-  const response = await fetch('/api/auth/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
-  })
-  return response.json()
-}
-\`\`\`
-
-### 2. Base de Datos
-
-Integra una base de datos para:
-
-- Usuarios y autenticación
-- Transacciones y órdenes
-- Portfolio y balances
-- Historial de operaciones
-
-Opciones recomendadas:
-
-- Supabase (PostgreSQL)
-- MongoDB Atlas
-- PlanetScale (MySQL)
-
-### 3. API de Precios
-
-Integra una API de precios de criptomonedas:
-
-- CoinGecko API
-- CoinMarketCap API
-- Binance API
-
-### 4. Pasarela de Pago
-
-Para el plan Pro, integra una pasarela de pago:
-
-- Stripe
-- PayPal
-- Mercado Pago
-
-El placeholder está en `app/registro/page.tsx` línea ~200.
-
-### 5. KYC (Know Your Customer)
-
-Integra un servicio de verificación de identidad:
-
-- Onfido
-- Jumio
-- Veriff
-
-## Seguridad
-
-⚠️ **IMPORTANTE**: Este proyecto es un prototipo. Para producción:
-
-1. **Nunca almacenes contraseñas en texto plano**
-2. **Implementa autenticación JWT o sesiones seguras**
-3. **Usa HTTPS en producción**
-4. **Implementa rate limiting**
-5. **Valida todas las entradas en el servidor**
-6. **Implementa 2FA (autenticación de dos factores)**
-7. **Usa variables de entorno para secrets**
+Accede a la app en [http://localhost:3000](http://localhost:3000)
 
 ## Despliegue
 
-### Google Cloud Run (Recomendado)
+El despliegue recomendado es en Google Cloud Run usando Cloud Build y Artifact Registry. Usa los scripts `deploy-to-gcp.sh` y `deploy-manual.sh` para automatizar el proceso. Consulta `.env` para las variables necesarias.
 
-1. Configura Cloud Build con el archivo `cloudbuild.yaml`
-2. Configura las variables de entorno en Cloud Run
-3. Despliega automáticamente con cada push
-
-### Otros Proveedores
-
-- AWS Amplify
-- Railway
-- Render
-
-## Licencia
-
-Este proyecto es un template de código abierto. Úsalo libremente para tus proyectos.
+## Seguridad
+- Todas las operaciones sensibles usan Supabase Auth y RLS.
+- No se exponen claves secretas en el frontend.
+- El flujo de recuperación de contraseña es seguro y robusto.
 
 ## Soporte
-
-Para preguntas o problemas, abre un issue en el repositorio.
+Para dudas o problemas, abre un issue en el repositorio.
 
 ---
 
-**Desarrollado con ❤️ para la comunidad cripto**
+Desarrollado por el equipo de Biconnect.

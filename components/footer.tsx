@@ -12,9 +12,9 @@ export function Footer() {
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
-                <span className="text-accent-foreground font-bold text-lg">B</span>
+                <span className="text-accent-foreground font-bold text-lg">C</span>
               </div>
-              <span className="text-xl font-bold">Biconnect</span>
+              <span className="text-xl font-bold">Cuanted</span>
             </div>
             <p className="text-sm text-primary-foreground/80">
               Plataforma segura y profesional para comprar y vender criptomonedas.
@@ -123,7 +123,7 @@ export function Footer() {
                 <Github className="h-5 w-5" />
               </a>
               <a
-                href="mailto:contacto@biconnect.com"
+                href="mailto:contacto@cuanted.com"
                 className="text-primary-foreground/80 hover:text-primary-foreground transition-colors"
                 aria-label="Email"
               >
@@ -135,7 +135,7 @@ export function Footer() {
 
         <div className="mt-8 pt-8 border-t border-primary-foreground/20 text-center">
           <p className="text-sm text-primary-foreground/80">
-            © {currentYear} Biconnect. Todos los derechos reservados.
+            © {currentYear} Cuanted. Todos los derechos reservados.
           </p>
         </div>
       </div>

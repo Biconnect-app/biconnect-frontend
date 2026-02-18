@@ -46,8 +46,8 @@ async function createProduct(accessToken) {
       Authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify({
-      name: "Biconnect Pro",
-      description: "Suscripcion Pro de Biconnect - Trading automatizado de criptomonedas",
+      name: "Cuanted Pro",
+      description: "Suscripcion Pro de Cuanted - Trading automatizado de criptomonedas",
       type: "SERVICE",
       category: "SOFTWARE",
     }),
@@ -70,7 +70,7 @@ async function createPlan(accessToken, productId, name, interval, price) {
     body: JSON.stringify({
       product_id: productId,
       name,
-      description: `Plan ${name} de Biconnect Pro`,
+      description: `Plan ${name} de Cuanted Pro`,
       status: "ACTIVE",
       billing_cycles: [
         {

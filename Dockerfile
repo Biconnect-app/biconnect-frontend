@@ -14,10 +14,15 @@ WORKDIR /app
 ARG NEXT_PUBLIC_SUPABASE_URL
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-# Build arguments for PayPal
+# Build arguments for PayPal (public)
 ARG NEXT_PUBLIC_PAYPAL_CLIENT_ID
 ARG NEXT_PUBLIC_PAYPAL_PLAN_MONTHLY
 ARG NEXT_PUBLIC_PAYPAL_PLAN_ANNUAL
+
+# Build arguments for PayPal (server-side only)
+ARG PAYPAL_CLIENT_ID
+ARG PAYPAL_CLIENT_SECRET
+ARG PAYPAL_WEBHOOK_ID
 
 # Set environment variables for build
 ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
@@ -25,6 +30,11 @@ ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NEXT_PUBLIC_PAYPAL_CLIENT_ID=$NEXT_PUBLIC_PAYPAL_CLIENT_ID
 ENV NEXT_PUBLIC_PAYPAL_PLAN_MONTHLY=$NEXT_PUBLIC_PAYPAL_PLAN_MONTHLY
 ENV NEXT_PUBLIC_PAYPAL_PLAN_ANNUAL=$NEXT_PUBLIC_PAYPAL_PLAN_ANNUAL
+
+# Set server-side only variables (not embedded in client bundle)
+ENV PAYPAL_CLIENT_ID=$PAYPAL_CLIENT_ID
+ENV PAYPAL_CLIENT_SECRET=$PAYPAL_CLIENT_SECRET
+ENV PAYPAL_WEBHOOK_ID=$PAYPAL_WEBHOOK_ID
 
 # Copy package files
 COPY package.json pnpm-lock.yaml ./
@@ -70,6 +80,12 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+# Runtime arguments for server-side variables
+ARG PAYPAL_CLIENT_ID
+ARG PAYPAL_CLIENT_SECRET
+ARG PAYPAL_WEBHOOK_ID
+ARG NEXT_PUBLIC_SITE_URL
+
 # Install pnpm
 RUN npm install -g pnpm
 
@@ -83,9 +99,15 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/next.config.mjs ./
 COPY --from=builder /app/postcss.config.mjs ./
 
-# Set environment variables
+# Set environment variables (NODE_ENV and PORT)
 ENV NODE_ENV=production
 ENV PORT=3000
+
+# Set server-side only runtime variables
+ENV PAYPAL_CLIENT_ID=$PAYPAL_CLIENT_ID
+ENV PAYPAL_CLIENT_SECRET=$PAYPAL_CLIENT_SECRET
+ENV PAYPAL_WEBHOOK_ID=$PAYPAL_WEBHOOK_ID
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 
 # Expose port
 EXPOSE 3000

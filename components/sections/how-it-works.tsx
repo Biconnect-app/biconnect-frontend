@@ -7,7 +7,7 @@ export function HowItWorks() {
       icon: Webhook,
       title: "Conecta TradingView",
       description:
-        "Crea alertas en TradingView y configura el webhook con tu URL única por usuario/estrategia. Cada señal se envía automáticamente a Biconnect.",
+        "Crea alertas en TradingView y configura el webhook con tu URL única por usuario/estrategia. Cada señal se envía automáticamente a Cuanted.",
     },
     {
       number: "02",

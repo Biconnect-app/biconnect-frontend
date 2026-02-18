@@ -28,7 +28,7 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter()
   const pathname = usePathname()
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme, resolvedTheme } = useTheme()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { needsSubscription, loading: planLoading } = useUserPlan()
   const [showLogoutDialog, setShowLogoutDialog] = useState(false)
@@ -116,9 +116,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-card border-b border-border px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <span className="text-primary-foreground font-bold">B</span>
+            <span className="text-primary-foreground font-bold">C</span>
           </div>
-          <span className="text-xl font-bold text-foreground">Biconnect</span>
+          <span className="text-xl font-bold text-foreground">Cuanted</span>
         </div>
         <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)}>
           {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -135,9 +135,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           {/* Logo */}
           <div className="h-16 flex items-center gap-2 px-6 border-b border-border">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold">B</span>
+              <span className="text-primary-foreground font-bold">C</span>
             </div>
-            <span className="text-xl font-bold text-foreground">Biconnect</span>
+            <span className="text-xl font-bold text-foreground">Cuanted</span>
           </div>
 
           {/* Navigation */}
@@ -167,8 +167,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <Link key={item.href} href={item.href} onClick={() => setSidebarOpen(false)}>
                   <Button
                     variant="ghost"
-                    className={`w-full justify-start hover:bg-accent/10 hover:text-accent ${
-                      isActive ? "bg-accent/10 text-accent" : ""
+                    className={`w-full justify-start hover:bg-black/5 dark:hover:bg-white/5 ${
+                      isActive ? "bg-black/10 dark:bg-white/10 border border-black/20 dark:border-white/20 text-foreground font-semibold" : ""
                     }`}
                     size="lg"
                   >
@@ -186,10 +186,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               variant="ghost"
               className="w-full justify-start"
               size="lg"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
             >
-              {mounted && theme === "dark" ? <Sun className="h-5 w-5 mr-3" /> : <Moon className="h-5 w-5 mr-3" />}
-              {mounted && theme === "dark" ? "Modo claro" : "Modo oscuro"}
+              {mounted && resolvedTheme === "dark" ? <Sun className="h-5 w-5 mr-3" /> : <Moon className="h-5 w-5 mr-3" />}
+              {mounted && resolvedTheme === "dark" ? "Modo claro" : "Modo oscuro"}
             </Button>
             <Button
               variant="ghost"

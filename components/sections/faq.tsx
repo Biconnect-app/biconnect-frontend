@@ -8,7 +8,7 @@ export function FAQ() {
 
   const faqs = [
     {
-      question: "¿Cómo maneja Biconnect las alertas duplicadas?",
+      question: "¿Cómo maneja Cuanted las alertas duplicadas?",
       answer:
         "Utilizamos idempotency keys derivadas del payload para detectar y filtrar señales duplicadas. En el plan Pro, la deduplicación avanzada usa clientOrderId y hash del payload para garantizar que cada señal se ejecute solo una vez, incluso si TradingView envía la alerta múltiples veces.",
     },
@@ -28,14 +28,14 @@ export function FAQ() {
         "El período de prueba tiene un límite de 10 ejecuciones por minuto. El plan Pro permite hasta 100 ejecuciones por minuto. Estos límites protegen contra errores de configuración que podrían generar órdenes excesivas.",
     },
     {
-      question: "¿Biconnect es compatible con Pine Script de TradingView?",
+      question: "¿Cuanted es compatible con Pine Script de TradingView?",
       answer:
-        "Sí, completamente. Puedes usar strategy.entry(), strategy.close() y alertcondition() en Pine Script. Configura el mensaje de alerta con un JSON que incluya los campos necesarios (action, symbol, qty, etc.) y Biconnect lo parseará automáticamente.",
+        "Sí, completamente. Puedes usar strategy.entry(), strategy.close() y alertcondition() en Pine Script. Configura el mensaje de alerta con un JSON que incluya los campos necesarios (action, symbol, qty, etc.) y Cuanted lo parseará automáticamente.",
     },
     {
       question: "¿Cómo funciona la validación HMAC de webhooks?",
       answer:
-        "En el plan Pro, puedes activar HMAC para validar que las señales provienen realmente de TradingView. Biconnect genera un secret que compartes con TradingView, y cada webhook incluye una firma HMAC que verificamos antes de ejecutar la orden.",
+        "En el plan Pro, puedes activar HMAC para validar que las señales provienen realmente de TradingView. Cuanted genera un secret que compartes con TradingView, y cada webhook incluye una firma HMAC que verificamos antes de ejecutar la orden.",
     },
     {
       question: "¿Puedo probar mis estrategias sin arriesgar dinero real?",

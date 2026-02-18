@@ -11,7 +11,7 @@ export default function DocsPage() {
           <div className="mb-12">
             <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">Documentación</h1>
             <p className="text-xl text-muted-foreground">
-              Aprende a configurar y usar Biconnect para automatizar tu trading
+              Aprende a configurar y usar Cuanted para automatizar tu trading
             </p>
           </div>
 
@@ -59,7 +59,7 @@ export default function DocsPage() {
               <div className="prose prose-slate dark:prose-invert max-w-none">
                 <h3 className="text-xl font-semibold text-foreground mb-3">Conceptos básicos</h3>
                 <p className="text-muted-foreground mb-4">
-                  Biconnect actúa como middleware entre TradingView y tus exchanges. El flujo es:
+                  Cuanted actúa como middleware entre TradingView y tus exchanges. El flujo es:
                 </p>
 
                 <ol className="list-decimal list-inside space-y-2 text-muted-foreground mb-6">
@@ -73,7 +73,7 @@ export default function DocsPage() {
 
                 <h3 className="text-xl font-semibold text-foreground mb-3">Primeros pasos</h3>
                 <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
-                  <li>Crea una cuenta en Biconnect</li>
+                  <li>Crea una cuenta en Cuanted</li>
                   <li>Conecta tu exchange (Binance) con API keys</li>
                   <li>Crea una estrategia y obtén tu webhook URL única</li>
                   <li>Configura una alerta en TradingView con esa URL</li>
@@ -94,7 +94,7 @@ export default function DocsPage() {
                     <li>Haz clic en el botón de campana (Alertas) en la barra superior</li>
                     <li>Configura la condición que disparará la alerta</li>
                     <li>En la sección "Notifications", marca "Webhook URL"</li>
-                    <li>Pega tu URL de webhook de Biconnect</li>
+                    <li>Pega tu URL de webhook de Cuanted</li>
                   </ol>
                 </div>
 
@@ -152,7 +152,7 @@ export default function DocsPage() {
                     <li>Activa HMAC en la página de Integraciones</li>
                     <li>Copia el secret generado</li>
                     <li>Configúralo en TradingView al crear la alerta</li>
-                    <li>Cada webhook incluirá una firma que Biconnect verificará</li>
+                    <li>Cada webhook incluirá una firma que Cuanted verificará</li>
                   </ol>
                 </div>
 

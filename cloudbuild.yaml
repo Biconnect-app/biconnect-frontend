@@ -4,6 +4,7 @@ steps:
     - build
     - -t
     - southamerica-east1-docker.pkg.dev/biconect/app-repo/biconnect-frontend:latest
+    # Public variables (NEXT_PUBLIC_*)
     - --build-arg
     - NEXT_PUBLIC_SUPABASE_URL=${_NEXT_PUBLIC_SUPABASE_URL}
     - --build-arg
@@ -14,6 +15,15 @@ steps:
     - NEXT_PUBLIC_PAYPAL_PLAN_MONTHLY=${_NEXT_PUBLIC_PAYPAL_PLAN_MONTHLY}
     - --build-arg
     - NEXT_PUBLIC_PAYPAL_PLAN_ANNUAL=${_NEXT_PUBLIC_PAYPAL_PLAN_ANNUAL}
+    - --build-arg
+    - NEXT_PUBLIC_SITE_URL=${_NEXT_PUBLIC_SITE_URL}
+    # Server-side only variables (secrets)
+    - --build-arg
+    - PAYPAL_CLIENT_ID=${_PAYPAL_CLIENT_ID}
+    - --build-arg
+    - PAYPAL_CLIENT_SECRET=${_PAYPAL_CLIENT_SECRET}
+    - --build-arg
+    - PAYPAL_WEBHOOK_ID=${_PAYPAL_WEBHOOK_ID}
     - .
 images:
 - southamerica-east1-docker.pkg.dev/biconect/app-repo/biconnect-frontend:latest

@@ -74,9 +74,9 @@ export function Navbar() {
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">B</span>
+              <span className="text-primary-foreground font-bold text-lg">C</span>
             </div>
-            <span className="text-xl font-bold text-foreground">Biconnect</span>
+            <span className="text-xl font-bold text-foreground">Cuanted</span>
           </Link>
 
           {/* Desktop Menu */}

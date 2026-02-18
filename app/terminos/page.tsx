@@ -39,7 +39,7 @@ export default function TerminosPage() {
           <section>
             <h2 className="text-2xl font-semibold mb-4">5. Limitación de Responsabilidad</h2>
             <p className="text-muted-foreground">
-              Biconnect no se hace responsable de pérdidas financieras resultantes del uso de la plataforma.
+              Cuanted no se hace responsable de pérdidas financieras resultantes del uso de la plataforma.
             </p>
           </section>
 

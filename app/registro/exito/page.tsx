@@ -2,13 +2,15 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Mail, CheckCircle, Loader2 } from "lucide-react"
+import { Mail, CheckCircle, Loader2, Moon, Sun } from "lucide-react"
 import { useState, useEffect } from "react"
 import { createBrowserClient } from "@supabase/ssr"
 import { useSearchParams } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
+import { useTheme } from "next-themes"
 
 export default function SignUpSuccessPage() {
+  const { theme, setTheme, resolvedTheme } = useTheme()
   const [isResending, setIsResending] = useState(false)
   const [email, setEmail] = useState<string | null>(null)
   const searchParams = useSearchParams()
@@ -39,11 +41,15 @@ export default function SignUpSuccessPage() {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       )
 
+      const redirectUrl = process.env.NEXT_PUBLIC_SITE_URL
+        ? `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?type=signup`
+        : `${window.location.origin}/auth/callback?type=signup`
+      
       const { error } = await supabase.auth.resend({
         type: "signup",
         email: email,
         options: {
-          emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || window.location.origin,
+          emailRedirectTo: redirectUrl,
         },
       })
 
@@ -74,13 +80,22 @@ export default function SignUpSuccessPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-primary/5 via-background to-accent/5">
+      {/* Theme Toggle */}
+      <button
+        onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+        className="fixed top-4 right-4 p-2 rounded-lg bg-card border border-border hover:bg-accent/10 transition-colors"
+        aria-label="Toggle theme"
+      >
+        {resolvedTheme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+      </button>
+      
       <div className="w-full max-w-md">
         {/* Logo */}
         <Link href="/" className="flex items-center justify-center gap-2 mb-8">
           <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-xl">B</span>
+            <span className="text-primary-foreground font-bold text-xl">C</span>
           </div>
-          <span className="text-2xl font-bold text-foreground">Biconnect</span>
+          <span className="text-2xl font-bold text-foreground">Cuanted</span>
         </Link>
 
         {/* Success Card */}
@@ -103,7 +118,7 @@ export default function SignUpSuccessPage() {
               </div>
               <div>
                 <p className="text-sm font-medium text-foreground">Revisa tu bandeja de entrada</p>
-                <p className="text-xs text-muted-foreground">Busca el correo de Biconnect</p>
+                <p className="text-xs text-muted-foreground">Busca el correo de Cuanted</p>
               </div>
             </div>
             <div className="flex items-start gap-3">

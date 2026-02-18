@@ -28,10 +28,10 @@ export function About() {
     <section className="py-20 px-4 bg-background">
       <div className="container mx-auto">
         <div className="max-w-3xl mx-auto text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">Sobre Biconnect</h2>
+          <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">Sobre Cuanted</h2>
           <div className="space-y-4 text-lg text-muted-foreground leading-relaxed">
             <p>
-              Biconnect es la plataforma líder en América Latina para la compra y venta de criptomonedas. Fundada en
+              Cuanted es la plataforma líder en América Latina para la compra y venta de criptomonedas. Fundada en
               2020, nuestra misión es democratizar el acceso a los activos digitales y proporcionar una experiencia de
               trading segura, rápida y confiable.
             </p>
