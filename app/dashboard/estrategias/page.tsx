@@ -2,13 +2,15 @@
 
 import type React from "react"
 
-import { useState, useEffect, useMemo, useRef } from "react"
+import { useState, useEffect, useRef } from "react"
+import { onAuthStateChanged } from "firebase/auth"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Plus, Power, PowerOff, Copy, MoreVertical, TrendingUp, ChevronDown, ChevronUp, AlertCircle, CreditCard } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { createClient } from "@/lib/supabase/client"
+import { authFetch } from "@/lib/api"
+import { firebaseAuth } from "@/lib/firebase/client"
 import { ApiKeyAlert } from "@/components/api-key-alert"
 import { useUserPlan } from "@/hooks/use-user-plan"
 import {
@@ -85,10 +87,14 @@ export default function StrategiesPage() {
   
   const { needsSubscription, hasUsedTrial, loading: planLoading } = useUserPlan()
 
-  const supabase = useMemo(() => createClient(), [])
-
   useEffect(() => {
-    loadStrategies()
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
+      if (user) {
+        loadStrategies()
+      }
+    })
+
+    return () => unsubscribe()
   }, [])
 
   const loadStrategies = async () => {
@@ -103,10 +109,7 @@ export default function StrategiesPage() {
     isLoadingStrategiesRef.current = true
     
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
+      const user = firebaseAuth.currentUser
       if (!user) {
         console.error("No user found")
         setLoading(false)
@@ -117,34 +120,27 @@ export default function StrategiesPage() {
 
       console.log("User found:", user.email)
 
-      const { data: exchanges, error: exchangesError } = await supabase
-        .from("exchanges")
-        .select("id")
-        .eq("user_id", user.id)
-        .limit(1)
-
-      if (exchangesError) {
-        console.error("Error checking API keys:", exchangesError)
+      const exchangesResponse = await authFetch("/api/exchanges")
+      if (!exchangesResponse.ok) {
+        console.error("Error checking API keys")
+      } else {
+        const exchangeData = await exchangesResponse.json()
+        setHasApiKeys(exchangeData.exchanges && exchangeData.exchanges.length > 0)
       }
-
-      setHasApiKeys(exchanges && exchanges.length > 0)
       setCheckingApiKeys(false)
 
-      const { data: strategiesData, error: strategiesError } = await supabase
-        .from("strategies")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-
-      if (strategiesError) {
-        console.error("Error loading strategies:", strategiesError)
+      const strategiesResponse = await authFetch("/api/strategies")
+      if (!strategiesResponse.ok) {
+        console.error("Error loading strategies")
         setLoading(false)
         isLoadingStrategiesRef.current = false
         return
       }
 
-      console.log("Existing strategies count:", strategiesData?.length || 0)
-      setStrategies(strategiesData || [])
+      const strategiesPayload = await strategiesResponse.json()
+      const strategiesData = strategiesPayload.strategies || []
+      console.log("Existing strategies count:", strategiesData.length || 0)
+      setStrategies(strategiesData)
 
       let strategyData = null
       let fromPreview = false
@@ -168,27 +164,17 @@ export default function StrategiesPage() {
         // Fallback to pending_strategies table
         console.log("🔍 Dashboard - Checking pending_strategies table for email:", user.email?.toLowerCase())
         
-        const { data: pendingStrategies, error: pendingError } = await supabase
-          .from("pending_strategies")
-          .select("*")
-          .eq("email", user.email?.toLowerCase())
-          .order("created_at", { ascending: false })
-          .limit(1)
+        const pendingResponse = await fetch(
+          `/api/pending-strategies?email=${encodeURIComponent(user.email?.toLowerCase() || "")}`
+        )
 
-        console.log("📊 Dashboard - pending_strategies result:", { 
-          count: pendingStrategies?.length || 0,
-          error: pendingError,
-          data: pendingStrategies?.[0] ? { 
-            email: pendingStrategies[0].email,
-            hasData: !!pendingStrategies[0].strategy_data,
-            strategyName: pendingStrategies[0].strategy_data?.name 
-          } : null
-        })
+        const pendingData = await pendingResponse.json()
+        console.log("📊 Dashboard - pending_strategies result:", pendingData)
 
-        if (!pendingError && pendingStrategies && pendingStrategies.length > 0) {
-          strategyData = pendingStrategies[0].strategy_data
+        if (pendingData?.pendingStrategy) {
+          strategyData = pendingData.pendingStrategy.strategy_data
           fromPreview = true
-          pendingStrategyId = pendingStrategies[0].id
+          pendingStrategyId = pendingData.pendingStrategy.id
           console.log("✓ Found preview strategy in pending_strategies:", strategyData.name)
         }
       }
@@ -205,10 +191,9 @@ export default function StrategiesPage() {
           sessionStorage.removeItem("fromPreview")
           
           // Delete pending strategy from database if exists
-          await supabase
-            .from("pending_strategies")
-            .delete()
-            .eq("email", user.email.toLowerCase())
+          await fetch(`/api/pending-strategies?email=${encodeURIComponent(user.email.toLowerCase())}`, {
+            method: "DELETE",
+          })
 
           console.log("Cleaned up preview data before saving strategy")
 
@@ -218,10 +203,10 @@ export default function StrategiesPage() {
           const webhookId = crypto.randomUUID()
           const webhookUrl = `https://api-92000983434.southamerica-east1.run.app/api/webhook/${webhookId}`
 
-          const { data: newStrategy, error: insertError } = await supabase
-            .from("strategies")
-            .insert({
-              user_id: user.id,
+          const createResponse = await authFetch("/api/strategies", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
               exchange_id: null,
               exchange_name: exchangeName,
               name: strategyData.name || "Estrategia sin nombre",
@@ -234,12 +219,11 @@ export default function StrategiesPage() {
               risk_value: strategyData.riskAmount ? Number.parseFloat(strategyData.riskAmount) : null,
               is_active: false,
               webhook_url: webhookUrl,
-            })
-            .select()
-            .single()
+            }),
+          })
 
-          if (insertError) {
-            console.error("✗ Error creating strategy from preview:", insertError)
+          if (!createResponse.ok) {
+            console.error("✗ Error creating strategy from preview")
             setLoading(false)
             isLoadingStrategiesRef.current = false
             return
@@ -247,15 +231,11 @@ export default function StrategiesPage() {
             console.log("✓ Strategy created from preview successfully")
             
             // Reload ONLY the strategies list without checking for pending strategies again
-            const { data: updatedStrategies, error: reloadError } = await supabase
-              .from("strategies")
-              .select("*")
-              .eq("user_id", user.id)
-              .order("created_at", { ascending: false })
-
-            if (!reloadError) {
-              setStrategies(updatedStrategies || [])
-              console.log("✓ Strategies reloaded, count:", updatedStrategies?.length || 0)
+            const reloadResponse = await authFetch("/api/strategies")
+            if (reloadResponse.ok) {
+              const reloadData = await reloadResponse.json()
+              setStrategies(reloadData.strategies || [])
+              console.log("✓ Strategies reloaded, count:", reloadData.strategies?.length || 0)
             }
             
             // Mark as done and return to prevent further redirections
@@ -319,10 +299,14 @@ export default function StrategiesPage() {
         }
       }
 
-      const { error } = await supabase.from("strategies").update({ is_active: !strategy.is_active }).eq("id", id)
+      const response = await authFetch("/api/profile/strategies/set-active", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, is_active: !strategy.is_active }),
+      })
 
-      if (error) {
-        console.error("Error toggling strategy status:", error)
+      if (!response.ok) {
+        console.error("Error toggling strategy status")
         return
       }
 
@@ -334,22 +318,16 @@ export default function StrategiesPage() {
 
   const duplicateStrategy = async (id: string) => {
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) return
-
       const strategy = strategies.find((s) => s.id === id)
       if (!strategy) return
 
-      const { data: newStrategy, error } = await supabase
-        .from("strategies")
-        .insert({
-          user_id: user.id,
+      const response = await authFetch("/api/strategies", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           exchange_id: null,
           exchange_name: strategy.exchange_name,
-          name: `${strategy.name} (Copia)`,
+          name: `${strategy.name} (Copia)` ,
           description: strategy.description,
           trading_pair: strategy.trading_pair,
           market_type: strategy.market_type,
@@ -358,12 +336,11 @@ export default function StrategiesPage() {
           risk_value: strategy.risk_value,
           is_active: true,
           webhook_url: `https://api-92000983434.southamerica-east1.run.app/api/webhook`,
-        })
-        .select()
-        .single()
+        }),
+      })
 
-      if (error) {
-        console.error("Error duplicating strategy:", error)
+      if (!response.ok) {
+        console.error("Error duplicating strategy")
         return
       }
 
@@ -385,10 +362,12 @@ export default function StrategiesPage() {
     if (!strategyToDelete) return
 
     try {
-      const { error } = await supabase.from("strategies").delete().eq("id", strategyToDelete.id)
+      const response = await authFetch(`/api/strategies?id=${encodeURIComponent(strategyToDelete.id)}`, {
+        method: "DELETE",
+      })
 
-      if (error) {
-        console.error("Error deleting strategy:", error)
+      if (!response.ok) {
+        console.error("Error deleting strategy")
         return
       }
 

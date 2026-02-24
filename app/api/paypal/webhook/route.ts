@@ -1,5 +1,5 @@
-import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
+import { query } from "@/lib/db"
 
 const PAYPAL_BASE_URL = process.env.PAYPAL_API_URL || "https://api-m.sandbox.paypal.com"
 
@@ -97,8 +97,6 @@ export async function POST(req: Request) {
 
     console.log(`PayPal webhook received: ${eventType}`)
 
-    const supabase = await createClient()
-
     switch (eventType) {
       case "BILLING.SUBSCRIPTION.ACTIVATED": {
         const subscriptionId = resource.id
@@ -128,23 +126,22 @@ export async function POST(req: Request) {
         const status = isTrialing ? "trialing" : "active"
         const trialEndsAt = isTrialing && nextBillingTime ? nextBillingTime : null
 
-        const { error } = await supabase
-          .from("profiles")
-          .update({
-            paypal_subscriber_id: subscriberId,
-            paypal_subscription_id: subscriptionId,
-            paypal_plan_type: planType,
-            paypal_status: status,
-            paypal_next_billing_time: nextBillingTime,
-            trial_ends_at: trialEndsAt,
-            paypal_cancel_at_period_end: false, // Reset cancellation flag
-          })
-          .eq("id", customId)
-
-        if (error) {
-          console.error("Error updating profile on activation:", error)
-        } else {
+        try {
+          await query(
+            "UPDATE public.profiles SET paypal_subscriber_id = $1, paypal_subscription_id = $2, paypal_plan_type = $3, paypal_status = $4, paypal_next_billing_time = $5, trial_ends_at = $6, paypal_cancel_at_period_end = false, updated_at = timezone('utc'::TEXT, now()) WHERE id = $7",
+            [
+              subscriberId,
+              subscriptionId,
+              planType,
+              status,
+              nextBillingTime,
+              trialEndsAt,
+              customId,
+            ]
+          )
           console.log(`Subscription activated for user ${customId}: ${subscriptionId}`)
+        } catch (error) {
+          console.error("Error updating profile on activation:", error)
         }
         break
       }
@@ -155,39 +152,27 @@ export async function POST(req: Request) {
         const status = mapPaypalStatus(resource.status)
 
         // Get user ID from subscription
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("id")
-          .eq("paypal_subscription_id", subscriptionId)
-          .single()
+        const profileResult = await query<{ id: string }>(
+          "SELECT id FROM public.profiles WHERE paypal_subscription_id = $1",
+          [subscriptionId]
+        )
 
+        const profile = profileResult.rows[0]
         if (profile) {
-          // Update subscription status
-          const { error } = await supabase
-            .from("profiles")
-            .update({ 
-              paypal_status: status,
-              paypal_cancel_at_period_end: false,
-            })
-            .eq("paypal_subscription_id", subscriptionId)
-
-          if (error) {
-            console.error(`Error updating profile on ${eventType}:`, error)
-          } else {
+          try {
+            await query(
+              "UPDATE public.profiles SET paypal_status = $1, paypal_cancel_at_period_end = false, updated_at = timezone('utc'::TEXT, now()) WHERE paypal_subscription_id = $2",
+              [status, subscriptionId]
+            )
             console.log(`Subscription ${eventType} for: ${subscriptionId}`)
-            
-            // Deactivate all active strategies for this user
-            const { error: strategiesError } = await supabase
-              .from("strategies")
-              .update({ is_active: false })
-              .eq("user_id", profile.id)
-              .eq("is_active", true)
 
-            if (strategiesError) {
-              console.error("Error deactivating strategies:", strategiesError)
-            } else {
-              console.log(`Deactivated all strategies for user ${profile.id}`)
-            }
+            await query(
+              "UPDATE public.strategies SET is_active = false, updated_at = timezone('utc'::TEXT, now()) WHERE user_id = $1 AND is_active = true",
+              [profile.id]
+            )
+            console.log(`Deactivated all strategies for user ${profile.id}`)
+          } catch (error) {
+            console.error(`Error updating profile on ${eventType}:`, error)
           }
         }
         break
@@ -198,15 +183,14 @@ export async function POST(req: Request) {
 
         // Don't change status yet, just mark it will cancel at period end
         // The subscription remains active until it expires
-        const { error } = await supabase
-          .from("profiles")
-          .update({ paypal_cancel_at_period_end: true })
-          .eq("paypal_subscription_id", subscriptionId)
-
-        if (error) {
-          console.error("Error updating profile on cancellation:", error)
-        } else {
+        try {
+          await query(
+            "UPDATE public.profiles SET paypal_cancel_at_period_end = true, updated_at = timezone('utc'::TEXT, now()) WHERE paypal_subscription_id = $1",
+            [subscriptionId]
+          )
           console.log(`Subscription marked for cancellation: ${subscriptionId}`)
+        } catch (error) {
+          console.error("Error updating profile on cancellation:", error)
         }
         break
       }
@@ -228,12 +212,18 @@ export async function POST(req: Request) {
             updateData.paypal_next_billing_time = nextBillingTime
           }
 
-          const { error } = await supabase
-            .from("profiles")
-            .update(updateData)
-            .eq("paypal_subscription_id", subscriptionId)
-
-          if (error) {
+          try {
+            await query(
+              "UPDATE public.profiles SET paypal_status = $1, trial_ends_at = $2, paypal_cancel_at_period_end = $3, paypal_next_billing_time = $4, updated_at = timezone('utc'::TEXT, now()) WHERE paypal_subscription_id = $5",
+              [
+                updateData.paypal_status,
+                updateData.trial_ends_at,
+                updateData.paypal_cancel_at_period_end,
+                updateData.paypal_next_billing_time || null,
+                subscriptionId,
+              ]
+            )
+          } catch (error) {
             console.error("Error updating profile on renewal:", error)
           }
         }

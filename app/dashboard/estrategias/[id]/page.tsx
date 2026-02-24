@@ -12,7 +12,9 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
-import { createClient } from "@/lib/supabase/client"
+import { authFetch } from "@/lib/api"
+import { firebaseAuth } from "@/lib/firebase/client"
+import { onAuthStateChanged } from "firebase/auth"
 
 const FALLBACK_TRADING_PAIRS = [
   "BTC/USDT",
@@ -74,7 +76,13 @@ export default function EditStrategyPage() {
   const [saveError, setSaveError] = useState<string | null>(null)
 
   useEffect(() => {
-    loadStrategy()
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
+      if (user) {
+        loadStrategy(user.uid)
+      }
+    })
+
+    return () => unsubscribe()
   }, [params.id])
 
   useEffect(() => {
@@ -114,29 +122,24 @@ export default function EditStrategyPage() {
     }
   }
 
-  const loadStrategy = async () => {
+  const loadStrategy = async (uid: string) => {
     try {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      setUserId(uid)
 
-      if (!user) {
-        console.error("No user found")
+      const response = await authFetch("/api/profile/strategies/by-id", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: params.id }),
+      })
+
+      if (!response.ok) {
+        console.error("Error loading strategy")
         return
       }
 
-      setUserId(user.id)
-
-      const { data: strategy, error } = await supabase
-        .from("strategies")
-        .select("*")
-        .eq("id", params.id)
-        .eq("user_id", user.id)
-        .single()
-
-      if (error) {
-        console.error("Error loading strategy:", error)
+      const { strategy } = await response.json()
+      if (!strategy) {
+        console.error("Strategy not found")
         return
       }
 
@@ -226,11 +229,11 @@ export default function EditStrategyPage() {
     if (validateForm()) {
       try {
         setSaveError(null)
-        const supabase = createClient()
-
-        const { error } = await supabase
-          .from("strategies")
-          .update({
+        const response = await authFetch("/api/strategies", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: params.id,
             name: formData.name,
             description: formData.description || "",
             trading_pair: formData.pair,
@@ -239,13 +242,12 @@ export default function EditStrategyPage() {
             position_side: formData.marketType === "futures" ? formData.positionSide : null,
             risk_type: formData.riskType,
             risk_value: Number.parseFloat(formData.riskAmount),
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", params.id)
+          }),
+        })
 
-        if (error) {
-          console.error("Error updating strategy:", error)
-          setSaveError(error.message || "Error al actualizar la estrategia")
+        if (!response.ok) {
+          const data = await response.json()
+          setSaveError(data.error || "Error al actualizar la estrategia")
           return
         }
 
@@ -268,12 +270,12 @@ export default function EditStrategyPage() {
     }
 
     try {
-      const supabase = createClient()
+      const response = await authFetch(`/api/strategies?id=${encodeURIComponent(String(params.id))}`, {
+        method: "DELETE",
+      })
 
-      const { error } = await supabase.from("strategies").delete().eq("id", params.id)
-
-      if (error) {
-        console.error("Error deleting strategy:", error)
+      if (!response.ok) {
+        console.error("Error deleting strategy")
         return
       }
 

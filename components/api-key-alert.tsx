@@ -4,7 +4,9 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { AlertCircle, XCircle } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
+import { onAuthStateChanged } from "firebase/auth"
+import { firebaseAuth } from "@/lib/firebase/client"
+import { authFetch } from "@/lib/api"
 
 export function ApiKeyAlert() {
   const [hasApiKeys, setHasApiKeys] = useState(false)
@@ -12,35 +14,31 @@ export function ApiKeyAlert() {
   const [dismissed, setDismissed] = useState(false)
 
   useEffect(() => {
-    async function checkApiKeys() {
+    const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
+      if (!user) {
+        setChecking(false)
+        return
+      }
+
       try {
-        const supabase = createClient()
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
-
-        if (user) {
-          const { data: exchanges, error } = await supabase
-            .from("exchanges")
-            .select("id, api_key, api_secret")
-            .eq("user_id", user.id)
-
-          if (error) {
-            console.error("Error checking API keys:", error)
-          }
-
-          // Check if at least one exchange has both api_key and api_secret
-          const hasValidKeys = exchanges && exchanges.some((ex) => ex.api_key && ex.api_secret)
-          setHasApiKeys(hasValidKeys)
+        const response = await authFetch("/api/exchanges")
+        if (!response.ok) {
+          console.error("Error checking API keys")
+          setChecking(false)
+          return
         }
+
+        const { exchanges } = await response.json()
+        const hasValidKeys = exchanges && exchanges.some((ex: { api_key?: string; api_secret?: string }) => ex.api_key && ex.api_secret)
+        setHasApiKeys(hasValidKeys)
       } catch (error) {
         console.error("Error checking API keys:", error)
       } finally {
         setChecking(false)
       }
-    }
+    })
 
-    checkApiKeys()
+    return () => unsubscribe()
   }, [])
 
   if (checking || hasApiKeys || dismissed) {

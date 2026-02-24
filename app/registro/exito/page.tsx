@@ -4,13 +4,15 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Mail, CheckCircle, Loader2, Moon, Sun } from "lucide-react"
 import { useState, useEffect } from "react"
-import { createBrowserClient } from "@supabase/ssr"
+import { sendEmailVerification } from "firebase/auth"
+import { firebaseAuth } from "@/lib/firebase/client"
 import { useSearchParams } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { useTheme } from "next-themes"
 
 export default function SignUpSuccessPage() {
   const { theme, setTheme, resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
   const [isResending, setIsResending] = useState(false)
   const [email, setEmail] = useState<string | null>(null)
   const searchParams = useSearchParams()
@@ -22,6 +24,10 @@ export default function SignUpSuccessPage() {
       setEmail(emailParam)
     }
   }, [searchParams])
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleResendEmail = async () => {
     if (!email) {
@@ -36,36 +42,26 @@ export default function SignUpSuccessPage() {
     setIsResending(true)
 
     try {
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      )
-
-      const redirectUrl = process.env.NEXT_PUBLIC_SITE_URL
-        ? `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?type=signup`
-        : `${window.location.origin}/auth/callback?type=signup`
-      
-      const { error } = await supabase.auth.resend({
-        type: "signup",
-        email: email,
-        options: {
-          emailRedirectTo: redirectUrl,
-        },
-      })
-
-      if (error) {
-        console.error("Error resending verification email:", error)
+      const user = firebaseAuth.currentUser
+      if (!user || user.email?.toLowerCase() !== email.toLowerCase()) {
         toast({
-          title: "Error al reenviar",
-          description: error.message || "No se pudo reenviar el correo. Por favor, intenta nuevamente.",
+          title: "Inicia sesión",
+          description: "Para reenviar el correo, inicia sesión con tu cuenta y vuelve a intentarlo.",
           variant: "destructive",
         })
-      } else {
-        toast({
-          title: "Correo reenviado",
-          description: "Hemos enviado un nuevo correo de verificación. Por favor, revisa tu bandeja de entrada.",
-        })
+        return
       }
+
+      const redirectUrl = process.env.NEXT_PUBLIC_SITE_URL
+        ? `${process.env.NEXT_PUBLIC_SITE_URL}/registro/confirmado`
+        : `${window.location.origin}/registro/confirmado`
+
+      await sendEmailVerification(user, { url: redirectUrl })
+
+      toast({
+        title: "Correo reenviado",
+        description: "Hemos enviado un nuevo correo de verificación. Por favor, revisa tu bandeja de entrada.",
+      })
     } catch (error) {
       console.error("Unexpected error resending email:", error)
       toast({
@@ -81,13 +77,15 @@ export default function SignUpSuccessPage() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-primary/5 via-background to-accent/5">
       {/* Theme Toggle */}
-      <button
-        onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-        className="fixed top-4 right-4 p-2 rounded-lg bg-card border border-border hover:bg-accent/10 transition-colors"
-        aria-label="Toggle theme"
-      >
-        {resolvedTheme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-      </button>
+      {mounted && (
+        <button
+          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+          className="fixed top-4 right-4 p-2 rounded-lg bg-card border border-border hover:bg-accent/10 transition-colors"
+          aria-label="Toggle theme"
+        >
+          {resolvedTheme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        </button>
+      )}
       
       <div className="w-full max-w-md">
         {/* Logo */}
