@@ -2,21 +2,27 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { AlertCircle, CheckCircle, ArrowLeft, Moon, Sun } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
+import { sendPasswordResetEmail } from "firebase/auth"
+import { firebaseAuth } from "@/lib/firebase/client"
 import { useTheme } from "next-themes"
 
 export default function RecoverPage() {
   const { theme, setTheme, resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
   const [email, setEmail] = useState("")
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,34 +38,20 @@ export default function RecoverPage() {
     }
 
     try {
-      const supabase = createClient()
+      const checkResponse = await fetch("/api/auth/check-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      })
 
-      // Check if email exists before sending reset email
-      const { data: emailExists, error: rpcError } = await supabase
-        .rpc("check_email_exists", { email_to_check: email })
+      const { exists } = await checkResponse.json()
 
-      if (rpcError) {
-        console.error("RPC check_email_exists error:", rpcError)
-      }
-
-      // Only send the reset email if the user actually exists
-      if (emailExists) {
+      if (exists) {
         const redirectUrl = process.env.NEXT_PUBLIC_SITE_URL
-          ? `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/recuperar/nueva-contrasena`
-          : `${window.location.origin}/auth/callback?next=/recuperar/nueva-contrasena`
-        
-        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: redirectUrl,
-        })
+          ? `${process.env.NEXT_PUBLIC_SITE_URL}/recuperar/nueva-contrasena`
+          : `${window.location.origin}/recuperar/nueva-contrasena`
 
-        if (resetError) {
-          console.error("Password recovery error:", resetError)
-          if (resetError.message.includes("rate limit") || resetError.message.includes("Rate limit")) {
-            setError("Se han enviado demasiados emails. Por favor espera unos minutos antes de intentar nuevamente.")
-            setLoading(false)
-            return
-          }
-        }
+        await sendPasswordResetEmail(firebaseAuth, email, { url: redirectUrl })
       }
 
       // Always show success message regardless of whether the email exists
@@ -75,13 +67,15 @@ export default function RecoverPage() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-primary/5 via-background to-accent/5">
       {/* Theme Toggle */}
-      <button
-        onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-        className="fixed top-4 right-4 p-2 rounded-lg bg-card border border-border hover:bg-accent/10 transition-colors"
-        aria-label="Toggle theme"
-      >
-        {resolvedTheme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-      </button>
+      {mounted && (
+        <button
+          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+          className="fixed top-4 right-4 p-2 rounded-lg bg-card border border-border hover:bg-accent/10 transition-colors"
+          aria-label="Toggle theme"
+        >
+          {resolvedTheme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        </button>
+      )}
       
       <div className="w-full max-w-md">
         {/* Logo */}

@@ -12,7 +12,9 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
-import { createClient } from "@/lib/supabase/client"
+import { authFetch } from "@/lib/api"
+import { firebaseAuth } from "@/lib/firebase/client"
+import { onAuthStateChanged } from "firebase/auth"
 import { DashboardLayout } from "@/components/dashboard/layout"
 import { useUserPlan } from "@/hooks/use-user-plan"
 
@@ -113,46 +115,41 @@ export default function NuevaEstrategiaPage() {
     setPreGeneratedId(strategyId)
     console.log("Pre-generated strategy ID:", strategyId)
 
-    const loadStrategyData = async () => {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
       if (user) {
-        setUserId(user.id)
+        setUserId(user.uid)
       }
+    })
 
-      // First try sessionStorage (same-session flow)
-      const previewData = sessionStorage.getItem("previewStrategy")
-      const fromPreview = sessionStorage.getItem("fromPreview")
+    const previewData = sessionStorage.getItem("previewStrategy")
+    const fromPreview = sessionStorage.getItem("fromPreview")
 
-      if (previewData && fromPreview === "true") {
-        try {
-          const parsedData = JSON.parse(previewData)
-          console.log("Loading preview data from sessionStorage:", parsedData)
-          setFormData({
-            name: parsedData.name || "",
-            exchange: parsedData.exchange || "binance",
-            description: parsedData.description || "",
-            pair: parsedData.pair || "",
-            marketType: parsedData.marketType || "",
-            leverage: parsedData.leverage || 1,
-            positionSide: parsedData.positionSide || "long",
-            riskType: parsedData.riskType || "",
-            riskAmount: parsedData.riskAmount || "",
-          })
-          sessionStorage.removeItem("previewStrategy")
-          sessionStorage.removeItem("fromPreview")
-          console.log("Preview data loaded and cleared from sessionStorage")
-        } catch (error) {
-          console.error("Error loading preview data from sessionStorage:", error)
-          sessionStorage.removeItem("previewStrategy")
-          sessionStorage.removeItem("fromPreview")
-        }
+    if (previewData && fromPreview === "true") {
+      try {
+        const parsedData = JSON.parse(previewData)
+        console.log("Loading preview data from sessionStorage:", parsedData)
+        setFormData({
+          name: parsedData.name || "",
+          exchange: parsedData.exchange || "binance",
+          description: parsedData.description || "",
+          pair: parsedData.pair || "",
+          marketType: parsedData.marketType || "",
+          leverage: parsedData.leverage || 1,
+          positionSide: parsedData.positionSide || "long",
+          riskType: parsedData.riskType || "",
+          riskAmount: parsedData.riskAmount || "",
+        })
+        sessionStorage.removeItem("previewStrategy")
+        sessionStorage.removeItem("fromPreview")
+        console.log("Preview data loaded and cleared from sessionStorage")
+      } catch (error) {
+        console.error("Error loading preview data from sessionStorage:", error)
+        sessionStorage.removeItem("previewStrategy")
+        sessionStorage.removeItem("fromPreview")
       }
     }
 
-    loadStrategyData()
+    return () => unsubscribe()
   }, [])
 
   useEffect(() => {
@@ -272,23 +269,18 @@ export default function NuevaEstrategiaPage() {
       console.log("Validation passed")
       setIsSubmitting(true)
       try {
-        const supabase = createClient()
-
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
-
+        const user = firebaseAuth.currentUser
         if (!user) {
           console.error("❌ No user found")
           alert("Debes estar autenticado para guardar la estrategia")
           return
         }
 
-        console.log("User found:", user.id)
+        console.log("User found:", user.uid)
 
         const strategyData = {
           id: preGeneratedId,
-          user_id: user.id,
+          id: preGeneratedId,
           exchange_id: null,
           exchange_name: formData.exchange,
           name: formData.name,
@@ -303,11 +295,16 @@ export default function NuevaEstrategiaPage() {
           webhook_url: `https://api-92000983434.southamerica-east1.run.app/api/webhook`,
         }
 
-        const { data: newStrategy, error } = await supabase.from("strategies").insert(strategyData).select().single()
+        const response = await authFetch("/api/strategies", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(strategyData),
+        })
 
-        if (error) {
-          console.error("❌ Error saving strategy:", error)
-          alert(`Error al guardar la estrategia: ${error.message}`)
+        if (!response.ok) {
+          const data = await response.json()
+          console.error("❌ Error saving strategy:", data)
+          alert(`Error al guardar la estrategia: ${data.error || "No se pudo guardar"}`)
           return
         }
 

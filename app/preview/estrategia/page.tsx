@@ -13,7 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import Link from "next/link"
-import { createClient } from "@/lib/supabase/client"
+import { onAuthStateChanged } from "firebase/auth"
+import { firebaseAuth } from "@/lib/firebase/client"
 import { useTheme } from "next-themes"
 
 const FALLBACK_TRADING_PAIRS = [
@@ -109,29 +110,24 @@ export default function PreviewStrategyPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    async function checkAuth() {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
       if (user) {
-        // Save current form data to sessionStorage before redirecting (solo si hay datos reales)
-        const hasAnyData = 
+        const hasAnyData =
           formData.name.trim() !== "" ||
           formData.exchange !== "" ||
           formData.marketType !== "" ||
           formData.pair !== "" ||
           formData.riskType !== "" ||
           formData.riskAmount !== ""
-        
+
         if (hasAnyData) {
           sessionStorage.setItem("previewStrategy", JSON.stringify(formData))
         }
         router.push("/dashboard/estrategias/nueva")
       }
-    }
-    checkAuth()
+    })
+
+    return () => unsubscribe()
   }, [])
 
   useEffect(() => {

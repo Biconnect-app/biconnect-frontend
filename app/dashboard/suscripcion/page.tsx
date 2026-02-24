@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { CreditCard, Sparkles, Calendar, AlertTriangle, Shield } from "lucide-react"
 import { ApiKeyAlert } from "@/components/api-key-alert"
-import { createClient } from "@/lib/supabase/client"
+import { authFetch } from "@/lib/api"
 import { CheckoutButton } from "@/components/checkout-button"
 import { ManageSubscriptionButton } from "@/components/manage-subscription-button"
 import { useSearchParams } from "next/navigation"
@@ -49,8 +49,6 @@ export default function SubscriptionPage() {
   const [loading, setLoading] = useState(true)
   const [profileData, setProfileData] = useState<ProfileData | null>(null)
 
-  const supabase = createClient()
-
   useEffect(() => {
     loadUserData()
   }, [])
@@ -58,19 +56,14 @@ export default function SubscriptionPage() {
   const loadUserData = async () => {
     try {
       setLoading(true)
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("plan, paypal_status, paypal_plan_type, trial_ends_at, paypal_next_billing_time, paypal_cancel_at_period_end, is_admin")
-          .eq("id", user.id)
-          .single()
-
-        setProfileData(profile)
+      const response = await authFetch("/api/profile")
+      if (!response.ok) {
+        setLoading(false)
+        return
       }
+
+      const { profile } = await response.json()
+      setProfileData(profile)
     } catch (error) {
       console.error("Error loading user data:", error)
     } finally {

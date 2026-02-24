@@ -1,5 +1,6 @@
-import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
+import { getAuthUser } from "@/lib/auth/server"
+import { query } from "@/lib/db"
 
 const PAYPAL_BASE_URL = process.env.PAYPAL_API_URL || "https://api-m.sandbox.paypal.com"
 
@@ -29,25 +30,19 @@ async function getAccessToken(): Promise<string> {
 
 export async function POST(req: Request) {
   try {
-    const supabase = await createClient()
-
-    // Get the current user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const authUser = await getAuthUser(req)
+    if (!authUser) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
     }
 
     // Get subscription ID from profile
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("paypal_subscription_id")
-      .eq("id", user.id)
-      .single()
+    const profileResult = await query<{ paypal_subscription_id: string | null }>(
+      "SELECT paypal_subscription_id FROM public.profiles WHERE id = $1",
+      [authUser.uid]
+    )
 
-    if (profileError || !profile?.paypal_subscription_id) {
+    const profile = profileResult.rows[0]
+    if (!profile?.paypal_subscription_id) {
       return NextResponse.json({ error: "No active subscription found" }, { status: 400 })
     }
 
@@ -75,14 +70,10 @@ export async function POST(req: Request) {
 
     // Mark the subscription as "will cancel at period end" but keep it active
     // PayPal keeps the subscription active until the end of the billing period
-    const { error: updateError } = await supabase
-      .from("profiles")
-      .update({ paypal_cancel_at_period_end: true })
-      .eq("id", user.id)
-
-    if (updateError) {
-      console.error("Error updating profile after cancellation:", updateError)
-    }
+    await query(
+      "UPDATE public.profiles SET paypal_cancel_at_period_end = true, updated_at = timezone('utc'::TEXT, now()) WHERE id = $1",
+      [authUser.uid]
+    )
 
     return NextResponse.json({ success: true })
   } catch (error) {

@@ -1,7 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { createClient } from "@/lib/supabase/client"
+import { onAuthStateChanged } from "firebase/auth"
+import { firebaseAuth } from "@/lib/firebase/client"
+import { authFetch } from "@/lib/api"
 
 export function useUserPlan() {
   const [plan, setPlan] = useState<"trial" | "pro" | "admin" | null>(null)
@@ -10,64 +12,61 @@ export function useUserPlan() {
   const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
-    async function fetchUserPlan() {
+    const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
+      if (!user) {
+        setPlan(null)
+        setIsAdmin(false)
+        setHasUsedTrial(false)
+        setLoading(false)
+        return
+      }
+
       try {
-        const supabase = createClient()
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
+        const response = await authFetch("/api/profile")
+        if (!response.ok) {
+          setPlan(null)
+          setLoading(false)
+          return
+        }
 
-        if (user) {
-          // Query profiles table to check admin status and subscription
-          const { data: profile, error } = await supabase
-            .from("profiles")
-            .select("plan, paypal_status, trial_ends_at, is_admin")
-            .eq("id", user.id)
-            .single()
+        const { profile } = await response.json()
+        if (!profile) {
+          setPlan(null)
+          setLoading(false)
+          return
+        }
 
-          if (error) {
-            console.error("Error fetching user plan:", error)
-            setPlan(null)
-          } else {
-            // Check if user is admin - admins bypass all subscription requirements
-            if (profile?.is_admin) {
-              setIsAdmin(true)
-              setPlan("admin")
-              setLoading(false)
-              return
-            }
-            
-            // Check paypal_status to determine actual plan
-            const status = profile?.paypal_status
-            
-            // Check if user has already used trial
-            const trialWasUsed = !!(
-              profile?.trial_ends_at || 
-              status === "canceled" || 
-              status === "inactive"
-            )
-            setHasUsedTrial(trialWasUsed)
-            
-            if (status === "trialing") {
-              setPlan("trial")
-              setHasUsedTrial(true)
-            } else if (status === "active") {
-              setPlan("pro")
-              setHasUsedTrial(true)
-            } else {
-              setPlan(null)
-            }
-          }
+        if (profile.is_admin) {
+          setIsAdmin(true)
+          setPlan("admin")
+          setLoading(false)
+          return
+        }
+
+        const status = profile.paypal_status
+        const trialWasUsed = !!(
+          profile.trial_ends_at || status === "canceled" || status === "inactive"
+        )
+        setHasUsedTrial(trialWasUsed)
+
+        if (status === "trialing") {
+          setPlan("trial")
+          setHasUsedTrial(true)
+        } else if (status === "active") {
+          setPlan("pro")
+          setHasUsedTrial(true)
+        } else {
+          setPlan(null)
         }
       } catch (error) {
         console.error("Error fetching user plan:", error)
-        setPlan(null) // No plan on error
+        setPlan(null)
       } finally {
         setLoading(false)
       }
-    }
+    })
 
-    fetchUserPlan()
+    return () => unsubscribe()
   }, [])
 
   const hasActiveSubscription = plan === "pro" || plan === "trial" || plan === "admin"

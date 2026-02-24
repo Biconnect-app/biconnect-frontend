@@ -7,7 +7,8 @@ import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Layers, FileText, Plug, Settings, LogOut, Menu, X, Moon, Sun, Lock, CreditCard } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
+import { onAuthStateChanged, signOut } from "firebase/auth"
+import { firebaseAuth } from "@/lib/firebase/client"
 import { useTheme } from "next-themes"
 import { useUserPlan } from "@/hooks/use-user-plan"
 import {
@@ -40,56 +41,60 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   }, [])
 
   useEffect(() => {
-    const checkSessionExpiration = async () => {
-      const supabase = createClient()
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
-      if (session) {
-        // Store login timestamp in localStorage when session is first detected
-        const loginTimestamp = localStorage.getItem("login_timestamp")
-
-        if (!loginTimestamp) {
-          // First time detecting this session, store the current time
-          localStorage.setItem("login_timestamp", Date.now().toString())
-        } else {
-          // Check if session is older than 24 hours
-          const twentyFourHours = 24 * 60 * 60 * 1000
-          const sessionAge = Date.now() - Number.parseInt(loginTimestamp)
-
-          if (sessionAge > twentyFourHours) {
-            // Session expired, sign out
-            localStorage.removeItem("login_timestamp")
-            await supabase.auth.signOut()
-            router.push("/login?expired=true")
-          }
-        }
+    const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
+      if (!user) {
+        return
       }
+
+      const loginTimestamp = localStorage.getItem("login_timestamp")
+      if (!loginTimestamp) {
+        localStorage.setItem("login_timestamp", Date.now().toString())
+        return
+      }
+
+      const twentyFourHours = 24 * 60 * 60 * 1000
+      const sessionAge = Date.now() - Number.parseInt(loginTimestamp)
+
+      if (sessionAge > twentyFourHours) {
+        localStorage.removeItem("login_timestamp")
+        await signOut(firebaseAuth)
+        await fetch("/api/auth/session", { method: "DELETE" })
+        router.push("/login?expired=true")
+      }
+    })
+
+    const interval = setInterval(() => {
+      if (!firebaseAuth.currentUser) {
+        return
+      }
+      const loginTimestamp = localStorage.getItem("login_timestamp")
+      if (!loginTimestamp) {
+        localStorage.setItem("login_timestamp", Date.now().toString())
+        return
+      }
+      const twentyFourHours = 24 * 60 * 60 * 1000
+      const sessionAge = Date.now() - Number.parseInt(loginTimestamp)
+      if (sessionAge > twentyFourHours) {
+        localStorage.removeItem("login_timestamp")
+        signOut(firebaseAuth)
+        fetch("/api/auth/session", { method: "DELETE" })
+        router.push("/login?expired=true")
+      }
+    }, 5 * 60 * 1000)
+
+    return () => {
+      unsubscribe()
+      clearInterval(interval)
     }
-
-    checkSessionExpiration()
-
-    // Check every 5 minutes
-    const interval = setInterval(checkSessionExpiration, 5 * 60 * 1000)
-
-    return () => clearInterval(interval)
   }, [router, pathname, sidebarOpen])
 
   const handleLogout = async () => {
     try {
-      const supabase = createClient()
-
       // Remove login timestamp
       localStorage.removeItem("login_timestamp")
 
-      // Sign out from Supabase
-      const { error } = await supabase.auth.signOut()
-
-      if (error) {
-        console.error("Error al cerrar sesión:", error)
-        throw error
-      }
+      await signOut(firebaseAuth)
+      await fetch("/api/auth/session", { method: "DELETE" })
 
       // Redirect to login
       router.push("/login")

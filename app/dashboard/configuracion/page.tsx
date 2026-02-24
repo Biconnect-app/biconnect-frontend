@@ -6,7 +6,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Save, Eye, EyeOff, Check, X, Key } from "lucide-react"
 import { ApiKeyAlert } from "@/components/api-key-alert"
-import { createClient } from "@/lib/supabase/client"
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth"
+import { firebaseAuth } from "@/lib/firebase/client"
+import { authFetch } from "@/lib/api"
 
 interface ProfileData {
   first_name: string | null
@@ -36,8 +38,6 @@ export default function SettingsPage() {
   const [passwordError, setPasswordError] = useState("")
   const [passwordSuccess, setPasswordSuccess] = useState("")
 
-  const supabase = createClient()
-
   // Password validation
   const passwordValidation = {
     length: passwordData.newPassword.length >= 8,
@@ -55,23 +55,14 @@ export default function SettingsPage() {
   const loadUserData = async () => {
     try {
       setLoading(true)
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (user) {
-        // Obtener datos del perfil
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("first_name, last_name, plan")
-          .eq("id", user.id)
-          .single()
-
+      const response = await authFetch("/api/profile")
+      if (response.ok) {
+        const { profile } = await response.json()
         setProfileData(profile)
         setUserData({
           firstName: profile?.first_name || "",
           lastName: profile?.last_name || "",
-          email: user.email || "",
+          email: firebaseAuth.currentUser?.email || "",
           plan: profile?.plan === "pro" ? "Plan Pro" : "Plan Gratuito",
         })
       }
@@ -85,25 +76,20 @@ export default function SettingsPage() {
   const handleSave = async () => {
     try {
       setSaving(true)
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const response = await authFetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          first_name: userData.firstName,
+          last_name: userData.lastName,
+        }),
+      })
 
-      if (user) {
-        const { error } = await supabase
-          .from("profiles")
-          .update({
-            first_name: userData.firstName,
-            last_name: userData.lastName,
-          })
-          .eq("id", user.id)
-
-        if (error) {
-          console.error("Error saving profile:", error)
-          alert("Error al guardar los cambios")
-        } else {
-          alert("Cambios guardados correctamente")
-        }
+      if (!response.ok) {
+        console.error("Error saving profile")
+        alert("Error al guardar los cambios")
+      } else {
+        alert("Cambios guardados correctamente")
       }
     } catch (error) {
       console.error("Error saving:", error)
@@ -138,42 +124,29 @@ export default function SettingsPage() {
     try {
       setSavingPassword(true)
 
-      // Get current user email
-      const { data: { user } } = await supabase.auth.getUser()
+      const user = firebaseAuth.currentUser
       if (!user?.email) {
         setPasswordError("No se pudo obtener el email del usuario")
         return
       }
 
-      // Verify current password by attempting to sign in
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user.email,
-        password: passwordData.currentPassword,
-      })
-
-      if (signInError) {
+      const credential = EmailAuthProvider.credential(user.email, passwordData.currentPassword)
+      try {
+        await reauthenticateWithCredential(user, credential)
+      } catch (error) {
         setPasswordError("La contraseña actual es incorrecta")
         setSavingPassword(false)
         return
       }
 
-      // Update password
-      const { error } = await supabase.auth.updateUser({
-        password: passwordData.newPassword,
-      })
+      await updatePassword(user, passwordData.newPassword)
 
-      if (error) {
-        console.error("Error changing password:", error)
-        setPasswordError("Error al cambiar la contraseña: " + error.message)
-      } else {
-        setPasswordSuccess("Contraseña cambiada correctamente")
-        // Clear form
-        setPasswordData({
-          currentPassword: "",
-          newPassword: "",
-          confirmPassword: "",
-        })
-      }
+      setPasswordSuccess("Contraseña cambiada correctamente")
+      setPasswordData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      })
     } catch (error) {
       console.error("Error changing password:", error)
       setPasswordError("Error al cambiar la contraseña")

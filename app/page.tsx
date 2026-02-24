@@ -1,47 +1,37 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from 'next/navigation'
-import { createClient } from "@/lib/supabase/client"
+import { useRouter } from "next/navigation"
+import { onAuthStateChanged } from "firebase/auth"
+import { firebaseAuth } from "@/lib/firebase/client"
+import { authFetch } from "@/lib/api"
 
 export default function Home() {
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
-    async function checkAuthAndStrategies() {
-      const supabase = createClient()
-      
-      const { data: { user } } = await supabase.auth.getUser()
-
+    const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
       if (!user) {
-        // Usuario no logueado → redirigir a preview/estrategia
         router.replace("/preview/estrategia")
         return
       }
 
-      // Usuario logueado → verificar si tiene estrategias
-      const { data: strategies, error } = await supabase
-        .from("strategies")
-        .select("id")
-        .eq("user_id", user.id)
-
-      if (error) {
-        console.error("Error fetching strategies:", error)
+      const response = await authFetch("/api/profile/strategies")
+      if (!response.ok) {
         router.replace("/dashboard/estrategias/nueva")
         return
       }
 
-      if (!strategies || strategies.length === 0) {
-        // Usuario logueado pero sin estrategias → crear estrategia
-        router.replace("/dashboard/estrategias/nueva")
-      } else {
-        // Usuario logueado con estrategias → mostrar lista
+      const data = await response.json()
+      if (data.hasStrategies) {
         router.replace("/dashboard/estrategias")
+      } else {
+        router.replace("/dashboard/estrategias/nueva")
       }
-    }
+    })
 
-    checkAuthAndStrategies()
+    return () => unsubscribe()
   }, [router])
 
   // Mostrar loading mientras se verifica

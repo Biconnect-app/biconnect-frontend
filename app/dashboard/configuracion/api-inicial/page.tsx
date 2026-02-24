@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { CheckCircle, Eye, EyeOff, AlertCircle, XCircle, Server } from "lucide-react"
 import Link from "next/link"
-import { createClient } from "@/lib/supabase/client"
+import { authFetch } from "@/lib/api"
 
 async function signRequest(queryString: string, apiSecret: string): Promise<string> {
   const encoder = new TextEncoder()
@@ -43,8 +43,6 @@ export default function InitialApiSetupPage() {
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
   const [serverInfo, setServerInfo] = useState<any>(null)
   const [isLoadingServerInfo, setIsLoadingServerInfo] = useState(false)
-
-  const supabase = createClient()
 
   const handleTestConnection = async () => {
     setError("")
@@ -139,38 +137,23 @@ export default function InitialApiSetupPage() {
     setIsSubmitting(true)
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) {
-        setError("Debes iniciar sesión")
-        setIsSubmitting(false)
-        return
-      }
-
-      console.log("Saving exchange for user:", user.id)
-
-      const { data, error: dbError } = await supabase
-        .from("exchanges")
-        .insert({
-          user_id: user.id,
+      const response = await authFetch("/api/exchanges", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           exchange_name: "binance",
           api_key: formData.apiKey,
           api_secret: formData.apiSecret,
           testnet: formData.environment === "testnet",
-        })
-        .select()
-        .single()
+        }),
+      })
 
-      if (dbError) {
-        console.error("Error saving exchange:", dbError)
-        setError(`Error al guardar: ${dbError.message}`)
+      if (!response.ok) {
+        const data = await response.json()
+        setError(`Error al guardar: ${data.error || "No se pudo guardar"}`)
         setIsSubmitting(false)
         return
       }
-
-      console.log("Exchange saved successfully:", data)
 
       router.push("/dashboard/estrategias")
       router.refresh()
