@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Loader2 } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
+import { firebaseAuth } from "@/lib/firebase/client"
 import { useRouter } from "next/navigation"
 import {
   Dialog,
@@ -44,10 +44,7 @@ export function CheckoutButton({
       setLoading(true)
 
       // Check if user is logged in
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = firebaseAuth.currentUser
 
       if (!user) {
         router.push("/login?redirect=/precios&plan=pro")
@@ -119,14 +116,9 @@ export function CheckoutButton({
                 _data: Record<string, unknown>,
                 actions: { subscription: { create: (opts: Record<string, unknown>) => Promise<string> } }
               ) => {
-                const supabase = createClient()
-                const {
-                  data: { user },
-                } = await supabase.auth.getUser()
-
                 return actions.subscription.create({
                   plan_id: planId,
-                  custom_id: user?.id || "",
+                  custom_id: firebaseAuth.currentUser?.uid || "",
                   application_context: {
                     shipping_preference: "NO_SHIPPING",
                   },

@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -10,12 +10,15 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Eye, EyeOff, AlertCircle, Check, X, Moon, Sun } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
+import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from "firebase/auth"
+import { firebaseAuth } from "@/lib/firebase/client"
+import { authFetch } from "@/lib/api"
 import { useTheme } from "next-themes"
 
 export default function RegisterPage() {
   const router = useRouter()
   const { theme, setTheme, resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
 
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -39,6 +42,10 @@ export default function RegisterPage() {
   }
 
   const isPasswordValid = Object.values(passwordValidation).every(Boolean)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -77,59 +84,26 @@ export default function RegisterPage() {
     }
 
     try {
-      const supabase = createClient()
+      const redirectUrl = process.env.NEXT_PUBLIC_SITE_URL
+        ? `${process.env.NEXT_PUBLIC_SITE_URL}/registro/confirmado`
+        : `${window.location.origin}/registro/confirmado`
 
-      // Sign up with Supabase Auth
-      // Use explicit production URL or window origin for redirect
-      const redirectUrl = process.env.NEXT_PUBLIC_SITE_URL 
-        ? `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?type=signup`
-        : `${window.location.origin}/auth/callback?type=signup`
-      
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-          },
-        },
+      const credential = await createUserWithEmailAndPassword(firebaseAuth, formData.email, formData.password)
+      const user = credential.user
+
+      await sendEmailVerification(user, { url: redirectUrl })
+
+      await authFetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          plan: "free",
+        }),
       })
 
-      console.log("Registration response:", { data, error: signUpError })
-
-      if (signUpError) {
-        console.error("Registration error:", signUpError)
-        console.error("Error code:", signUpError.code)
-        console.error("Error status:", signUpError.status)
-
-        if (
-          signUpError.message.includes("rate limit") ||
-          signUpError.message.includes("Rate limit") ||
-          signUpError.code === "over_email_send_rate_limit"
-        ) {
-          setError("Se han enviado demasiados emails. Por favor espera unos minutos antes de intentar nuevamente.")
-        } else if (
-          signUpError.message.includes("already registered") ||
-          signUpError.message.includes("User already registered") ||
-          signUpError.code === "user_already_exists"
-        ) {
-          setError("Este email ya está registrado. Por favor inicia sesión o usa otro email.")
-        } else if (signUpError.message.includes("Database error")) {
-          setError("El nombre de usuario ya está en uso. Por favor elige otro.")
-        } else if (signUpError.message.includes("Invalid email")) {
-          setError("El email ingresado no es válido")
-        } else if (signUpError.message.includes("Password")) {
-          setError("La contraseña no cumple con los requisitos de seguridad")
-        } else {
-          setError(`Error al crear la cuenta: ${signUpError.message}`)
-        }
-        setLoading(false)
-        return
-      }
-
-      if (data.user) {
+      if (user) {
         // Check both localStorage and sessionStorage
         const previewDataString = localStorage.getItem("previewStrategy") || sessionStorage.getItem("previewStrategy")
         const fromPreviewString = localStorage.getItem("fromPreview") || sessionStorage.getItem("fromPreview")
@@ -147,19 +121,17 @@ export default function RegisterPage() {
             console.log("💾 Strategy data:", { name: strategyData.name, exchange: strategyData.exchange })
 
             // Save to pending_strategies table with user's email
-            const { error: pendingError } = await supabase.from("pending_strategies").upsert(
-              {
+            const pendingResponse = await fetch("/api/pending-strategies", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
                 email: formData.email.toLowerCase(),
                 strategy_data: strategyData,
-              },
-              {
-                onConflict: "email",
-                ignoreDuplicates: false, // Replace existing strategy
-              },
-            )
+              }),
+            })
 
-            if (pendingError) {
-              console.error("❌ Registro - Error saving pending strategy:", pendingError)
+            if (!pendingResponse.ok) {
+              console.error("❌ Registro - Error saving pending strategy")
             } else {
               console.log("✅ Registro - Pending strategy saved successfully to database")
               console.log("✅ LocalStorage + SessionStorage preserved for confirmation + login")
@@ -172,11 +144,22 @@ export default function RegisterPage() {
         }
 
         console.log("Registration successful, redirecting to success page")
+        await signOut(firebaseAuth)
         router.push(`/registro/exito?email=${encodeURIComponent(formData.email)}`)
       }
     } catch (err) {
-      console.error("Unexpected error during registration:", err)
-      setError("Error inesperado al crear la cuenta. Por favor intenta nuevamente.")
+      console.error("Registration error:", err)
+      const message = err instanceof Error ? err.message : ""
+      if (message.includes("email-already-in-use")) {
+        setError("Este email ya está registrado. Por favor inicia sesión o usa otro email.")
+      } else if (message.includes("invalid-email")) {
+        setError("El email ingresado no es válido")
+      } else if (message.includes("weak-password")) {
+        setError("La contraseña no cumple con los requisitos de seguridad")
+      } else {
+        setError("Error inesperado al crear la cuenta. Por favor intenta nuevamente.")
+      }
+    } finally {
       setLoading(false)
     }
   }
@@ -184,13 +167,15 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-primary/5 via-background to-accent/5">
       {/* Theme Toggle */}
-      <button
-        onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-        className="fixed top-4 right-4 p-2 rounded-lg bg-card border border-border hover:bg-accent/10 transition-colors"
-        aria-label="Toggle theme"
-      >
-        {resolvedTheme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-      </button>
+      {mounted && (
+        <button
+          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+          className="fixed top-4 right-4 p-2 rounded-lg bg-card border border-border hover:bg-accent/10 transition-colors"
+          aria-label="Toggle theme"
+        >
+          {resolvedTheme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        </button>
+      )}
       
       <div className="w-full max-w-2xl">
         {/* Logo */}

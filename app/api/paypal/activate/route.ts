@@ -1,5 +1,6 @@
-import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
+import { getAuthUser } from "@/lib/auth/server"
+import { query } from "@/lib/db"
 
 const PAYPAL_BASE_URL = process.env.PAYPAL_API_URL || "https://api-m.sandbox.paypal.com"
 
@@ -35,14 +36,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing subscriptionId" }, { status: 400 })
     }
 
-    const supabase = await createClient()
-
-    // Get the current user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const authUser = await getAuthUser(req)
+    if (!authUser) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
     }
 
@@ -96,23 +91,18 @@ export async function POST(req: Request) {
     }
 
     // Update the profile with subscription info
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        paypal_subscriber_id: subscriberId,
-        paypal_subscription_id: subscriptionId,
-        paypal_plan_type: planType || "monthly",
-        paypal_status: status,
-        trial_ends_at: trialEndsAt,
-        paypal_next_billing_time: nextBillingTime,
-        paypal_cancel_at_period_end: false, // Reset cancellation flag on new activation
-      })
-      .eq("id", user.id)
-
-    if (error) {
-      console.error("Error updating profile:", error)
-      return NextResponse.json({ error: "Failed to update profile" }, { status: 500 })
-    }
+    await query(
+      "UPDATE public.profiles SET paypal_subscriber_id = $1, paypal_subscription_id = $2, paypal_plan_type = $3, paypal_status = $4, trial_ends_at = $5, paypal_next_billing_time = $6, paypal_cancel_at_period_end = false, updated_at = timezone('utc'::TEXT, now()) WHERE id = $7",
+      [
+        subscriberId,
+        subscriptionId,
+        planType || "monthly",
+        status,
+        trialEndsAt,
+        nextBillingTime,
+        authUser.uid,
+      ]
+    )
 
     return NextResponse.json({ 
       success: true, 

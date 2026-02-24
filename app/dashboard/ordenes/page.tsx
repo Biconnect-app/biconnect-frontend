@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Download, Search, TrendingUp, TrendingDown, Activity } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ApiKeyAlert } from "@/components/api-key-alert"
-import { createClient } from "@/lib/supabase/client"
+import { authFetch } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface Operacion {
@@ -191,37 +191,20 @@ export default function OrdersPage() {
 
   const loadData = async () => {
     try {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) {
-        setLoading(false)
-        return
+      const operacionesResponse = await authFetch("/api/operaciones")
+      if (operacionesResponse.ok) {
+        const data = await operacionesResponse.json()
+        setOperaciones(data.operaciones || [])
+      } else {
+        console.error("Error loading operaciones")
       }
 
-      const { data: operacionesData, error: operacionesError } = await supabase
-        .from("operaciones")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-
-      if (operacionesError) {
-        console.error("Error loading operaciones:", operacionesError)
+      const strategiesResponse = await authFetch("/api/strategies")
+      if (strategiesResponse.ok) {
+        const data = await strategiesResponse.json()
+        setStrategies((data.strategies || []).map((strategy: any) => ({ id: strategy.id, name: strategy.name })))
       } else {
-        setOperaciones(operacionesData || [])
-      }
-
-      const { data: strategiesData, error: strategiesError } = await supabase
-        .from("strategies")
-        .select("id, name")
-        .eq("user_id", user.id)
-
-      if (strategiesError) {
-        console.error("Error loading strategies:", strategiesError)
-      } else {
-        setStrategies(strategiesData || [])
+        console.error("Error loading strategies")
       }
 
       setLoading(false)

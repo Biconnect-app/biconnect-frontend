@@ -10,13 +10,16 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Eye, EyeOff, AlertCircle, Moon, Sun } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
+import { signInWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence, browserSessionPersistence } from "firebase/auth"
+import { firebaseAuth, getIdToken } from "@/lib/firebase/client"
+import { authFetch } from "@/lib/api"
 import { useTheme } from "next-themes"
 
 export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { theme, setTheme, resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState("")
@@ -32,6 +35,10 @@ export default function LoginPage() {
     }
   }, [searchParams])
 
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
@@ -44,65 +51,49 @@ export default function LoginPage() {
     }
 
     try {
-      const supabase = createClient()
       let emailToUse = formData.emailOrUsername
 
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
       const isEmail = emailRegex.test(formData.emailOrUsername)
 
       if (!isEmail) {
-        // Input is a username, look up the email
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("id")
-          .eq("username", formData.emailOrUsername)
-          .maybeSingle()
+        const response = await fetch("/api/auth/username-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: formData.emailOrUsername }),
+        })
 
-        if (profileError) {
-          console.error("Error looking up username:", profileError)
-          setError("Error al buscar el usuario")
-          setLoading(false)
-          return
-        }
-
-        if (!profile) {
+        if (!response.ok) {
           setError("Usuario o contraseña incorrectos")
           setLoading(false)
           return
         }
 
-        // Get the email from auth.users using the user ID
-        const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profile.id)
-
-        if (userError || !userData.user) {
-          console.error("Error getting user email:", userError)
-          setError("Error al obtener información del usuario")
-          setLoading(false)
-          return
-        }
-
-        emailToUse = userData.user.email || ""
+        const data = await response.json()
+        emailToUse = data.email || ""
       }
 
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email: emailToUse,
-        password: formData.password,
-      })
+      await setPersistence(firebaseAuth, rememberMe ? browserLocalPersistence : browserSessionPersistence)
+      const credential = await signInWithEmailAndPassword(firebaseAuth, emailToUse, formData.password)
+      const user = credential.user
 
-      if (signInError) {
-        console.error("Login error:", signInError)
-        if (signInError.message.includes("Email not confirmed")) {
-          setError("Por favor verifica tu email antes de iniciar sesión")
-        } else if (signInError.message.includes("Invalid login credentials")) {
-          setError("Usuario o contraseña incorrectos")
-        } else {
-          setError(signInError.message)
-        }
+      if (!user.emailVerified) {
+        await signOut(firebaseAuth)
+        setError("Por favor verifica tu email antes de iniciar sesión")
         setLoading(false)
         return
       }
 
-      if (data.user) {
+      const idToken = await getIdToken()
+      if (idToken) {
+        await fetch("/api/auth/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idToken }),
+        })
+      }
+
+      if (user) {
         // Check both localStorage and sessionStorage
         const previewDataString = localStorage.getItem("previewStrategy") || sessionStorage.getItem("previewStrategy")
         const fromPreviewString = localStorage.getItem("fromPreview") || sessionStorage.getItem("fromPreview")
@@ -110,7 +101,7 @@ export default function LoginPage() {
         console.log("📋 Login - Checking for preview strategy:", { 
           hasPreviewData: !!previewDataString, 
           fromPreview: fromPreviewString,
-          email: data.user.email 
+          email: user.email 
         })
 
         if (previewDataString && fromPreviewString === "true") {
@@ -120,39 +111,33 @@ export default function LoginPage() {
             console.log("💾 Strategy data:", { name: strategyData.name, exchange: strategyData.exchange })
 
             // Verificar si el nombre de la estrategia ya existe
-            const { data: existingStrategies, error: checkError } = await supabase
-              .from("strategies")
-              .select("name")
-              .eq("user_id", data.user.id)
-              .eq("name", strategyData.name)
+            const checkResponse = await authFetch("/api/profile/strategies/check-name", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ name: strategyData.name }),
+            })
 
-            if (checkError) {
-              console.error("Error checking existing strategy names:", checkError)
-            } else if (existingStrategies && existingStrategies.length > 0) {
+            if (!checkResponse.ok) {
+              console.error("Error checking existing strategy names")
+            } else {
+              const checkData = await checkResponse.json()
+              if (checkData.exists) {
               // Encontrar un nombre único agregando (copia), (copia 2), etc.
-              let newName = `${strategyData.name} (copia)`
-              let counter = 2
+              const uniqueResponse = await authFetch("/api/profile/strategies/unique-name", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ baseName: strategyData.name }),
+              })
 
-              while (true) {
-                const { data: duplicateCheck } = await supabase
-                  .from("strategies")
-                  .select("name")
-                  .eq("user_id", data.user.id)
-                  .eq("name", newName)
-
-                if (!duplicateCheck || duplicateCheck.length === 0) {
-                  break
-                }
-
-                newName = `${strategyData.name} (copia ${counter})`
-                counter++
+              if (uniqueResponse.ok) {
+                const uniqueData = await uniqueResponse.json()
+                strategyData.name = uniqueData.name
               }
-
-              strategyData.name = newName
 
               // Actualizar tanto localStorage como sessionStorage con el nuevo nombre
               localStorage.setItem("previewStrategy", JSON.stringify(strategyData))
               sessionStorage.setItem("previewStrategy", JSON.stringify(strategyData))
+            }
             }
           } catch (error) {
             console.error("Error processing preview strategy name:", error)
@@ -172,13 +157,15 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-primary/5 via-background to-accent/5">
       {/* Theme Toggle */}
-      <button
-        onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-        className="fixed top-4 right-4 p-2 rounded-lg bg-card border border-border hover:bg-accent/10 transition-colors"
-        aria-label="Toggle theme"
-      >
-        {resolvedTheme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-      </button>
+      {mounted && (
+        <button
+          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+          className="fixed top-4 right-4 p-2 rounded-lg bg-card border border-border hover:bg-accent/10 transition-colors"
+          aria-label="Toggle theme"
+        >
+          {resolvedTheme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        </button>
+      )}
       
       <div className="w-full max-w-md">
         {/* Logo */}

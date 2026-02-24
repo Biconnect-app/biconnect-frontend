@@ -9,12 +9,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { AlertCircle, CheckCircle, Eye, EyeOff, ArrowLeft, Loader2, Moon, Sun } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
+import { confirmPasswordReset, verifyPasswordResetCode } from "firebase/auth"
+import { firebaseAuth } from "@/lib/firebase/client"
 import { useTheme } from "next-themes"
 
 export default function NuevaContrasenaPage() {
   const router = useRouter()
   const { theme, setTheme, resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -26,34 +28,32 @@ export default function NuevaContrasenaPage() {
   const [checkingSession, setCheckingSession] = useState(true)
 
   useEffect(() => {
-    const supabase = createClient()
+    const params = new URLSearchParams(window.location.search)
+    const oobCode = params.get("oobCode")
 
-    // Listen for the PASSWORD_RECOVERY event from Supabase
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event) => {
-        if (event === "PASSWORD_RECOVERY") {
-          setSessionReady(true)
-          setCheckingSession(false)
-        }
-      }
-    )
-
-    // Also check if user already has a session (in case the event already fired)
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
-        setSessionReady(true)
-      }
+    if (!oobCode) {
+      setSessionReady(false)
       setCheckingSession(false)
+      return
     }
 
-    // Give a small delay for the auth event to fire, then check session
-    const timeout = setTimeout(checkSession, 2000)
-
-    return () => {
-      subscription.unsubscribe()
-      clearTimeout(timeout)
+    const verify = async () => {
+      try {
+        await verifyPasswordResetCode(firebaseAuth, oobCode)
+        setSessionReady(true)
+      } catch (error) {
+        console.error("Invalid reset code:", error)
+        setSessionReady(false)
+      } finally {
+        setCheckingSession(false)
+      }
     }
+
+    verify()
+  }, [])
+
+  useEffect(() => {
+    setMounted(true)
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -73,29 +73,19 @@ export default function NuevaContrasenaPage() {
     setLoading(true)
 
     try {
-      const supabase = createClient()
+      const params = new URLSearchParams(window.location.search)
+      const oobCode = params.get("oobCode")
 
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: password,
-      })
-
-      if (updateError) {
-        console.error("Password update error:", updateError)
-        if (updateError.message.includes("same as")) {
-          setError("La nueva contraseña debe ser diferente a la anterior")
-        } else {
-          setError(updateError.message)
-        }
+      if (!oobCode) {
+        setError("Enlace invalido o expirado")
         setLoading(false)
         return
       }
 
-      // Sign out so user must log in fresh with new password
-      await supabase.auth.signOut()
+      await confirmPasswordReset(firebaseAuth, oobCode, password)
       setSuccess(true)
       setLoading(false)
 
-      // Auto-redirect to login after 3 seconds
       setTimeout(() => {
         router.push("/login")
       }, 3000)
@@ -109,13 +99,15 @@ export default function NuevaContrasenaPage() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-primary/5 via-background to-accent/5">
       {/* Theme Toggle */}
-      <button
-        onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-        className="fixed top-4 right-4 p-2 rounded-lg bg-card border border-border hover:bg-accent/10 transition-colors"
-        aria-label="Toggle theme"
-      >
-        {resolvedTheme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-      </button>
+      {mounted && (
+        <button
+          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+          className="fixed top-4 right-4 p-2 rounded-lg bg-card border border-border hover:bg-accent/10 transition-colors"
+          aria-label="Toggle theme"
+        >
+          {resolvedTheme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        </button>
+      )}
       
       <div className="w-full max-w-md">
         {/* Logo */}

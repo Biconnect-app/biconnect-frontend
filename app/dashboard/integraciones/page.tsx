@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { CheckCircle, Plus, Eye, EyeOff, Trash2, AlertCircle } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { createClient } from "@/lib/supabase/client"
+import { authFetch } from "@/lib/api"
 import { ApiKeyAlert } from "@/components/api-key-alert"
 
 interface Exchange {
@@ -37,8 +37,6 @@ export default function IntegrationsPage() {
   const [isTesting, setIsTesting] = useState(false)
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
 
-  const supabase = createClient()
-
   useEffect(() => {
     loadExchanges()
   }, [])
@@ -46,26 +44,14 @@ export default function IntegrationsPage() {
   const loadExchanges = async () => {
     try {
       setLoading(true)
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) {
+      const response = await authFetch("/api/exchanges")
+      if (!response.ok) {
+        console.error("Error loading exchanges")
         return
       }
 
-      const { data, error } = await supabase
-        .from("exchanges")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-
-      if (error) {
-        console.error("Error loading exchanges:", error)
-        return
-      }
-
-      setExchanges(data || [])
+      const data = await response.json()
+      setExchanges(data.exchanges || [])
     } catch (error) {
       console.error("Error in loadExchanges:", error)
     } finally {
@@ -81,36 +67,22 @@ export default function IntegrationsPage() {
 
     try {
       setSaving(true)
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) {
-        alert("Debes iniciar sesión")
-        return
-      }
-
-      console.log("Saving exchange for user:", user.id)
-
-      const { data, error } = await supabase
-        .from("exchanges")
-        .insert({
-          user_id: user.id,
+      const response = await authFetch("/api/exchanges", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           exchange_name: "binance",
           api_key: formData.apiKey,
           api_secret: formData.apiSecret,
           testnet: formData.testnet,
-        })
-        .select()
-        .single()
+        }),
+      })
 
-      if (error) {
-        console.error("Error saving exchange:", error)
-        alert(`Error al guardar: ${error.message}`)
+      if (!response.ok) {
+        const data = await response.json()
+        alert(`Error al guardar: ${data.error || "No se pudo guardar"}`)
         return
       }
-
-      console.log("Exchange saved:", data)
 
       // Reset form and reload exchanges
       setFormData({ apiKey: "", apiSecret: "", testnet: true })
@@ -211,11 +183,14 @@ export default function IntegrationsPage() {
     try {
       console.log("Deleting exchange:", id)
 
-      const { error } = await supabase.from("exchanges").delete().eq("id", id)
+      const response = await authFetch(`/api/exchanges?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      })
 
-      if (error) {
-        console.error("Error deleting exchange:", error)
-        alert(`Error al eliminar: ${error.message}`)
+      if (!response.ok) {
+        const data = await response.json()
+        console.error("Error deleting exchange:", data)
+        alert(`Error al eliminar: ${data.error || "No se pudo eliminar"}`)
         return
       }
 

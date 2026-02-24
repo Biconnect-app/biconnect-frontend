@@ -3,35 +3,43 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { CheckCircle, LogIn, Moon, Sun } from "lucide-react"
-import { useEffect } from "react"
-import { createClient } from "@/lib/supabase/client"
+import { useEffect, useState } from "react"
+import { signOut } from "firebase/auth"
+import { firebaseAuth } from "@/lib/firebase/client"
 import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 
 export default function RegistroConfirmadoPage() {
   const router = useRouter()
   const { theme, setTheme, resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     // Sign out the user so they have to login manually
     // This prevents auto-login after email confirmation
     async function signOut() {
-      const supabase = createClient()
-      await supabase.auth.signOut()
+      await signOut(firebaseAuth)
+      await fetch("/api/auth/session", { method: "DELETE" })
     }
     signOut()
+  }, [])
+
+  useEffect(() => {
+    setMounted(true)
   }, [])
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-primary/5 via-background to-accent/5">
       {/* Theme Toggle */}
-      <button
-        onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-        className="fixed top-4 right-4 p-2 rounded-lg bg-card border border-border hover:bg-accent/10 transition-colors"
-        aria-label="Toggle theme"
-      >
-        {resolvedTheme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-      </button>
+      {mounted && (
+        <button
+          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+          className="fixed top-4 right-4 p-2 rounded-lg bg-card border border-border hover:bg-accent/10 transition-colors"
+          aria-label="Toggle theme"
+        >
+          {resolvedTheme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        </button>
+      )}
       
       <div className="w-full max-w-md">
         {/* Logo */}

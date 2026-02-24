@@ -6,9 +6,17 @@ steps:
     - southamerica-east1-docker.pkg.dev/biconect/app-repo/biconnect-frontend:latest
     # Public variables (NEXT_PUBLIC_*)
     - --build-arg
-    - NEXT_PUBLIC_SUPABASE_URL=${_NEXT_PUBLIC_SUPABASE_URL}
+    - NEXT_PUBLIC_FIREBASE_API_KEY=${_NEXT_PUBLIC_FIREBASE_API_KEY}
     - --build-arg
-    - NEXT_PUBLIC_SUPABASE_ANON_KEY=${_NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    - NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${_NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}
+    - --build-arg
+    - NEXT_PUBLIC_FIREBASE_PROJECT_ID=${_NEXT_PUBLIC_FIREBASE_PROJECT_ID}
+    - --build-arg
+    - NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${_NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}
+    - --build-arg
+    - NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${_NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID}
+    - --build-arg
+    - NEXT_PUBLIC_FIREBASE_APP_ID=${_NEXT_PUBLIC_FIREBASE_APP_ID}
     - --build-arg
     - NEXT_PUBLIC_PAYPAL_CLIENT_ID=${_NEXT_PUBLIC_PAYPAL_CLIENT_ID}
     - --build-arg
@@ -18,6 +26,16 @@ steps:
     - --build-arg
     - NEXT_PUBLIC_SITE_URL=${_NEXT_PUBLIC_SITE_URL}
     # Server-side only variables (secrets)
+    - --build-arg
+    - DATABASE_URL=${_DATABASE_URL}
+    - --build-arg
+    - FIREBASE_PROJECT_ID=${_FIREBASE_PROJECT_ID}
+    - --build-arg
+    - FIREBASE_CLIENT_EMAIL=${_FIREBASE_CLIENT_EMAIL}
+    - --build-arg
+    - FIREBASE_PRIVATE_KEY=${_FIREBASE_PRIVATE_KEY}
+    - --build-arg
+    - PAYPAL_API_URL=${_PAYPAL_API_URL}
     - --build-arg
     - PAYPAL_CLIENT_ID=${_PAYPAL_CLIENT_ID}
     - --build-arg

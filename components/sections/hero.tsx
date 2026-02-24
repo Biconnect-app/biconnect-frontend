@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, BookOpen } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
+import { onAuthStateChanged } from "firebase/auth"
+import { firebaseAuth } from "@/lib/firebase/client"
 
 export function Hero() {
   const router = useRouter()
@@ -13,15 +14,12 @@ export function Hero() {
   const [checkingAuth, setCheckingAuth] = useState(true)
 
   useEffect(() => {
-    async function checkAuth() {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
       setIsAuthenticated(!!user)
       setCheckingAuth(false)
-    }
-    checkAuth()
+    })
+
+    return () => unsubscribe()
   }, [])
 
   const handleStartFree = () => {

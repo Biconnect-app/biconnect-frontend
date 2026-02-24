@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
+import { onAuthStateChanged } from "firebase/auth"
+import { firebaseAuth } from "@/lib/firebase/client"
+import { authFetch } from "@/lib/api"
 import { Activity, TrendingUp, AlertCircle, Clock, Zap } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -15,47 +17,32 @@ export default function DashboardPage() {
   const [user, setUser] = useState<{ email: string; name: string; plan?: string } | null>(null)
   const [hasApiKeys, setHasApiKeys] = useState(false)
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
   const { isFree, loading: planLoading } = useUserPlan()
 
   useEffect(() => {
-    async function checkAuth() {
+    const unsubscribe = onAuthStateChanged(firebaseAuth, async (authUser) => {
       try {
-        const {
-          data: { user: authUser },
-          error,
-        } = await supabase.auth.getUser()
-
-        if (error || !authUser) {
+        if (!authUser) {
           router.push("/login")
           return
         }
 
         setUser({
           email: authUser.email || "",
-          name: authUser.user_metadata?.first_name || authUser.email?.split("@")[0] || "Usuario",
-          plan: authUser.user_metadata?.plan || "free",
+          name: authUser.displayName || authUser.email?.split("@")[0] || "Usuario",
+          plan: "free",
         })
 
-        const { data: exchanges, error: exchangeError } = await supabase
-          .from("exchanges")
-          .select("id")
-          .eq("user_id", authUser.id)
-          .limit(1)
-
-        if (exchangeError) {
-          console.error("Error checking API keys:", exchangeError)
+        const exchangeResponse = await authFetch("/api/exchanges")
+        if (exchangeResponse.ok) {
+          const { exchanges } = await exchangeResponse.json()
+          setHasApiKeys(exchanges && exchanges.length > 0)
         }
 
-        setHasApiKeys(exchanges && exchanges.length > 0)
-
         const previewData = sessionStorage.getItem("previewStrategy")
-
         if (previewData) {
           try {
             const strategyData = JSON.parse(previewData)
-
-            // Create a new strategy from the preview data
             const newStrategy = {
               id: `strat-${Date.now()}`,
               name: strategyData.name,
@@ -70,20 +57,13 @@ export default function DashboardPage() {
               createdAt: new Date().toISOString(),
             }
 
-            // Add to strategies list in localStorage
             const existingStrategies = localStorage.getItem("strategies")
-
             const strategies = existingStrategies ? JSON.parse(existingStrategies) : []
             const updatedStrategies = [...strategies, newStrategy]
-
             localStorage.setItem("strategies", JSON.stringify(updatedStrategies))
-
-            // Clear the preview data
             sessionStorage.removeItem("previewStrategy")
-
-            // Redirect to strategies page to show the new strategy
             router.push("/dashboard/estrategias")
-            return // Added return to prevent further execution
+            return
           } catch (error) {
             console.error("Error creating strategy from preview:", error)
             sessionStorage.removeItem("previewStrategy")
@@ -95,10 +75,10 @@ export default function DashboardPage() {
         console.error("Auth check error:", err)
         router.push("/login")
       }
-    }
+    })
 
-    checkAuth()
-  }, [router, supabase])
+    return () => unsubscribe()
+  }, [router])
 
   if (loading || planLoading) {
     return (
