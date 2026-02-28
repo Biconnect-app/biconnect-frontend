@@ -24,6 +24,10 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null)
+  const [resendToken, setResendToken] = useState<string | null>(null)
+  const [resendLoading, setResendLoading] = useState(false)
+  const [resendMessage, setResendMessage] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     emailOrUsername: "", // Changed from 'email' to 'emailOrUsername'
     password: "",
@@ -43,6 +47,7 @@ export default function LoginPage() {
     e.preventDefault()
     setError("")
     setLoading(true)
+    setResendMessage(null)
 
     if (formData.password.length < 8) {
       setError("La contraseña debe tener al menos 8 caracteres")
@@ -76,10 +81,15 @@ export default function LoginPage() {
       await setPersistence(firebaseAuth, rememberMe ? browserLocalPersistence : browserSessionPersistence)
       const credential = await signInWithEmailAndPassword(firebaseAuth, emailToUse, formData.password)
       const user = credential.user
+      await user.getIdToken(true)
+      await user.reload()
 
       if (!user.emailVerified) {
+        const idToken = await user.getIdToken()
+        setUnverifiedEmail(user.email || emailToUse)
+        setResendToken(idToken)
+        setResendMessage("Tu cuenta no está verificada. Puedes reenviar el correo desde aquí.")
         await signOut(firebaseAuth)
-        setError("Por favor verifica tu email antes de iniciar sesión")
         setLoading(false)
         return
       }
@@ -89,7 +99,7 @@ export default function LoginPage() {
         await fetch("/api/auth/session", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ idToken }),
+          body: JSON.stringify({ idToken, rememberMe }),
         })
       }
 
@@ -154,6 +164,35 @@ export default function LoginPage() {
     }
   }
 
+  const handleResendVerification = async () => {
+    if (!resendToken) {
+      setResendMessage("Tu sesión expiró. Inicia sesión nuevamente para reenviar el correo.")
+      return
+    }
+
+    setResendLoading(true)
+    setResendMessage(null)
+
+    try {
+      const response = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken: resendToken }),
+      })
+
+      if (!response.ok) {
+        throw new Error("resend-failed")
+      }
+
+      setResendMessage("Correo reenviado. Revisa tu bandeja de entrada.")
+    } catch (resendError) {
+      console.error("Resend verification failed:", resendError)
+      setResendMessage("No se pudo reenviar el correo. Intenta nuevamente.")
+    } finally {
+      setResendLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-primary/5 via-background to-accent/5">
       {/* Theme Toggle */}
@@ -187,6 +226,24 @@ export default function LoginPage() {
             <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-3">
               <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
               <p className="text-sm text-destructive">{error}</p>
+            </div>
+          )}
+
+          {unverifiedEmail && (
+            <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+              <p className="text-sm text-amber-700 dark:text-amber-400">
+                {resendMessage || `Tu cuenta (${unverifiedEmail}) no está verificada.`}
+              </p>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="mt-3"
+                onClick={handleResendVerification}
+                disabled={resendLoading}
+              >
+                {resendLoading ? "Reenviando..." : "Reenviar correo de verificación"}
+              </Button>
             </div>
           )}
 

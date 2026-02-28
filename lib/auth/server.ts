@@ -25,15 +25,15 @@ function getCookieToken(request: Request, name: string) {
 export async function getAuthUser(request: Request): Promise<AuthUser | null> {
   const bearer = getBearerToken(request)
   const sessionCookie = getCookieToken(request, "session")
-  const token = bearer || sessionCookie
-
-  if (!token) {
+  if (!bearer && !sessionCookie) {
     return null
   }
 
   try {
     const adminAuth = getAdminAuth()
-    const decoded = await adminAuth.verifyIdToken(token)
+    const decoded = bearer
+      ? await adminAuth.verifyIdToken(bearer)
+      : await adminAuth.verifySessionCookie(sessionCookie as string, true)
     return { uid: decoded.uid, email: decoded.email }
   } catch (error) {
     console.error("Auth token verification failed:", error)

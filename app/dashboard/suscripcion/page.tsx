@@ -48,9 +48,24 @@ function SuccessMessage() {
 export default function SubscriptionPage() {
   const [loading, setLoading] = useState(true)
   const [profileData, setProfileData] = useState<ProfileData | null>(null)
-
   useEffect(() => {
-    loadUserData()
+    const checkSession = async () => {
+      try {
+        const response = await fetch("/api/auth/session-status")
+        const data = await response.json()
+        if (!data.authenticated) {
+          setLoading(false)
+          return
+        }
+
+        loadUserData()
+      } catch (error) {
+        console.error("Error checking session status:", error)
+        setLoading(false)
+      }
+    }
+
+    checkSession()
   }, [])
 
   const loadUserData = async () => {

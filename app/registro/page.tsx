@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Eye, EyeOff, AlertCircle, Check, X, Moon, Sun } from "lucide-react"
-import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from "firebase/auth"
+import { createUserWithEmailAndPassword, sendEmailVerification, setPersistence, browserSessionPersistence } from "firebase/auth"
 import { firebaseAuth } from "@/lib/firebase/client"
 import { authFetch } from "@/lib/api"
 import { useTheme } from "next-themes"
@@ -88,10 +88,17 @@ export default function RegisterPage() {
         ? `${process.env.NEXT_PUBLIC_SITE_URL}/registro/confirmado`
         : `${window.location.origin}/registro/confirmado`
 
+      await setPersistence(firebaseAuth, browserSessionPersistence)
       const credential = await createUserWithEmailAndPassword(firebaseAuth, formData.email, formData.password)
       const user = credential.user
 
       await sendEmailVerification(user, { url: redirectUrl })
+
+      try {
+        sessionStorage.setItem("signup_email", formData.email)
+      } catch (storageError) {
+        console.warn("Unable to persist signup email in sessionStorage", storageError)
+      }
 
       await authFetch("/api/profile", {
         method: "POST",
@@ -144,7 +151,6 @@ export default function RegisterPage() {
         }
 
         console.log("Registration successful, redirecting to success page")
-        await signOut(firebaseAuth)
         router.push(`/registro/exito?email=${encodeURIComponent(formData.email)}`)
       }
     } catch (err) {
