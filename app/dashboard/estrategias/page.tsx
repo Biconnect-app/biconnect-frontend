@@ -13,6 +13,7 @@ import { authFetch } from "@/lib/api"
 import { firebaseAuth } from "@/lib/firebase/client"
 import { ApiKeyAlert } from "@/components/api-key-alert"
 import { useUserPlan } from "@/hooks/use-user-plan"
+import { useDashboard } from "@/components/dashboard/layout"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -85,10 +86,15 @@ export default function StrategiesPage() {
   const [showSubscriptionDialog, setShowSubscriptionDialog] = useState(false)
   const isLoadingStrategiesRef = useRef(false)
   
+  const { isLoggingOut } = useDashboard()
   const { needsSubscription, hasUsedTrial, loading: planLoading } = useUserPlan()
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
+      if (isLoggingOut) {
+        return
+      }
+
       if (user) {
         loadStrategies(user.email || null)
         return
@@ -117,9 +123,13 @@ export default function StrategiesPage() {
     })
 
     return () => unsubscribe()
-  }, [router])
+  }, [router, isLoggingOut])
 
   const loadStrategies = async (fallbackEmail: string | null) => {
+    if (isLoggingOut) {
+      return
+    }
+
     console.log("=== loadStrategies STARTED ===")
     
     // Prevent concurrent executions
@@ -455,10 +465,10 @@ export default function StrategiesPage() {
     setTimeout(() => setCopiedPayload(null), 2000)
   }
 
-  if (loading) {
+  if (loading || isLoggingOut) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="text-center">Cargando estrategias...</div>
+        <div className="text-center">{isLoggingOut ? "Cerrando sesion..." : "Cargando estrategias..."}</div>
       </div>
     )
   }
