@@ -4,17 +4,17 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Mail, CheckCircle, Loader2, Moon, Sun } from "lucide-react"
 import { useState, useEffect } from "react"
-import { sendEmailVerification } from "firebase/auth"
-import { firebaseAuth } from "@/lib/firebase/client"
 import { useSearchParams } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { useTheme } from "next-themes"
+import { getIdToken } from "@/lib/firebase/client"
 
 export default function SignUpSuccessPage() {
   const { theme, setTheme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const [isResending, setIsResending] = useState(false)
   const [email, setEmail] = useState<string | null>(null)
+  const [resendStatus, setResendStatus] = useState<{ type: "success" | "error"; message: string } | null>(null)
   const searchParams = useSearchParams()
   const { toast } = useToast()
 
@@ -22,6 +22,17 @@ export default function SignUpSuccessPage() {
     const emailParam = searchParams.get("email")
     if (emailParam) {
       setEmail(emailParam)
+      setResendStatus(null)
+      return
+    }
+
+    try {
+      const storedEmail = sessionStorage.getItem("signup_email")
+      if (storedEmail) {
+        setEmail(storedEmail)
+      }
+    } catch (storageError) {
+      console.warn("Unable to read signup email from sessionStorage", storageError)
     }
   }, [searchParams])
 
@@ -30,45 +41,49 @@ export default function SignUpSuccessPage() {
   }, [])
 
   const handleResendEmail = async () => {
-    if (!email) {
+    const idToken = await getIdToken()
+    if (!idToken) {
+      const message = "Tu sesión expiró. Por favor inicia sesión nuevamente para reenviar el correo."
       toast({
         title: "Error",
-        description: "No se pudo obtener tu dirección de email. Por favor, intenta registrarte nuevamente.",
+        description: message,
         variant: "destructive",
       })
+      setResendStatus({ type: "error", message })
       return
     }
 
     setIsResending(true)
+    setResendStatus(null)
 
     try {
-      const user = firebaseAuth.currentUser
-      if (!user || user.email?.toLowerCase() !== email.toLowerCase()) {
-        toast({
-          title: "Inicia sesión",
-          description: "Para reenviar el correo, inicia sesión con tu cuenta y vuelve a intentarlo.",
-          variant: "destructive",
-        })
-        return
+      const response = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      })
+
+      if (!response.ok) {
+        throw new Error("resend-failed")
       }
-
-      const redirectUrl = process.env.NEXT_PUBLIC_SITE_URL
-        ? `${process.env.NEXT_PUBLIC_SITE_URL}/registro/confirmado`
-        : `${window.location.origin}/registro/confirmado`
-
-      await sendEmailVerification(user, { url: redirectUrl })
 
       toast({
         title: "Correo reenviado",
         description: "Hemos enviado un nuevo correo de verificación. Por favor, revisa tu bandeja de entrada.",
       })
+      setResendStatus({
+        type: "success",
+        message: "Correo reenviado. Revisa tu bandeja de entrada.",
+      })
     } catch (error) {
       console.error("Unexpected error resending email:", error)
+      const message = "Ocurrió un error inesperado. Por favor, intenta nuevamente."
       toast({
         title: "Error",
-        description: "Ocurrió un error inesperado. Por favor, intenta nuevamente.",
+        description: message,
         variant: "destructive",
       })
+      setResendStatus({ type: "error", message })
     } finally {
       setIsResending(false)
     }
@@ -147,13 +162,22 @@ export default function SignUpSuccessPage() {
             ¿No recibiste el correo?{" "}
             <button
               onClick={handleResendEmail}
-              disabled={isResending || !email}
+              disabled={isResending}
               className="text-primary hover:underline disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
             >
               {isResending && <Loader2 className="h-3 w-3 animate-spin" />}
               Reenviar correo de verificación
             </button>
           </p>
+          {resendStatus && (
+            <p
+              className={`mt-2 text-xs ${
+                resendStatus.type === "success" ? "text-green-600" : "text-destructive"
+              }`}
+            >
+              {resendStatus.message}
+            </p>
+          )}
         </div>
       </div>
     </div>

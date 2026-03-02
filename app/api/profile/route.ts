@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     [authUser.uid]
   )
 
-  return NextResponse.json({ profile: result.rows[0] || null })
+  return NextResponse.json({ profile: result.rows[0] || null, email: authUser.email || null })
 }
 
 export async function POST(request: Request) {

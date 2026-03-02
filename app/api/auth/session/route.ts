@@ -6,7 +6,7 @@ const SESSION_MAX_AGE_MS = 5 * 24 * 60 * 60 * 1000
 
 export async function POST(request: Request) {
   try {
-    const { idToken } = await request.json()
+    const { idToken, rememberMe } = await request.json()
 
     if (!idToken) {
       return NextResponse.json({ error: "Missing idToken" }, { status: 400 })
@@ -18,15 +18,23 @@ export async function POST(request: Request) {
     })
 
     const response = NextResponse.json({ success: true })
-    response.cookies.set({
+    const cookieOptions = {
       name: SESSION_COOKIE_NAME,
       value: sessionCookie,
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       path: "/",
-      maxAge: SESSION_MAX_AGE_MS / 1000,
       sameSite: "lax",
-    })
+    } as const
+
+    if (rememberMe) {
+      response.cookies.set({
+        ...cookieOptions,
+        maxAge: SESSION_MAX_AGE_MS / 1000,
+      })
+    } else {
+      response.cookies.set(cookieOptions)
+    }
 
     return response
   } catch (error) {
@@ -43,8 +51,8 @@ export async function DELETE() {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: 0,
     sameSite: "lax",
+    maxAge: 0,
   })
   return response
 }

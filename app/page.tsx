@@ -13,6 +13,17 @@ export default function Home() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
       if (!user) {
+        try {
+          const sessionResponse = await fetch("/api/auth/session-status")
+          const sessionData = await sessionResponse.json()
+          if (sessionData.authenticated) {
+            router.replace("/dashboard/estrategias")
+            return
+          }
+        } catch (error) {
+          console.error("Error checking session status:", error)
+        }
+
         router.replace("/preview/estrategia")
         return
       }

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Save, Eye, EyeOff, Check, X, Key } from "lucide-react"
 import { ApiKeyAlert } from "@/components/api-key-alert"
-import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth"
+import { EmailAuthProvider, onAuthStateChanged, reauthenticateWithCredential, updatePassword } from "firebase/auth"
 import { firebaseAuth } from "@/lib/firebase/client"
 import { authFetch } from "@/lib/api"
 
@@ -52,17 +52,27 @@ export default function SettingsPage() {
     loadUserData()
   }, [])
 
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
+      if (user?.email) {
+        setUserData((prev) => ({ ...prev, email: user.email as string }))
+      }
+    })
+
+    return () => unsubscribe()
+  }, [])
+
   const loadUserData = async () => {
     try {
       setLoading(true)
       const response = await authFetch("/api/profile")
       if (response.ok) {
-        const { profile } = await response.json()
+        const { profile, email } = await response.json()
         setProfileData(profile)
         setUserData({
           firstName: profile?.first_name || "",
           lastName: profile?.last_name || "",
-          email: firebaseAuth.currentUser?.email || "",
+          email: email || firebaseAuth.currentUser?.email || "",
           plan: profile?.plan === "pro" ? "Plan Pro" : "Plan Gratuito",
         })
       }

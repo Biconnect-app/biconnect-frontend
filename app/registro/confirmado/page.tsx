@@ -17,11 +17,11 @@ export default function RegistroConfirmadoPage() {
   useEffect(() => {
     // Sign out the user so they have to login manually
     // This prevents auto-login after email confirmation
-    async function signOut() {
+    async function handleSignOut() {
       await signOut(firebaseAuth)
       await fetch("/api/auth/session", { method: "DELETE" })
     }
-    signOut()
+    handleSignOut()
   }, [])
 
   useEffect(() => {
