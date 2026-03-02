@@ -13,6 +13,7 @@ import { authFetch } from "@/lib/api"
 import { firebaseAuth } from "@/lib/firebase/client"
 import { ApiKeyAlert } from "@/components/api-key-alert"
 import { useUserPlan } from "@/hooks/use-user-plan"
+import { useDashboard } from "@/components/dashboard/layout"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -85,19 +86,50 @@ export default function StrategiesPage() {
   const [showSubscriptionDialog, setShowSubscriptionDialog] = useState(false)
   const isLoadingStrategiesRef = useRef(false)
   
+  const { isLoggingOut } = useDashboard()
   const { needsSubscription, hasUsedTrial, loading: planLoading } = useUserPlan()
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
-      if (user) {
-        loadStrategies()
+    const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
+      if (isLoggingOut) {
+        return
       }
+
+      if (user) {
+        loadStrategies(user.email || null)
+        return
+      }
+
+      try {
+        const sessionResponse = await fetch("/api/auth/session-status")
+        const sessionData = await sessionResponse.json()
+        if (sessionData.authenticated) {
+          let email: string | null = null
+          const profileResponse = await authFetch("/api/profile")
+          if (profileResponse.ok) {
+            const profileData = await profileResponse.json()
+            email = profileData.email || null
+          }
+          loadStrategies(email)
+          return
+        }
+      } catch (error) {
+        console.error("Error checking session status:", error)
+      }
+
+      setLoading(false)
+      setCheckingApiKeys(false)
+      router.replace("/login")
     })
 
     return () => unsubscribe()
-  }, [])
+  }, [router, isLoggingOut])
 
-  const loadStrategies = async () => {
+  const loadStrategies = async (fallbackEmail: string | null) => {
+    if (isLoggingOut) {
+      return
+    }
+
     console.log("=== loadStrategies STARTED ===")
     
     // Prevent concurrent executions
@@ -110,15 +142,14 @@ export default function StrategiesPage() {
     
     try {
       const user = firebaseAuth.currentUser
-      if (!user) {
-        console.error("No user found")
-        setLoading(false)
-        setCheckingApiKeys(false)
-        isLoadingStrategiesRef.current = false
-        return
+      const userEmail = user?.email || fallbackEmail || null
+      if (!userEmail) {
+        console.warn("User email not available; continuing with session auth")
       }
 
-      console.log("User found:", user.email)
+      if (userEmail) {
+        console.log("User email:", userEmail)
+      }
 
       const exchangesResponse = await authFetch("/api/exchanges")
       if (!exchangesResponse.ok) {
@@ -153,19 +184,19 @@ export default function StrategiesPage() {
       console.log("📋 Dashboard - sessionStorage check:", { 
         hasData: !!previewDataString, 
         fromPreview: fromPreviewString,
-        email: user.email 
+        email: userEmail || "(unknown)" 
       })
 
       if (previewDataString && fromPreviewString === "true") {
         strategyData = JSON.parse(previewDataString)
         fromPreview = true
         console.log("✓ Found preview strategy in sessionStorage:", strategyData.name)
-      } else {
+      } else if (userEmail) {
         // Fallback to pending_strategies table
-        console.log("🔍 Dashboard - Checking pending_strategies table for email:", user.email?.toLowerCase())
+        console.log("🔍 Dashboard - Checking pending_strategies table for email:", userEmail.toLowerCase())
         
         const pendingResponse = await fetch(
-          `/api/pending-strategies?email=${encodeURIComponent(user.email?.toLowerCase() || "")}`
+          `/api/pending-strategies?email=${encodeURIComponent(userEmail.toLowerCase())}`
         )
 
         const pendingData = await pendingResponse.json()
@@ -191,9 +222,11 @@ export default function StrategiesPage() {
           sessionStorage.removeItem("fromPreview")
           
           // Delete pending strategy from database if exists
-          await fetch(`/api/pending-strategies?email=${encodeURIComponent(user.email.toLowerCase())}`, {
-            method: "DELETE",
-          })
+          if (userEmail) {
+            await fetch(`/api/pending-strategies?email=${encodeURIComponent(userEmail.toLowerCase())}`, {
+              method: "DELETE",
+            })
+          }
 
           console.log("Cleaned up preview data before saving strategy")
 
@@ -261,6 +294,7 @@ export default function StrategiesPage() {
       // Only redirect to /nueva if there are no strategies AND no preview data was processed
       if (!strategiesData || strategiesData.length === 0) {
         console.log("→ No strategies found, redirecting to /nueva")
+        setLoading(false)
         router.replace("/dashboard/estrategias/nueva")
         isLoadingStrategiesRef.current = false
         return
@@ -431,10 +465,10 @@ export default function StrategiesPage() {
     setTimeout(() => setCopiedPayload(null), 2000)
   }
 
-  if (loading) {
+  if (loading || isLoggingOut) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="text-center">Cargando estrategias...</div>
+        <div className="text-center">{isLoggingOut ? "Cerrando sesion..." : "Cargando estrategias..."}</div>
       </div>
     )
   }

@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, createContext, useContext } from "react"
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -26,6 +26,20 @@ interface DashboardLayoutProps {
   children: React.ReactNode
 }
 
+type DashboardContextValue = {
+  isLoggingOut: boolean
+}
+
+const DashboardContext = createContext<DashboardContextValue | null>(null)
+
+export function useDashboard() {
+  const context = useContext(DashboardContext)
+  if (!context) {
+    return { isLoggingOut: false }
+  }
+  return context
+}
+
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter()
   const pathname = usePathname()
@@ -34,6 +48,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { needsSubscription, loading: planLoading } = useUserPlan()
   const [showLogoutDialog, setShowLogoutDialog] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   // Prevent hydration mismatch by only rendering theme-dependent content after mount
   useEffect(() => {
@@ -90,6 +105,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const handleLogout = async () => {
     try {
+      setIsLoggingOut(true)
+
       // Remove login timestamp
       localStorage.removeItem("login_timestamp")
 
@@ -116,7 +133,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   ]
 
   return (
-    <div className="min-h-screen bg-background">
+    <DashboardContext.Provider value={{ isLoggingOut }}>
+      <div className="min-h-screen bg-background">
       {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-card border-b border-border px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -243,6 +261,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+      </div>
+    </DashboardContext.Provider>
   )
 }

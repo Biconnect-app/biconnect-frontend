@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Loader2 } from "lucide-react"
 import { firebaseAuth } from "@/lib/firebase/client"
+import { authFetch } from "@/lib/api"
 import { useRouter } from "next/navigation"
 import {
   Dialog,
@@ -127,7 +128,7 @@ export function CheckoutButton({
               onApprove: async (data: { subscriptionID: string }) => {
                 // Activate the subscription on our backend
                 try {
-                  const response = await fetch("/api/paypal/activate", {
+                  const response = await authFetch("/api/paypal/activate", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({

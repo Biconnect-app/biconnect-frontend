@@ -131,6 +131,22 @@ export default function PreviewStrategyPage() {
   }, [])
 
   useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const response = await fetch("/api/auth/session-status")
+        const data = await response.json()
+        if (data.authenticated) {
+          router.replace("/dashboard/estrategias")
+        }
+      } catch (error) {
+        console.error("Error checking session status:", error)
+      }
+    }
+
+    checkSession()
+  }, [router])
+
+  useEffect(() => {
     if (formData.marketType && formData.exchange) {
       fetchTradingPairs()
     }

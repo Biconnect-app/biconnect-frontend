@@ -15,7 +15,6 @@ import Link from "next/link"
 import { authFetch } from "@/lib/api"
 import { firebaseAuth } from "@/lib/firebase/client"
 import { onAuthStateChanged } from "firebase/auth"
-import { DashboardLayout } from "@/components/dashboard/layout"
 import { useUserPlan } from "@/hooks/use-user-plan"
 
 // Comprehensive list of trading pairs vs USDT
@@ -351,8 +350,7 @@ export default function NuevaEstrategiaPage() {
   }
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {needsSubscription && !planLoading && (
           <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
             <div className="flex items-start gap-3">
@@ -903,7 +901,6 @@ export default function NuevaEstrategiaPage() {
             </div>
           </>
         )}
-      </div>
-    </DashboardLayout>
+    </div>
   )
 }
