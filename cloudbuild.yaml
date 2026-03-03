@@ -6,42 +6,112 @@ steps:
     - southamerica-east1-docker.pkg.dev/biconect/app-repo/biconnect-frontend:latest
     # Public variables (NEXT_PUBLIC_*)
     - --build-arg
-    - NEXT_PUBLIC_FIREBASE_API_KEY=${_NEXT_PUBLIC_FIREBASE_API_KEY}
+    - NEXT_PUBLIC_FIREBASE_API_KEY=$$NEXT_PUBLIC_FIREBASE_API_KEY
     - --build-arg
-    - NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${_NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}
+    - NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=$$NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
     - --build-arg
-    - NEXT_PUBLIC_FIREBASE_PROJECT_ID=${_NEXT_PUBLIC_FIREBASE_PROJECT_ID}
+    - NEXT_PUBLIC_FIREBASE_PROJECT_ID=$$NEXT_PUBLIC_FIREBASE_PROJECT_ID
     - --build-arg
-    - NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${_NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}
+    - NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=$$NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
     - --build-arg
-    - NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${_NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID}
+    - NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=$$NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
     - --build-arg
-    - NEXT_PUBLIC_FIREBASE_APP_ID=${_NEXT_PUBLIC_FIREBASE_APP_ID}
+    - NEXT_PUBLIC_FIREBASE_APP_ID=$$NEXT_PUBLIC_FIREBASE_APP_ID
     - --build-arg
-    - NEXT_PUBLIC_PAYPAL_CLIENT_ID=${_NEXT_PUBLIC_PAYPAL_CLIENT_ID}
+    - NEXT_PUBLIC_PAYPAL_CLIENT_ID=$$NEXT_PUBLIC_PAYPAL_CLIENT_ID
     - --build-arg
-    - NEXT_PUBLIC_PAYPAL_PLAN_MONTHLY=${_NEXT_PUBLIC_PAYPAL_PLAN_MONTHLY}
+    - NEXT_PUBLIC_PAYPAL_PLAN_MONTHLY=$$NEXT_PUBLIC_PAYPAL_PLAN_MONTHLY
     - --build-arg
-    - NEXT_PUBLIC_PAYPAL_PLAN_ANNUAL=${_NEXT_PUBLIC_PAYPAL_PLAN_ANNUAL}
+    - NEXT_PUBLIC_PAYPAL_PLAN_ANNUAL=$$NEXT_PUBLIC_PAYPAL_PLAN_ANNUAL
     - --build-arg
-    - NEXT_PUBLIC_SITE_URL=${_NEXT_PUBLIC_SITE_URL}
+    - NEXT_PUBLIC_SITE_URL=$$NEXT_PUBLIC_SITE_URL
     # Server-side only variables (secrets)
     - --build-arg
-    - DATABASE_URL=${_DATABASE_URL}
+    - DATABASE_URL=$$DATABASE_URL
     - --build-arg
-    - FIREBASE_PROJECT_ID=${_FIREBASE_PROJECT_ID}
+    - FIREBASE_PROJECT_ID=$$FIREBASE_PROJECT_ID
     - --build-arg
-    - FIREBASE_CLIENT_EMAIL=${_FIREBASE_CLIENT_EMAIL}
+    - FIREBASE_CLIENT_EMAIL=$$FIREBASE_CLIENT_EMAIL
     - --build-arg
-    - FIREBASE_PRIVATE_KEY=${_FIREBASE_PRIVATE_KEY}
+    - FIREBASE_PRIVATE_KEY=$$FIREBASE_PRIVATE_KEY
     - --build-arg
-    - PAYPAL_API_URL=${_PAYPAL_API_URL}
+    - PAYPAL_API_URL=$$PAYPAL_API_URL
     - --build-arg
-    - PAYPAL_CLIENT_ID=${_PAYPAL_CLIENT_ID}
+    - PAYPAL_CLIENT_ID=$$PAYPAL_CLIENT_ID
     - --build-arg
-    - PAYPAL_CLIENT_SECRET=${_PAYPAL_CLIENT_SECRET}
+    - PAYPAL_CLIENT_SECRET=$$PAYPAL_CLIENT_SECRET
     - --build-arg
-    - PAYPAL_WEBHOOK_ID=${_PAYPAL_WEBHOOK_ID}
+    - PAYPAL_WEBHOOK_ID=$$PAYPAL_WEBHOOK_ID
     - .
+  secretEnv:
+    - NEXT_PUBLIC_FIREBASE_API_KEY
+    - NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    - NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    - NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    - NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    - NEXT_PUBLIC_FIREBASE_APP_ID
+    - NEXT_PUBLIC_PAYPAL_CLIENT_ID
+    - NEXT_PUBLIC_PAYPAL_PLAN_MONTHLY
+    - NEXT_PUBLIC_PAYPAL_PLAN_ANNUAL
+    - NEXT_PUBLIC_SITE_URL
+    - DATABASE_URL
+    - FIREBASE_PROJECT_ID
+    - FIREBASE_CLIENT_EMAIL
+    - FIREBASE_PRIVATE_KEY
+    - PAYPAL_API_URL
+    - PAYPAL_CLIENT_ID
+    - PAYPAL_CLIENT_SECRET
+    - PAYPAL_WEBHOOK_ID
+- name: gcr.io/google.com/cloudsdktool/cloud-sdk
+  args:
+    - run
+    - deploy
+    - biconnect-frontend
+    - --image
+    - southamerica-east1-docker.pkg.dev/biconect/app-repo/biconnect-frontend:latest
+    - --region
+    - southamerica-east1
+    - --platform
+    - managed
+    - --quiet
 images:
 - southamerica-east1-docker.pkg.dev/biconect/app-repo/biconnect-frontend:latest
+
+availableSecrets:
+  secretManager:
+    - versionName: projects/biconect/secrets/NEXT_PUBLIC_FIREBASE_API_KEY/versions/latest
+      env: NEXT_PUBLIC_FIREBASE_API_KEY
+    - versionName: projects/biconect/secrets/NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN/versions/latest
+      env: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    - versionName: projects/biconect/secrets/NEXT_PUBLIC_FIREBASE_PROJECT_ID/versions/latest
+      env: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    - versionName: projects/biconect/secrets/NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET/versions/latest
+      env: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    - versionName: projects/biconect/secrets/NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID/versions/latest
+      env: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    - versionName: projects/biconect/secrets/NEXT_PUBLIC_FIREBASE_APP_ID/versions/latest
+      env: NEXT_PUBLIC_FIREBASE_APP_ID
+    - versionName: projects/biconect/secrets/NEXT_PUBLIC_PAYPAL_CLIENT_ID/versions/latest
+      env: NEXT_PUBLIC_PAYPAL_CLIENT_ID
+    - versionName: projects/biconect/secrets/NEXT_PUBLIC_PAYPAL_PLAN_MONTHLY/versions/latest
+      env: NEXT_PUBLIC_PAYPAL_PLAN_MONTHLY
+    - versionName: projects/biconect/secrets/NEXT_PUBLIC_PAYPAL_PLAN_ANNUAL/versions/latest
+      env: NEXT_PUBLIC_PAYPAL_PLAN_ANNUAL
+    - versionName: projects/biconect/secrets/NEXT_PUBLIC_SITE_URL/versions/latest
+      env: NEXT_PUBLIC_SITE_URL
+    - versionName: projects/biconect/secrets/DATABASE_URL/versions/latest
+      env: DATABASE_URL
+    - versionName: projects/biconect/secrets/FIREBASE_PROJECT_ID/versions/latest
+      env: FIREBASE_PROJECT_ID
+    - versionName: projects/biconect/secrets/FIREBASE_CLIENT_EMAIL/versions/latest
+      env: FIREBASE_CLIENT_EMAIL
+    - versionName: projects/biconect/secrets/FIREBASE_PRIVATE_KEY/versions/latest
+      env: FIREBASE_PRIVATE_KEY
+    - versionName: projects/biconect/secrets/PAYPAL_API_URL/versions/latest
+      env: PAYPAL_API_URL
+    - versionName: projects/biconect/secrets/PAYPAL_CLIENT_ID/versions/latest
+      env: PAYPAL_CLIENT_ID
+    - versionName: projects/biconect/secrets/PAYPAL_CLIENT_SECRET/versions/latest
+      env: PAYPAL_CLIENT_SECRET
+    - versionName: projects/biconect/secrets/PAYPAL_WEBHOOK_ID/versions/latest
+      env: PAYPAL_WEBHOOK_ID

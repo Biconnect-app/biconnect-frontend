@@ -40,9 +40,21 @@ export async function POST(request: Request) {
     )
 
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error("Resend verification failed:", errorText)
-      return NextResponse.json({ error: "send_failed" }, { status: 500 })
+      let errorMessage = "unknown"
+      try {
+        const errorJson = await response.json()
+        errorMessage = errorJson?.error?.message || errorMessage
+      } catch (parseError) {
+        console.error("Failed to parse resend error payload:", parseError)
+      }
+
+      console.error("Resend verification failed:", errorMessage)
+
+      const status = errorMessage === "TOO_MANY_ATTEMPTS_TRY_LATER" ? 429 : 500
+      return NextResponse.json(
+        { error: "send_failed", code: errorMessage },
+        { status }
+      )
     }
 
     return NextResponse.json({ ok: true })

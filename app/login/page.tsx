@@ -28,10 +28,16 @@ export default function LoginPage() {
   const [resendToken, setResendToken] = useState<string | null>(null)
   const [resendLoading, setResendLoading] = useState(false)
   const [resendMessage, setResendMessage] = useState<string | null>(null)
+  const [cooldownUntil, setCooldownUntil] = useState<number | null>(null)
+  const [cooldownRemaining, setCooldownRemaining] = useState(0)
+  const [cooldownAttempts, setCooldownAttempts] = useState(0)
   const [formData, setFormData] = useState({
     emailOrUsername: "", // Changed from 'email' to 'emailOrUsername'
     password: "",
   })
+  const baseCooldownSeconds = 120
+  const maxCooldownSeconds = 900
+  const cooldownKey = unverifiedEmail ? `resend_verification:${unverifiedEmail}` : null
 
   useEffect(() => {
     if (searchParams.get("expired") === "true") {
@@ -42,6 +48,84 @@ export default function LoginPage() {
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    if (!cooldownKey) {
+      return
+    }
+
+    try {
+      const raw = sessionStorage.getItem(cooldownKey)
+      if (!raw) {
+        return
+      }
+
+      const data = JSON.parse(raw)
+      if (typeof data?.until !== "number") {
+        return
+      }
+
+      if (Date.now() >= data.until) {
+        sessionStorage.removeItem(cooldownKey)
+        return
+      }
+
+      setCooldownUntil(data.until)
+      setCooldownAttempts(typeof data.attempts === "number" ? data.attempts : 0)
+    } catch (storageError) {
+      console.warn("Unable to read resend cooldown", storageError)
+    }
+  }, [cooldownKey])
+
+  useEffect(() => {
+    if (!cooldownUntil) {
+      setCooldownRemaining(0)
+      return
+    }
+
+    const updateRemaining = () => {
+      const remaining = Math.max(0, Math.ceil((cooldownUntil - Date.now()) / 1000))
+      setCooldownRemaining(remaining)
+
+      if (remaining === 0) {
+        setCooldownUntil(null)
+      }
+    }
+
+    updateRemaining()
+    const intervalId = window.setInterval(updateRemaining, 1000)
+    return () => window.clearInterval(intervalId)
+  }, [cooldownUntil])
+
+  const formatCooldown = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = seconds % 60
+    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`
+  }
+
+  const startCooldown = () => {
+    const nextAttempts = Math.min(cooldownAttempts + 1, 6)
+    const nextSeconds = Math.min(baseCooldownSeconds * Math.pow(2, nextAttempts - 1), maxCooldownSeconds)
+    const until = Date.now() + nextSeconds * 1000
+
+    setCooldownAttempts(nextAttempts)
+    setCooldownUntil(until)
+    setCooldownRemaining(nextSeconds)
+
+    if (cooldownKey) {
+      sessionStorage.setItem(cooldownKey, JSON.stringify({ until, attempts: nextAttempts }))
+    }
+  }
+
+  const clearCooldown = () => {
+    setCooldownAttempts(0)
+    setCooldownUntil(null)
+    setCooldownRemaining(0)
+
+    if (cooldownKey) {
+      sessionStorage.removeItem(cooldownKey)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -170,6 +254,11 @@ export default function LoginPage() {
       return
     }
 
+    if (cooldownRemaining > 0) {
+      setResendMessage(`Espera ${formatCooldown(cooldownRemaining)} para reenviar el correo.`)
+      return
+    }
+
     setResendLoading(true)
     setResendMessage(null)
 
@@ -181,13 +270,28 @@ export default function LoginPage() {
       })
 
       if (!response.ok) {
-        throw new Error("resend-failed")
+        let errorCode = "send_failed"
+        try {
+          const errorPayload = await response.json()
+          errorCode = errorPayload?.code || errorPayload?.error || errorCode
+        } catch (parseError) {
+          console.warn("Failed to parse resend error response", parseError)
+        }
+        throw new Error(errorCode)
       }
 
+      clearCooldown()
       setResendMessage("Correo reenviado. Revisa tu bandeja de entrada.")
     } catch (resendError) {
+      const errorCode = resendError instanceof Error ? resendError.message : "send_failed"
       console.error("Resend verification failed:", resendError)
-      setResendMessage("No se pudo reenviar el correo. Intenta nuevamente.")
+      startCooldown()
+
+      if (errorCode === "TOO_MANY_ATTEMPTS_TRY_LATER") {
+        setResendMessage("Demasiados intentos. Intenta nuevamente en unos minutos.")
+      } else {
+        setResendMessage("No se pudo reenviar el correo. Intenta nuevamente.")
+      }
     } finally {
       setResendLoading(false)
     }
@@ -240,9 +344,13 @@ export default function LoginPage() {
                 variant="outline"
                 className="mt-3"
                 onClick={handleResendVerification}
-                disabled={resendLoading}
+                disabled={resendLoading || cooldownRemaining > 0}
               >
-                {resendLoading ? "Reenviando..." : "Reenviar correo de verificación"}
+                {resendLoading
+                  ? "Reenviando..."
+                  : cooldownRemaining > 0
+                    ? `Reenviar en ${formatCooldown(cooldownRemaining)}`
+                    : "Reenviar correo de verificación"}
               </Button>
             </div>
           )}
