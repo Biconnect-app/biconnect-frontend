@@ -2,12 +2,13 @@
 
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Loader2 } from "lucide-react"
+import { Loader2, ShieldCheck, Sparkles, CreditCard, Clock } from "lucide-react"
 import { firebaseAuth } from "@/lib/firebase/client"
 import { authFetch } from "@/lib/api"
 import { useRouter } from "next/navigation"
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -195,22 +196,69 @@ export function CheckoutButton({
       </Button>
 
       <Dialog open={showPayPal} onOpenChange={setShowPayPal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Suscribirse al Plan Pro</DialogTitle>
-            <DialogDescription>
-              {priceType === "yearly"
-                ? "Plan anual: $250/ano con 30 dias de prueba gratis"
-                : "Plan mensual: $25/mes con 30 dias de prueba gratis"}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            {!paypalReady && (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <DialogContent
+          showCloseButton={false}
+          className="sm:max-w-lg border border-amber-500/20 bg-gradient-to-br from-[#0f0f0f] via-[#121212] to-[#18120a]"
+        >
+          <div className="rounded-lg border border-amber-500/20 bg-[radial-gradient(circle_at_top,_rgba(251,191,36,0.15),_transparent_55%)] p-6">
+            <DialogClose className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-full border border-amber-500/30 bg-black/40 text-amber-100 shadow-sm transition hover:bg-amber-500/20 focus:outline-hidden focus:ring-2 focus:ring-amber-400">
+              <span className="text-lg leading-none">×</span>
+              <span className="sr-only">Cerrar</span>
+            </DialogClose>
+            <DialogHeader>
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-2">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-xs font-semibold text-amber-300">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Acceso inmediato
+                  </div>
+                  <DialogTitle className="text-2xl">Suscribirse al Plan Pro</DialogTitle>
+                  <DialogDescription className="text-sm text-muted-foreground">
+                    {priceType === "yearly"
+                      ? "Plan anual: $250/ano con 30 dias de prueba gratis"
+                      : "Plan mensual: $25/mes con 30 dias de prueba gratis"}
+                  </DialogDescription>
+                </div>
+                <div className="flex flex-col items-end">
+                  <span className="text-xs uppercase tracking-[0.2em] text-amber-400/70">Pro</span>
+                  <span className="text-3xl font-semibold text-amber-300">
+                    {priceType === "yearly" ? "$250" : "$25"}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {priceType === "yearly" ? "por ano" : "por mes"}
+                  </span>
+                </div>
               </div>
-            )}
-            <div ref={paypalButtonRef} />
+            </DialogHeader>
+
+            <div className="mt-5 grid gap-3 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-amber-300" />
+                30 dias de prueba gratis, cancela cuando quieras.
+              </div>
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-emerald-400" />
+                Cobros seguros con PayPal y tarjeta.
+              </div>
+              <div className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4 text-blue-400" />
+                Acceso inmediato a estrategias y automatizaciones.
+              </div>
+            </div>
+
+            <div className="mt-5 rounded-xl border border-amber-500/20 bg-gradient-to-b from-white/95 to-white/85 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.35)]">
+              <div className="text-xs uppercase tracking-[0.2em] text-amber-400/70">
+                Pagar ahora
+              </div>
+              <div className="mt-2">
+                {!paypalReady && (
+                  <div className="flex items-center justify-center py-6">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+                <div className="rounded-lg bg-white p-2 shadow-inner" ref={paypalButtonRef} />
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

@@ -50,6 +50,10 @@ export default function SignUpSuccessPage() {
     try {
       const raw = sessionStorage.getItem(cooldownKey)
       if (!raw) {
+        const until = Date.now() + baseCooldownSeconds * 1000
+        sessionStorage.setItem(cooldownKey, JSON.stringify({ until, attempts: 1 }))
+        setCooldownAttempts(1)
+        setCooldownUntil(until)
         return
       }
 
@@ -68,7 +72,7 @@ export default function SignUpSuccessPage() {
     } catch (storageError) {
       console.warn("Unable to read resend cooldown", storageError)
     }
-  }, [cooldownKey])
+  }, [cooldownKey, baseCooldownSeconds])
 
   useEffect(() => {
     if (!cooldownUntil) {
@@ -108,12 +112,11 @@ export default function SignUpSuccessPage() {
     sessionStorage.setItem(cooldownKey, JSON.stringify({ until, attempts: nextAttempts }))
   }
 
-  const clearCooldown = () => {
-    setCooldownAttempts(0)
-    setCooldownUntil(null)
-    setCooldownRemaining(0)
-
-    sessionStorage.removeItem(cooldownKey)
+  const ensureCooldown = () => {
+    if (cooldownRemaining > 0) {
+      return
+    }
+    startCooldown()
   }
 
   const handleResendEmail = async () => {
@@ -160,7 +163,7 @@ export default function SignUpSuccessPage() {
         throw new Error(errorCode)
       }
 
-      clearCooldown()
+      ensureCooldown()
       toast({
         title: "Correo reenviado",
         description: "Hemos enviado un nuevo correo de verificación. Por favor, revisa tu bandeja de entrada.",
@@ -172,7 +175,7 @@ export default function SignUpSuccessPage() {
     } catch (error) {
       const errorCode = error instanceof Error ? error.message : "send_failed"
       console.error("Unexpected error resending email:", error)
-      startCooldown()
+      ensureCooldown()
 
       const message =
         errorCode === "TOO_MANY_ATTEMPTS_TRY_LATER"

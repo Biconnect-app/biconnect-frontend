@@ -57,6 +57,10 @@ export default function LoginPage() {
     try {
       const raw = sessionStorage.getItem(cooldownKey)
       if (!raw) {
+        const until = Date.now() + baseCooldownSeconds * 1000
+        sessionStorage.setItem(cooldownKey, JSON.stringify({ until, attempts: 1 }))
+        setCooldownAttempts(1)
+        setCooldownUntil(until)
         return
       }
 
@@ -75,7 +79,7 @@ export default function LoginPage() {
     } catch (storageError) {
       console.warn("Unable to read resend cooldown", storageError)
     }
-  }, [cooldownKey])
+  }, [cooldownKey, baseCooldownSeconds])
 
   useEffect(() => {
     if (!cooldownUntil) {
@@ -117,14 +121,11 @@ export default function LoginPage() {
     }
   }
 
-  const clearCooldown = () => {
-    setCooldownAttempts(0)
-    setCooldownUntil(null)
-    setCooldownRemaining(0)
-
-    if (cooldownKey) {
-      sessionStorage.removeItem(cooldownKey)
+  const ensureCooldown = () => {
+    if (cooldownRemaining > 0) {
+      return
     }
+    startCooldown()
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -280,12 +281,12 @@ export default function LoginPage() {
         throw new Error(errorCode)
       }
 
-      clearCooldown()
+      ensureCooldown()
       setResendMessage("Correo reenviado. Revisa tu bandeja de entrada.")
     } catch (resendError) {
       const errorCode = resendError instanceof Error ? resendError.message : "send_failed"
       console.error("Resend verification failed:", resendError)
-      startCooldown()
+      ensureCooldown()
 
       if (errorCode === "TOO_MANY_ATTEMPTS_TRY_LATER") {
         setResendMessage("Demasiados intentos. Intenta nuevamente en unos minutos.")
